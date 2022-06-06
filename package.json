@@ -1,0 +1,54 @@
+{
+  "name": "mua-accounts-api",
+  "version": "0.0.1",
+  "description": "",
+  "type": "module",
+  "main": "index.js",
+  "scripts": {
+    "lint": "npx standard",
+    "lint-fix": "npx standard --fix",
+    "test": "node --experimental-vm-modules node_modules/jest/bin/jest.js --collect-coverage",
+    "test-brk": "node --inspect-brk --experimental-vm-modules node_modules/jest/bin/jest.js",
+    "serve": "cd src; node index.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/gyulanemeth/mua-accounts-api.git"
+  },
+  "bugs": {
+    "url": "https://github.com/gyulanemeth/mua-accounts-api/issues"
+  },
+  "homepage": "https://github.com/gyulanemeth/mua-accounts-api#readme",
+  "standard": {
+    "env": [
+      "jest"
+    ]
+  },
+  "jest": {
+    "testEnvironment": "jest-environment-node",
+    "transform": {},
+    "verbose": true,
+    "testTimeout": 5000,
+    "coverageThreshold": {
+      "global": {
+        "branches": 100,
+        "functions": 100,
+        "lines": 100,
+        "statements": 100
+      }
+    }
+  },
+  "dependencies": {
+    "express-async-api": "^0.2.0",
+    "mongoose": "^6.3.5",
+    "mongoose-crudl": "^0.3.1"
+  },
+  "devDependencies": {
+    "jest": "^28.1.0",
+    "mongoose-memory": "^1.0.0",
+    "standard": "^17.0.0",
+    "supertest": "^6.2.3"
+  },
+  "author": "GYN",
+  "license": "MIT"
+}
