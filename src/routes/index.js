@@ -8,7 +8,17 @@ import account from './accounts.js'
 import users from './users.js'
 
 export default () => {
-  const apiServer = createApiServer(() => {}, () => {})
+
+  function errorHandler (e) {
+    return {
+      status: e.status,
+      error: {
+        name: e.name,
+        message: e.message
+      }
+    }
+  }
+  const apiServer = createApiServer(errorHandler, () => {})
 
   users(apiServer)
   login(apiServer)

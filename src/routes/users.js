@@ -1,24 +1,23 @@
 import { list, readOne, deleteOne, deleteMany, patchOne, createOne } from 'mongoose-crudl'
-//import jwt from 'jsonwebtoken'
+
 import allowAccessTo from 'bearer-jwt-auth'
-import AccounModel from '../models/Account.js'
+import AccountModel from '../models/Account.js'
 import UserModel from '../models/User.js'
 import { MethodNotAllowedError, ValidationError, NotFoundError } from 'standard-api-errors'
 
-import allowAccessTo from 'bearer-jwt-auth'
 import crypto from 'crypto'
 
 export default (apiServer) => {
   const secrets = process.env.SECRETS.split(' ')
 
 
-  apiServer.patchOne('/v1/accounts/:accountId/users/:id/name', async req => {
+  apiServer.patch('/v1/accounts/:accountId/users/:id/name', async req => {
     allowAccessTo(req, secrets, [{ type: 'admin' }, { type: 'user', role: 'admin' }, { type: 'user', id: req.params.id }])
     const user = await patchOne(UserModel, { id: req.params.id, accountId: req.params.accountId }, { name: req.body.name } )
     return user
     })
 
-  apiServer.patchOne('/v1/accounts/:accountId/users/:id/password', async req => {
+  apiServer.patch('/v1/accounts/:accountId/users/:id/password', async req => {
     allowAccessTo(req, secrets, [{ type: 'admin' }, { type: 'user', id: req.params.id }])
     if (req.body.password !== req.body.passwordAgain) {
       throw new ValidationError("Validation error passwords didn't match ")
@@ -28,7 +27,7 @@ export default (apiServer) => {
     return user
     })
 
-  apiServer.patchOne('/v1/accounts/:accountId/users/:id/role', async req => {
+  apiServer.patch('/v1/accounts/:accountId/users/:id/role', async req => {
     allowAccessTo(req, secrets, [{ type: 'admin' }, { type: 'user', role: 'admin' }])
 
     const user = await readOne(UserModel, { id: req.params.id, accountId: req.params.accountId })
@@ -42,7 +41,7 @@ export default (apiServer) => {
     return updatedUser;
     })
 
-  apiServer.deleteOne('/v1/accounts/:accountId/users/:id', async req => {
+  apiServer.delete('/v1/accounts/:accountId/users/:id', async req => {
     allowAccessTo(req, secrets, [{ type: 'admin' }, { type: 'user', role: 'admin' }])
 
     let user = await readOne(UserModel, { id: req.params.id, accountId: req.params.accountId })
@@ -61,21 +60,20 @@ export default (apiServer) => {
     apiServer.get('/v1/accounts/:accountId/users/:id/access-token', async req => {
       allowAccessTo(req, secrets, [{ type: 'admin' }, { type: 'user', user: { _id: req.params.id, accountId: req.params.accountId} }])
 
-      const account = await readOne(AccountModel, { id: req.params.accountId }, req.query )
+      const findUser = await readOne(UserModel, { id: req.params.id, accountId: req.params.accountId }, req.query )
+      const getAccount = await readOne(AccountModel, { id: req.params.accountId }, req.query )
 
-      const user = await readOne(UserModel, { id: req.params.id, accountId: req.params.accountId }, req.query )
-      //ask about token type
       const payload = {
         type: 'user',
         user: {
-          _id: response.result._id,
-          email: response.result.email
+          _id: findUser.result.items[0]._id,
+          email: response.result.items[0].email
         },
         account:{
-          _id: account.result._id,
-          urlFriendlyName: account.result.urlFriendlyName
+          _id: getAccount.result._id,
+          urlFriendlyName: getAccount.result.urlFriendlyName
         },
-        role: user.result.role
+        role: user.result.items[0].role
       }
       const token = jwt.sign(payload, secrets[0])
       return {
@@ -87,18 +85,17 @@ export default (apiServer) => {
       })
 
 
-  apiServer.post('/v1/accounts/:accountId/users/:id/finalize-registration', async req => {
-    allowAccessTo(req, secrets, [{ type: 'registration' }])
+    apiServer.post('/v1/accounts/:accountId/users/:id/finalize-registration', async req => {
+      allowAccessTo(req, secrets, [{ type: 'registration' }])
 
-    const account = await list(AccountModel, { id: data.accountId }, req.query )
-    let user = await list(UserModel, { id: data.userId }, req.query)
-    if(account.result.count === 0 && user.result.count === 0 ){
-      throw new NotFoundError("account or user not found")
-    }
-    user = await patchOne(UserModel, { id: data.userId, role: "admin" }, req.query)
-    return user
-  })
-
+      const account = await list(AccountModel, { id: data.accountId }, req.query )
+      let user = await list(UserModel, { id: data.userId }, req.query)
+      if(account.result.count === 0 && user.result.count === 0 ){
+        throw new NotFoundError("account or user not found")
+      }
+      user = await patchOne(UserModel, { id: data.userId, role: "admin" }, req.query)
+      return user
+    })
 
     apiServer.get('/v1/accounts/:accountId/users', async req => {
       allowAccessTo(req, secrets, [{ type: 'admin' }, { type: 'user' }])

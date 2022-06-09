@@ -25,6 +25,9 @@
     ]
   },
   "jest": {
+    "setupFiles": [
+      "dotenv/config"
+    ],
     "testEnvironment": "jest-environment-node",
     "transform": {},
     "verbose": true,
@@ -39,9 +42,15 @@
     }
   },
   "dependencies": {
+    "bearer-jwt-auth": "^1.0.0",
+    "dotenv": "^16.0.1",
     "express-async-api": "^0.2.0",
+    "handlebars": "^4.7.7",
+    "jsonwebtoken": "^8.5.1",
     "mongoose": "^6.3.5",
-    "mongoose-crudl": "^0.3.1"
+    "mongoose-crudl": "^0.3.1",
+    "nodemailer": "^6.7.5",
+    "standard-api-errors": "^0.2.0"
   },
   "devDependencies": {
     "jest": "^28.1.0",
