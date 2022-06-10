@@ -16,24 +16,6 @@ const secrets = process.env.SECRETS.split(' ')
 describe('forgot-password test', () => {
   let app
 
-  /*  function emailTesting (info, toBeType, toBeEmail) {
-    const messageUrl = nodemailer.getTestMessageUrl(info)
-
-    fetch(messageUrl).then(function (response) {
-      return response.text()
-    }).then(function (html) {
-      const regex = /<a id=\"forgetPasswordLink\" href=\".*\?token=([^"&]+)">/g
-      const found = html.match(regex)[0]
-      const tokenPosition = found.indexOf('token=')
-      const endTagPosition = found.indexOf('\\">')
-      const token = found.substring(tokenPosition + 6, endTagPosition)
-      const verifiedToken = jwt.verify(token, secrets[0])
-
-      expect(token).toBeDefined()
-      expect(verifiedToken.type).toBe(toBeType)
-      expect(verifiedToken.email).toBe(toBeEmail)
-    })
-  } */
   beforeAll(async () => {
     await mongooseMemoryServer.start()
     await mongooseMemoryServer.connect('test-db')
@@ -71,9 +53,24 @@ describe('forgot-password test', () => {
       .send({ email: user1.email })
     expect(res.body.status).toBe(200)
     expect(res.body.result.success).toBe(true)
-  //  emailTesting(res.body.result.info, 'forgot-password', user1.email)
-  })
 
+    // testing email sent
+    /*
+    const messageUrl = nodemailer.getTestMessageUrl(res.body.result.info)
+
+      const html = await fetch(messageUrl).then(response => response.text())
+      const regex = /<a id=\"forgetPasswordLink\" href=\".*\?token=([^"&]+)">/g
+      const found = html.match(regex)[0]
+      const tokenPosition = found.indexOf('token=')
+      const endTagPosition = found.indexOf('\\">')
+      const jtmlToken = found.substring(tokenPosition + 6, endTagPosition)
+      const verifiedToken = jwt.verify(htmlToken, secrets[0])
+
+      expect(htmlToken).toBeDefined()
+      expect(verifiedToken.type).toBe('forgot-password')
+      expect(verifiedToken.email).toBe(user1.email)
+  */
+  })
   test('send forget password error user not found  /v1/accounts/:accountId/forgot-password/send', async () => {
     const account1 = new Account({ name: 'accountExample1', urlFriendlyName: 'urlFriendlyNameExample1' })
     await account1.save()

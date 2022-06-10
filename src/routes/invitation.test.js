@@ -3,6 +3,7 @@ import request from 'supertest'
 import crypto from 'crypto'
 import createMongooseMemoryServer from 'mongoose-memory'
 import jwt from 'jsonwebtoken'
+// import nodemailer from 'nodemailer'
 
 import createServer from './index.js'
 
@@ -14,6 +15,7 @@ const secrets = process.env.SECRETS.split(' ')
 
 describe('invitation test', () => {
   let app
+
   beforeAll(async () => {
     await mongooseMemoryServer.start()
     await mongooseMemoryServer.connect('test-db')
@@ -50,6 +52,23 @@ describe('invitation test', () => {
 
     expect(res.body.status).toBe(201)
     expect(res.body.result.success).toBe(true)
+
+    // testing email sent
+    /*
+      const messageUrl = nodemailer.getTestMessageUrl(res.body.result.info)
+
+        const html = await fetch(messageUrl).then(response => response.text())
+        const regex = /<a id=\"invitationLink\" href=\".*\?token=([^"&]+)">/g
+        const found = html.match(regex)[0]
+        const tokenPosition = found.indexOf('token=')
+        const endTagPosition = found.indexOf('\\">')
+        const jtmlToken = found.substring(tokenPosition + 6, endTagPosition)
+        const verifiedToken = jwt.verify(htmlToken, secrets[0])
+
+        expect(htmlToken).toBeDefined()
+        expect(verifiedToken.type).toBe('invitation')
+        expect(verifiedToken.email).toBe(''user3@gmail.com'email)
+    */
   })
 
   test('success send invitation by user role admin  /v1/accounts/:accountId/invitation/send', async () => {
@@ -71,6 +90,23 @@ describe('invitation test', () => {
 
     expect(res.body.status).toBe(201)
     expect(res.body.result.success).toBe(true)
+
+    // testing email sent
+    /*
+        const messageUrl = nodemailer.getTestMessageUrl(res.body.result.info)
+
+          const html = await fetch(messageUrl).then(response => response.text())
+          const regex = /<a id=\"invitationLink\" href=\".*\?token=([^"&]+)">/g
+          const found = html.match(regex)[0]
+          const tokenPosition = found.indexOf('token=')
+          const endTagPosition = found.indexOf('\\">')
+          const jtmlToken = found.substring(tokenPosition + 6, endTagPosition)
+          const verifiedToken = jwt.verify(htmlToken, secrets[0])
+
+          expect(htmlToken).toBeDefined()
+          expect(verifiedToken.type).toBe('invitation')
+          expect(verifiedToken.email).toBe(''user3@gmail.com'email)
+      */
   })
 
   test('send invitation error user exist  /v1/accounts/:accountId/invitation/send', async () => {

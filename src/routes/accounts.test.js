@@ -3,6 +3,7 @@ import request from 'supertest'
 import crypto from 'crypto'
 import createMongooseMemoryServer from 'mongoose-memory'
 import jwt from 'jsonwebtoken'
+// import nodemailer from 'nodemailer'
 
 import createServer from './index.js'
 
@@ -462,6 +463,23 @@ describe('accounts test', () => {
       })
 
     expect(res.body.status).toBe(200)
+
+    // testing email sent
+    /*
+    const messageUrl = nodemailer.getTestMessageUrl(res.body.result.info)
+
+      const html = await fetch(messageUrl).then(response => response.text())
+      const regex = /<a id=\"registrationLink\" href=\".*\?token=([^"&]+)">/g
+      const found = html.match(regex)[0]
+      const tokenPosition = found.indexOf('token=')
+      const endTagPosition = found.indexOf('\\">')
+      const jtmlToken = found.substring(tokenPosition + 6, endTagPosition)
+      const verifiedToken = jwt.verify(htmlToken, secrets[0])
+
+      expect(htmlToken).toBeDefined()
+      expect(verifiedToken.type).toBe('registration')
+      expect(verifiedToken.email).toBe('user1@gmail.com')
+  */
   })
 
   test('create account urlFriendlyName exist   /v1/accounts/create', async () => {
