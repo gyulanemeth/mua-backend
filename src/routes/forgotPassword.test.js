@@ -5,7 +5,7 @@ import createMongooseMemoryServer from 'mongoose-memory'
 import jwt from 'jsonwebtoken'
 
 import createServer from './index.js'
-// import nodemailer from 'nodemailer'
+import nodemailer from 'nodemailer'
 
 import Account from '../models/Account.js'
 import User from '../models/User.js'
@@ -55,21 +55,21 @@ describe('forgot-password test', () => {
     expect(res.body.result.success).toBe(true)
 
     // testing email sent
-    /*
+
     const messageUrl = nodemailer.getTestMessageUrl(res.body.result.info)
 
+
       const html = await fetch(messageUrl).then(response => response.text())
-      const regex = /<a id=\"forgetPasswordLink\" href=\".*\?token=([^"&]+)">/g
+      const regex = /<a[\s]+id=\\"forgetPasswordLink\\"[^\n\r]*\?token=([^"&]+)">/g
       const found = html.match(regex)[0]
       const tokenPosition = found.indexOf('token=')
       const endTagPosition = found.indexOf('\\">')
-      const jtmlToken = found.substring(tokenPosition + 6, endTagPosition)
+      const htmlToken = found.substring(tokenPosition + 6, endTagPosition)
       const verifiedToken = jwt.verify(htmlToken, secrets[0])
-
       expect(htmlToken).toBeDefined()
       expect(verifiedToken.type).toBe('forgot-password')
-      expect(verifiedToken.email).toBe(user1.email)
-  */
+      expect(verifiedToken.user.email).toBe(user1.email)
+
   })
   test('send forget password error user not found  /v1/accounts/:accountId/forgot-password/send', async () => {
     const account1 = new Account({ name: 'accountExample1', urlFriendlyName: 'urlFriendlyNameExample1' })
