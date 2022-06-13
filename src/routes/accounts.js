@@ -96,7 +96,7 @@ export default (apiServer) => {
     const template = handlebars.compile(registration)
     const html = template({ token })
 
-    const mail = await Email('example@example.com', 'Registration link ', html)
+    const mail = await Email(newUser.result.email, 'Registration link ', html)
 
     return {
       status: 200,

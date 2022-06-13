@@ -33,7 +33,7 @@ export default (apiServer) => {
     const token = jwt.sign(payload, secrets[0])
     const template = handlebars.compile(forgotPassword)
     const html = template({ token })
-    const mail = await Email('example@example.com', 'forget password link', html)
+    const mail = await Email(response.result.items[0].email, 'forget password link', html)
 
     return {
       status: 200,
