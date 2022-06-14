@@ -17,15 +17,15 @@ const Invitation = fs.readFileSync(path.join(__dirname, '..', 'email-templates',
 export default (apiServer) => {
   const secrets = process.env.SECRETS.split(' ')
 
-  apiServer.post('/v1/accounts/:accountId/invitation/send', async req => {
+  apiServer.post('/v1/accounts/:id/invitation/send', async req => {
     allowAccessTo(req, secrets, [{ type: 'admin' }, { type: 'user', role: 'admin' }])
-    const checkAccount = await readOne(AccountModel, { id: req.params.accountId }, req.query)
+    const checkAccount = await readOne(AccountModel, { id: req.params.id }, req.query)
 
-    const checkUser = await list(UserModel, { email: req.body.email, accountId: req.params.accountId }, req.query)
+    const checkUser = await list(UserModel, { email: req.body.email, accountId: req.params.id }, req.query)
     if (checkUser.result.count !== 0) {
       throw new MethodNotAllowedError('User exist')
     }
-    const newUser = await createOne(UserModel, req.params, { email: req.body.email, accountId: req.params.accountId })
+    const newUser = await createOne(UserModel, req.params, { email: req.body.email, accountId: req.params.id })
 
     const payload = {
       type: 'invitation',
@@ -51,10 +51,10 @@ export default (apiServer) => {
     }
   })
 
-  apiServer.post('/v1/accounts/:accountId/invitation/accept', async req => {
-    const data = allowAccessTo(req, secrets, [{ type: 'invitation', account: { _id: req.params.accountId } }])
+  apiServer.post('/v1/accounts/:id/invitation/accept', async req => {
+    const data = allowAccessTo(req, secrets, [{ type: 'invitation', account: { _id: req.params.id } }])
 
-    const user = await readOne(UserModel, { id: data.user._id, email: data.user.email, accountId: req.params.accountId }, req.query)
+    const user = await readOne(UserModel, { id: data.user._id, email: data.user.email, accountId: req.params.id }, req.query)
 
     if (user.result.password) {
       throw new MethodNotAllowedError('User already has a password')
@@ -71,7 +71,7 @@ export default (apiServer) => {
         email: updatedUser.result.email
       }
     }
-    const token = 'Bearer ' + jwt.sign(payload, secrets[0])
+    const token = jwt.sign(payload, secrets[0])
     return {
       status: 200,
       result: {

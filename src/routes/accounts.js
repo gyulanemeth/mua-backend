@@ -18,15 +18,15 @@ export default (apiServer) => {
   const secrets = process.env.SECRETS.split(' ')
 
   apiServer.get('/v1/accounts/check-availability', async req => {
-    let availability = false
+    let available = false
     const response = await list(AccountModel, { urlFriendlyName: req.query.urlFriendlyName })
     if (response.result.count > 0) {
-      availability = true
+      available = true
     }
     return {
-      status: availability ? 200 : 404,
+      status: 200,
       result: {
-        availability
+        available
       }
     }
   })
@@ -43,8 +43,8 @@ export default (apiServer) => {
     return response
   })
 
-  apiServer.get('/v1/accounts/:id', async req => {
-    allowAccessTo(req, secrets, [{ type: 'admin' }, { type: 'user' }])
+  apiServer.get('/v1/accounts/:id', async req => { /// update user should be associated to account
+    allowAccessTo(req, secrets, [{ type: 'admin' }, { type: 'user', account: { _id: req.params.id } }])
     const response = await readOne(AccountModel, { id: req.params.id }, req.query)
     return response
   })
@@ -63,12 +63,11 @@ export default (apiServer) => {
 
   apiServer.delete('/v1/accounts/:id', async req => {
     allowAccessTo(req, secrets, [{ type: 'admin' }, { type: 'user', role: 'admin' }])
-    const deletedUsers = await deleteMany(UserModel, { accountId: req.params.id })
+    deleteMany(UserModel, { accountId: req.params.id })
     const deletedAccount = await deleteOne(AccountModel, { id: req.params.id })
     return {
       status: 200,
       result: {
-        deletedUsers: deletedUsers.result,
         deletedAccount: deletedAccount.result
       }
     }

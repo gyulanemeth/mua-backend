@@ -16,9 +16,9 @@ const forgotPassword = fs.readFileSync(path.join(__dirname, '..', 'email-templat
 export default (apiServer) => {
   const secrets = process.env.SECRETS.split(' ')
 
-  apiServer.post('/v1/accounts/:accountId/forgot-password/send', async req => {
+  apiServer.post('/v1/accounts/:id/forgot-password/send', async req => {
     allowAccessTo(req, secrets, [{ type: 'admin' }, { type: 'user', role: 'admin' }])
-    const response = await list(UserModel, { email: req.body.email, accountId: req.params.accountId }, { select: { password: 0 } })
+    const response = await list(UserModel, { email: req.body.email, accountId: req.params.id }, { select: { password: 0 } })
     if (response.result.count === 0) {
       throw new AuthenticationError('Email Authentication Error ')
     }
@@ -44,9 +44,9 @@ export default (apiServer) => {
     }
   })
 
-  apiServer.post('/v1/accounts/:accountId/forgot-password/reset', async req => {
+  apiServer.post('/v1/accounts/:id/forgot-password/reset', async req => {
     const data = allowAccessTo(req, secrets, [{ type: 'forgot-password' }])
-    const response = await list(UserModel, { email: data.user.email, accountId: req.params.accountId }, { select: { password: 0 } })
+    const response = await list(UserModel, { email: data.user.email, accountId: req.params.id }, { select: { password: 0 } })
     if (response.result.count === 0) {
       throw new AuthenticationError('Email Authentication Error ')
     }
@@ -54,15 +54,15 @@ export default (apiServer) => {
       throw new ValidationError("Validation error passwords didn't match ")
     }
     const hash = crypto.createHash('md5').update(req.body.password).digest('hex')
-    const updatedAdmin = await patchOne(UserModel, { id: data.user._id }, { password: hash })
+    const updatedUser = await patchOne(UserModel, { id: data.user._id }, { password: hash })
     const payload = {
       type: 'login',
       user: {
-        _id: updatedAdmin.result._id,
-        email: updatedAdmin.result.email
+        _id: updatedUser.result._id,
+        email: updatedUser.result.email
       }
     }
-    const token = 'Bearer ' + jwt.sign(payload, secrets[0])
+    const token = jwt.sign(payload, secrets[0])
     return {
       status: 200,
       result: {

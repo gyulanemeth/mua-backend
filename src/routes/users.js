@@ -11,13 +11,13 @@ export default (apiServer) => {
   const secrets = process.env.SECRETS.split(' ')
 
   apiServer.patch('/v1/accounts/:accountId/users/:id/name', async req => {
-    allowAccessTo(req, secrets, [{ type: 'admin' }, { type: 'user', role: 'admin' }, { type: 'user', user: { _id: req.params.id } }])
+    allowAccessTo(req, secrets, [{ type: 'admin' }, { type: 'user', role: 'admin' }, { type: 'user', user: { _id: req.params.id }, account:{ _id: req.params.accountId }}])
     const user = await patchOne(UserModel, { id: req.params.id, accountId: req.params.accountId }, { name: req.body.name })
     return user
   })
 
   apiServer.patch('/v1/accounts/:accountId/users/:id/password', async req => {
-    allowAccessTo(req, secrets, [{ type: 'admin' }, { type: 'user', role: 'admin' }, { type: 'user', user: { _id: req.params.id } }])
+    allowAccessTo(req, secrets, [{ type: 'admin' }, { type: 'user', role: 'admin' }, { type: 'user', user: { _id: req.params.id }, account:{ _id: req.params.accountId } }])
     if (req.body.password !== req.body.passwordAgain) {
       throw new ValidationError("Validation error passwords didn't match ")
     }
@@ -76,7 +76,7 @@ export default (apiServer) => {
     return {
       status: 200,
       result: {
-        accessToken: 'Bearer ' + token
+        accessToken: token
       }
     }
   })
@@ -109,7 +109,7 @@ export default (apiServer) => {
   })
 
   apiServer.get('/v1/accounts/:accountId/users/:id', async req => {
-    allowAccessTo(req, secrets, [{ type: 'admin' }, { type: 'user' }])
+    allowAccessTo(req, secrets, [{ type: 'admin' }, { type: 'user', user: {_id: req.params.id }, account: { _id: req.params.accountId } }])
     const user = await readOne(UserModel, { id: req.params.id, accountId: req.params.accountId }, { select: { password: 0 } })
     return user
   })

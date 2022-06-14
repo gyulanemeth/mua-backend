@@ -75,7 +75,7 @@ describe('users test', () => {
     const user1 = new User({ email: 'user1@gmail.com', name: 'user1', password: hash1, accountId: account1._id })
     await user1.save()
 
-    const token = jwt.sign({ type: 'user', user: { _id: user1._id } }, secrets[0])
+    const token = jwt.sign({ type: 'user', user: { _id: user1._id }, account:{ _id: account1._id } }, secrets[0])
 
     const res = await request(app)
       .patch('/v1/accounts/' + account1._id + '/users/' + user1._id + '/name')
@@ -121,7 +121,7 @@ describe('users test', () => {
     expect(res.body.status).toBe(403)
   })
 
-  test('success update user password in account by admin  /v1/accounts/:accountId/users/:id/name', async () => {
+  test('success update user password in account by admin  /v1/accounts/:accountId/users/:id/password', async () => {
     const account1 = new Account({ name: 'accountExample1', urlFriendlyName: 'urlFriendlyNameExample1' })
     await account1.save()
 
@@ -139,7 +139,7 @@ describe('users test', () => {
     expect(res.body.status).toBe(200)
   })
 
-  test('success update user password in account by user with role admin  /v1/accounts/:accountId/users/:id/name', async () => {
+  test('success update user password in account by user with role admin  /v1/accounts/:accountId/users/:id/password', async () => {
     const account1 = new Account({ name: 'accountExample1', urlFriendlyName: 'urlFriendlyNameExample1' })
     await account1.save()
 
@@ -165,7 +165,7 @@ describe('users test', () => {
     const user1 = new User({ email: 'user1@gmail.com', name: 'user1', password: hash1, accountId: account1._id })
     await user1.save()
 
-    const token = jwt.sign({ type: 'user', user: { _id: user1._id } }, secrets[0])
+    const token = jwt.sign({ type: 'user', user: { _id: user1._id }, account:{ _id: account1._id } }, secrets[0])
 
     const res = await request(app)
       .patch('/v1/accounts/' + account1._id + '/users/' + user1._id + '/password')
@@ -782,7 +782,7 @@ describe('users test', () => {
     const user1 = new User({ email: 'user1@gmail.com', name: 'user1', password: hash1, accountId: account1._id })
     await user1.save()
 
-    const token = jwt.sign({ type: 'user' }, secrets[0])
+    const token = jwt.sign({ type: 'user', user:{ _id: user1._id }, account: { _id:account1._id } }, secrets[0])
 
     const res = await request(app)
       .get('/v1/accounts/' + account1._id + '/users/' + user1._id)
@@ -818,14 +818,14 @@ describe('users test', () => {
     const user1 = new User({ email: 'user1@gmail.com', name: 'user1', password: hash1, accountId: account1._id })
     await user1.save()
 
-    const token = jwt.sign({ type: 'user' }, secrets[0])
+    const token = jwt.sign({ type: 'user', user:{ _id: user1._id }, account: { _id:account1._id }  }, secrets[0])
     const id = new mongoose.Types.ObjectId()
     const res = await request(app)
       .get('/v1/accounts/' + id + '/users/' + user1._id)
       .set('authorization', 'Bearer ' + token)
       .send()
 
-    expect(res.body.status).toBe(404)
+    expect(res.body.status).toBe(403)
   })
 
   test('get account user user not found  /v1/accounts/:accountId/users/:id', async () => {
@@ -839,6 +839,6 @@ describe('users test', () => {
       .set('authorization', 'Bearer ' + token)
       .send()
 
-    expect(res.body.status).toBe(404)
+    expect(res.body.status).toBe(403)
   })
 })

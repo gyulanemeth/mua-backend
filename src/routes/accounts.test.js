@@ -523,6 +523,6 @@ describe('accounts test', () => {
         urlFrientlyName: 'test'
       })
       .send()
-    expect(res.body.status).toBe(404)
+    expect(res.body.status).toBe(200)
   })
 })
