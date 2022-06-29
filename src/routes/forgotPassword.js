@@ -3,7 +3,7 @@ import jwt from 'jsonwebtoken'
 import allowAccessTo from 'bearer-jwt-auth'
 import UserModel from '../models/User.js'
 import { ValidationError, AuthenticationError } from 'standard-api-errors'
-import Email from '../helpers/Email'
+import Email from '../helpers/Email.js'
 import crypto from 'crypto'
 
 import fs from 'fs'

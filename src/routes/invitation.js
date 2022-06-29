@@ -3,7 +3,7 @@ import allowAccessTo from 'bearer-jwt-auth'
 import jwt from 'jsonwebtoken'
 import AccountModel from '../models/Account.js'
 import UserModel from '../models/User.js'
-import Email from '../helpers/Email'
+import Email from '../helpers/Email.js'
 import { MethodNotAllowedError, ValidationError } from 'standard-api-errors'
 
 import crypto from 'crypto'
@@ -26,7 +26,6 @@ export default (apiServer) => {
       throw new MethodNotAllowedError('User exist')
     }
     const newUser = await createOne(UserModel, req.params, { email: req.body.email, accountId: req.params.id })
-
     const payload = {
       type: 'invitation',
       user: {

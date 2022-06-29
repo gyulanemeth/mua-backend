@@ -3,7 +3,7 @@ import { list, readOne, deleteOne, deleteMany, patchOne, createOne } from 'mongo
 import allowAccessTo from 'bearer-jwt-auth'
 import AccountModel from '../models/Account.js'
 import UserModel from '../models/User.js'
-import Email from '../helpers/Email'
+import Email from '../helpers/Email.js'
 import { ConflictError } from 'standard-api-errors'
 import fs from 'fs'
 import crypto from 'crypto'

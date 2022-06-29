@@ -4,5 +4,5 @@ const AccountSchema = new mongoose.Schema({
   name: { type: String },
   urlFriendlyName: { type: String }
 })
-
+AccountSchema.index({ name: "text", urlFriendlyName:"text" });
 export default mongoose.model('Account', AccountSchema)
