@@ -18,7 +18,6 @@ export default (apiServer) => {
 
   apiServer.patch('/v1/accounts/:accountId/users/:id/password', async req => {
     allowAccessTo(req, secrets, [{ type: 'admin' }, { type: 'user', role: 'admin' }, { type: 'user', user: { _id: req.params.id }, account:{ _id: req.params.accountId } }])
-
     if (req.body.newPassword !== req.body.newPasswordAgain) {
       throw new ValidationError("Validation error passwords didn't match ")
     }
