@@ -1,14 +1,17 @@
-import { list, readOne, deleteOne, patchOne, createOne } from 'mongoose-crudl'
-
-import allowAccessTo from 'bearer-jwt-auth'
-import AccountModel from '../models/Account.js'
-import UserModel from '../models/User.js'
-import { MethodNotAllowedError, ValidationError } from 'standard-api-errors'
-import jwt from 'jsonwebtoken'
 import crypto from 'crypto'
 
+import jwt from 'jsonwebtoken'
+import allowAccessTo from 'bearer-jwt-auth'
+
+import { list, readOne, deleteOne, patchOne, createOne } from 'mongoose-crudl'
+import { MethodNotAllowedError, ValidationError } from 'standard-api-errors'
+
+import AccountModel from '../models/Account.js'
+import UserModel from '../models/User.js'
+
+const secrets = process.env.SECRETS.split(' ')
+
 export default (apiServer) => {
-  const secrets = process.env.SECRETS.split(' ')
 
   apiServer.patch('/v1/accounts/:accountId/users/:id/name', async req => {
     allowAccessTo(req, secrets, [{ type: 'admin' }, { type: 'user', role: 'admin' }, { type: 'user', user: { _id: req.params.id }, account:{ _id: req.params.accountId }}])

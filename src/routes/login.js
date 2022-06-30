@@ -1,20 +1,24 @@
+import crypto from 'crypto'
+import path from 'path'
+import fs from 'fs'
+import { fileURLToPath } from 'url'
+
 import { list, readOne } from 'mongoose-crudl'
 import jwt from 'jsonwebtoken'
+import handlebars from 'handlebars'
 import allowAccessTo from 'bearer-jwt-auth'
+import { AuthenticationError } from 'standard-api-errors'
+
 import AccountModel from '../models/Account.js'
 import UserModel from '../models/User.js'
-import { AuthenticationError } from 'standard-api-errors'
-import Email from '../helpers/Email.js'
-import crypto from 'crypto'
-import handlebars from 'handlebars'
-import fs from 'fs'
-import path from 'path'
-import { fileURLToPath } from 'url'
+import sendEmail from '../helpers/sendEmail.js'
+
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const Login = fs.readFileSync(path.join(__dirname, '..', 'email-templates', 'login.html'), 'utf8')
 
+const secrets = process.env.SECRETS.split(' ')
+
 export default (apiServer) => {
-  const secrets = process.env.SECRETS.split(' ')
 
   apiServer.post('/v1/accounts/:id/login', async req => {
     const data = allowAccessTo(req, secrets, [{ type: 'login' }])
@@ -35,8 +39,6 @@ export default (apiServer) => {
        _id:getAccount.result._id
      }
    }
-
-
     const token = jwt.sign(payload, secrets[0])
     return {
       status: 200,
@@ -67,7 +69,7 @@ export default (apiServer) => {
     const token = jwt.sign(payload, secrets[0])
     const template = handlebars.compile(Login)
     const html = template({ token })
-    const info = await Email(req.body.email, 'Login link ', html)
+    const info = await sendEmail(req.body.email, 'Login link ', html)
     return {
       status: 201,
       result: {
@@ -76,5 +78,4 @@ export default (apiServer) => {
       }
     }
   })
-
 }

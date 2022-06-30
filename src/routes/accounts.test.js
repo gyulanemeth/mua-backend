@@ -1,16 +1,19 @@
+import crypto from 'crypto'
+
+import jwt from 'jsonwebtoken'
 import mongoose from 'mongoose'
 import request from 'supertest'
-import crypto from 'crypto'
-import createMongooseMemoryServer from 'mongoose-memory'
-import jwt from 'jsonwebtoken'
 import nodemailer from 'nodemailer'
 
-import createServer from './index.js'
+import createMongooseMemoryServer from 'mongoose-memory'
 
+
+import createServer from './index.js'
 import Account from '../models/Account.js'
 import User from '../models/User.js'
 
 const mongooseMemoryServer = createMongooseMemoryServer(mongoose)
+
 const secrets = process.env.SECRETS.split(' ')
 
 describe('accounts test', () => {
