@@ -60,18 +60,16 @@ describe('forgot-password test', () => {
 
     const messageUrl = nodemailer.getTestMessageUrl(res.body.result.info)
 
-
-      const html = await fetch(messageUrl).then(response => response.text())
-      const regex = /<a[\s]+id=\\"forgetPasswordLink\\"[^\n\r]*\?token=([^"&]+)">/g
-      const found = html.match(regex)[0]
-      const tokenPosition = found.indexOf('token=')
-      const endTagPosition = found.indexOf('\\">')
-      const htmlToken = found.substring(tokenPosition + 6, endTagPosition)
-      const verifiedToken = jwt.verify(htmlToken, secrets[0])
-      expect(htmlToken).toBeDefined()
-      expect(verifiedToken.type).toBe('forgot-password')
-      expect(verifiedToken.user.email).toBe(user1.email)
-
+    const html = await fetch(messageUrl).then(response => response.text())
+    const regex = /<a[\s]+id=\\"forgetPasswordLink\\"[^\n\r]*\?token=([^"&]+)">/g
+    const found = html.match(regex)[0]
+    const tokenPosition = found.indexOf('token=')
+    const endTagPosition = found.indexOf('\\">')
+    const htmlToken = found.substring(tokenPosition + 6, endTagPosition)
+    const verifiedToken = jwt.verify(htmlToken, secrets[0])
+    expect(htmlToken).toBeDefined()
+    expect(verifiedToken.type).toBe('forgot-password')
+    expect(verifiedToken.user.email).toBe(user1.email)
   })
   test('send forget password error user not found  /v1/accounts/:accountId/forgot-password/send', async () => {
     const account1 = new Account({ name: 'accountExample1', urlFriendlyName: 'urlFriendlyNameExample1' })

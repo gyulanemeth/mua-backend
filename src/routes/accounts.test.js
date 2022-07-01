@@ -7,7 +7,6 @@ import nodemailer from 'nodemailer'
 
 import createMongooseMemoryServer from 'mongoose-memory'
 
-
 import createServer from './index.js'
 import Account from '../models/Account.js'
 import User from '../models/User.js'
@@ -471,18 +470,17 @@ describe('accounts test', () => {
 
     const messageUrl = nodemailer.getTestMessageUrl(res.body.result.info)
 
-      const html = await fetch(messageUrl).then(response => response.text())
-      const regex = /<a[\s]+id=\\"registrationLink\\"[^\n\r]*\?token=([^"&]+)">/g
-      const found = html.match(regex)[0]
-      const tokenPosition = found.indexOf('token=')
-      const endTagPosition = found.indexOf('\\">')
-      const htmlToken = found.substring(tokenPosition + 6, endTagPosition)
-      const verifiedToken = jwt.verify(htmlToken, secrets[0])
+    const html = await fetch(messageUrl).then(response => response.text())
+    const regex = /<a[\s]+id=\\"registrationLink\\"[^\n\r]*\?token=([^"&]+)">/g
+    const found = html.match(regex)[0]
+    const tokenPosition = found.indexOf('token=')
+    const endTagPosition = found.indexOf('\\">')
+    const htmlToken = found.substring(tokenPosition + 6, endTagPosition)
+    const verifiedToken = jwt.verify(htmlToken, secrets[0])
 
-      expect(htmlToken).toBeDefined()
-      expect(verifiedToken.type).toBe('registration')
-      expect(verifiedToken.user.email).toBe('user1@gmail.com')
-
+    expect(htmlToken).toBeDefined()
+    expect(verifiedToken.type).toBe('registration')
+    expect(verifiedToken.user.email).toBe('user1@gmail.com')
   })
 
   test('create account urlFriendlyName exist   /v1/accounts/create', async () => {

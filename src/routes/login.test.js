@@ -45,12 +45,12 @@ describe('login test ', () => {
     const user2 = new User({ email: 'user2@gmail.com', name: 'user2', password: hash2, accountId: account1._id })
     await user2.save()
 
-    const token = jwt.sign({ type: 'login', user:{email:user1.email} }, secrets[0])
+    const token = jwt.sign({ type: 'login', user: { email: user1.email } }, secrets[0])
 
     const res = await request(app)
       .post('/v1/accounts/' + account1._id + '/login')
       .set('authorization', 'Bearer ' + token)
-      .send({ password: "user1Password" })
+      .send({ password: 'user1Password' })
 
     expect(res.body.status).toBe(200)
   })
@@ -63,13 +63,12 @@ describe('login test ', () => {
     const user1 = new User({ email: 'user1@gmail.com', name: 'user1', password: hash1, accountId: account1._id })
     await user1.save()
 
-
-    const token = jwt.sign({ type: 'login', user:{email:user1.email} }, secrets[0])
+    const token = jwt.sign({ type: 'login', user: { email: user1.email } }, secrets[0])
 
     const res = await request(app)
       .post('/v1/accounts/' + account1._id + '/login')
       .set('authorization', 'Bearer ' + token)
-      .send({ password: "user2Password" })
+      .send({ password: 'user2Password' })
 
     expect(res.statusCode).toBe(401)
   })
@@ -86,12 +85,12 @@ describe('login test ', () => {
     const user2 = new User({ email: 'user2@gmail.com', name: 'user2', password: hash2, accountId: account1._id })
     await user2.save()
 
-    const token = jwt.sign({ type: 'user', user:{email:user1.email} }, secrets[0])
+    const token = jwt.sign({ type: 'user', user: { email: user1.email } }, secrets[0])
 
     const res = await request(app)
       .post('/v1/accounts/' + account1._id + '/login')
       .set('authorization', 'Bearer ' + token)
-      .send({ password: "user1Password" })
+      .send({ password: 'user1Password' })
 
     expect(res.statusCode).toBe(403)
   })
@@ -110,7 +109,7 @@ describe('login test ', () => {
 
     const res = await request(app)
       .post('/v1/accounts/' + account1._id + '/login')
-      .send({ password: "user1Password" })
+      .send({ password: 'user1Password' })
 
     expect(res.body.status).toBe(401)
   })
@@ -129,16 +128,15 @@ describe('login test ', () => {
     const user2 = new User({ email: 'user2@gmail.com', name: 'user2', password: hash2, accountId: account1._id })
     await user2.save()
 
-    const token = jwt.sign({ type: 'login;', user:{email:user1.email} }, secrets[0])
+    const token = jwt.sign({ type: 'login;', user: { email: user1.email } }, secrets[0])
 
     const res = await request(app)
       .post('/v1/accounts/' + account2._id + '/login')
       .set('authorization', 'Bearer ' + token)
-      .send({ password: "user1Password" })
+      .send({ password: 'user1Password' })
 
     expect(res.body.status).toBe(403)
   })
-
 
   test('login get accounts with valid email ', async () => {
     const account1 = new Account({ name: 'accountExample1', urlFriendlyName: 'urlFriendlyNameExample1' })
@@ -173,10 +171,8 @@ describe('login test ', () => {
 
     const res = await request(app)
       .post('/v1/accounts/login')
-      .send({ email: "wrongTest@gmail.com" })
+      .send({ email: 'wrongTest@gmail.com' })
 
     expect(res.body.status).toBe(401)
   })
-
-
 })

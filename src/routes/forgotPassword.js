@@ -19,7 +19,6 @@ const forgotPassword = fs.readFileSync(path.join(__dirname, '..', 'email-templat
 const secrets = process.env.SECRETS.split(' ')
 
 export default (apiServer) => {
-
   apiServer.post('/v1/accounts/:id/forgot-password/send', async req => {
     allowAccessTo(req, secrets, [{ type: 'admin' }, { type: 'user', role: 'admin' }])
     const response = await list(UserModel, { email: req.body.email, accountId: req.params.id }, { select: { password: 0 } })

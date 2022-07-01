@@ -20,7 +20,6 @@ const Invitation = fs.readFileSync(path.join(__dirname, '..', 'email-templates',
 const secrets = process.env.SECRETS.split(' ')
 
 export default (apiServer) => {
-
   apiServer.post('/v1/accounts/:id/invitation/send', async req => {
     allowAccessTo(req, secrets, [{ type: 'admin' }, { type: 'user', role: 'admin' }])
     const checkAccount = await readOne(AccountModel, { id: req.params.id }, req.query)

@@ -10,7 +10,6 @@ import allowAccessTo from 'bearer-jwt-auth'
 import { ConflictError } from 'standard-api-errors'
 import { list, readOne, deleteOne, deleteMany, patchOne, createOne } from 'mongoose-crudl'
 
-
 import AccountModel from '../models/Account.js'
 import UserModel from '../models/User.js'
 import sendEmail from '../helpers/sendEmail.js'
@@ -21,7 +20,6 @@ const registration = fs.readFileSync(path.join(__dirname, '..', 'email-templates
 const secrets = process.env.SECRETS.split(' ')
 
 export default (apiServer) => {
-
   apiServer.get('/v1/accounts/check-availability', async req => {
     let available = false
     const response = await list(AccountModel, { urlFriendlyName: req.query.urlFriendlyName })
@@ -111,5 +109,4 @@ export default (apiServer) => {
       }
     }
   })
-
 }

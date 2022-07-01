@@ -9,9 +9,8 @@ const mailOptions = {
 }
 
 export default async (to, subject, template) => {
-
-try{
-  let transporter
+  try {
+    let transporter
     if (process.env.NODE_ENV === 'production') {
       transporter = await nodemailer.createTransport(
         {
@@ -36,9 +35,9 @@ try{
           }
         })
     }
-  mailOptions.to = to
-  mailOptions.subject = subject
-  mailOptions.html = template
+    mailOptions.to = to
+    mailOptions.subject = subject
+    mailOptions.html = template
 
     const info = await transporter.sendMail(mailOptions).then(res => res)
     return {

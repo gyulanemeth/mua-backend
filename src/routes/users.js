@@ -12,15 +12,14 @@ import UserModel from '../models/User.js'
 const secrets = process.env.SECRETS.split(' ')
 
 export default (apiServer) => {
-
   apiServer.patch('/v1/accounts/:accountId/users/:id/name', async req => {
-    allowAccessTo(req, secrets, [{ type: 'admin' }, { type: 'user', role: 'admin' }, { type: 'user', user: { _id: req.params.id }, account:{ _id: req.params.accountId }}])
+    allowAccessTo(req, secrets, [{ type: 'admin' }, { type: 'user', role: 'admin' }, { type: 'user', user: { _id: req.params.id }, account: { _id: req.params.accountId } }])
     const user = await patchOne(UserModel, { id: req.params.id, accountId: req.params.accountId }, { name: req.body.name })
     return user
   })
 
   apiServer.patch('/v1/accounts/:accountId/users/:id/password', async req => {
-    allowAccessTo(req, secrets, [{ type: 'admin' }, { type: 'user', role: 'admin' }, { type: 'user', user: { _id: req.params.id }, account:{ _id: req.params.accountId } }])
+    allowAccessTo(req, secrets, [{ type: 'admin' }, { type: 'user', role: 'admin' }, { type: 'user', user: { _id: req.params.id }, account: { _id: req.params.accountId } }])
     if (req.body.newPassword !== req.body.newPasswordAgain) {
       throw new ValidationError("Validation error passwords didn't match ")
     }
@@ -59,8 +58,7 @@ export default (apiServer) => {
   })
 
   apiServer.get('/v1/accounts/:accountId/users/:id/access-token', async req => {
-
-    allowAccessTo(req, secrets, [{ type: 'admin' }, { type: 'login', user: { _id: req.params.id}, account: { _id: req.params.accountId } }, { type: 'user',  user: { _id: req.params.id}, account: { _id: req.params.accountId } }])
+    allowAccessTo(req, secrets, [{ type: 'admin' }, { type: 'login', user: { _id: req.params.id }, account: { _id: req.params.accountId } }, { type: 'user', user: { _id: req.params.id }, account: { _id: req.params.accountId } }])
     const findUser = await readOne(UserModel, { _id: req.params.id, accountId: req.params.accountId }, { select: { password: 0 } })
     const getAccount = await readOne(AccountModel, { _id: req.params.accountId }, req.query)
 
@@ -95,7 +93,7 @@ export default (apiServer) => {
   apiServer.get('/v1/accounts/:accountId/users', async req => {
     allowAccessTo(req, secrets, [{ type: 'admin' }, { type: 'user' }])
     await readOne(AccountModel, { id: req.params.accountId }, req.query)
-    const userList = await list(UserModel, { accountId: req.params.accountId }, {...req.query, select: { password: 0 } })
+    const userList = await list(UserModel, { accountId: req.params.accountId }, { ...req.query, select: { password: 0 } })
     return userList
   })
 
@@ -114,7 +112,7 @@ export default (apiServer) => {
   })
 
   apiServer.get('/v1/accounts/:accountId/users/:id', async req => {
-    allowAccessTo(req, secrets, [{ type: 'admin' }, { type: 'user', user: {_id: req.params.id }, account: { _id: req.params.accountId } }])
+    allowAccessTo(req, secrets, [{ type: 'admin' }, { type: 'user', user: { _id: req.params.id }, account: { _id: req.params.accountId } }])
     const user = await readOne(UserModel, { id: req.params.id, accountId: req.params.accountId }, { select: { password: 0 } })
     return user
   })

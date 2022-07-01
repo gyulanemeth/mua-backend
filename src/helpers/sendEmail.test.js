@@ -7,10 +7,10 @@ describe('Email testing', () => {
     expect(res.status).toBe(200)
 
     const messageUrl = nodemailer.getTestMessageUrl(res.result.info)
-      const html = await fetch(messageUrl).then(response => response.text())
-      const regex = /Email send successfully/g
-      const found = html.match(regex)[0]
-      expect(found).toBe('Email send successfully')
+    const html = await fetch(messageUrl).then(response => response.text())
+    const regex = /Email send successfully/g
+    const found = html.match(regex)[0]
+    expect(found).toBe('Email send successfully')
   })
 
   test('Send Email without to email Validation error   ', async () => {
