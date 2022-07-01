@@ -9,7 +9,8 @@
     "lint-fix": "npx standard --fix",
     "test": "node --experimental-vm-modules node_modules/jest/bin/jest.js --collect-coverage",
     "test-brk": "node --inspect-brk --experimental-vm-modules node_modules/jest/bin/jest.js",
-    "serve": "cd src; node index.js"
+    "serve": "cd src; node --require dotenv/config index.js dotenv_config_path=../.env",
+    "serve:dev": "cd src; nodemon --require dotenv/config index.js dotenv_config_path=../.env"
   },
   "repository": {
     "type": "git",

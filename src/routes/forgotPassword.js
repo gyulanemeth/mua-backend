@@ -1,21 +1,24 @@
-import { list, patchOne } from 'mongoose-crudl'
-import jwt from 'jsonwebtoken'
-import allowAccessTo from 'bearer-jwt-auth'
-import UserModel from '../models/User.js'
-import { ValidationError, AuthenticationError } from 'standard-api-errors'
-import Email from '../helpers/Email'
 import crypto from 'crypto'
-
-import fs from 'fs'
-import handlebars from 'handlebars'
 import path from 'path'
+import fs from 'fs'
 import { fileURLToPath } from 'url'
+
+import jwt from 'jsonwebtoken'
+import handlebars from 'handlebars'
+
+import { list, patchOne } from 'mongoose-crudl'
+import allowAccessTo from 'bearer-jwt-auth'
+import { ValidationError, AuthenticationError } from 'standard-api-errors'
+
+import UserModel from '../models/User.js'
+import sendEmail from '../helpers/sendEmail.js'
+
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const forgotPassword = fs.readFileSync(path.join(__dirname, '..', 'email-templates', 'forgot-password.html'), 'utf8')
 
-export default (apiServer) => {
-  const secrets = process.env.SECRETS.split(' ')
+const secrets = process.env.SECRETS.split(' ')
 
+export default (apiServer) => {
   apiServer.post('/v1/accounts/:id/forgot-password/send', async req => {
     allowAccessTo(req, secrets, [{ type: 'admin' }, { type: 'user', role: 'admin' }])
     const response = await list(UserModel, { email: req.body.email, accountId: req.params.id }, { select: { password: 0 } })
@@ -26,14 +29,15 @@ export default (apiServer) => {
       type: 'forgot-password',
       user: {
         _id: response.result.items[0]._id,
-        email: response.result.items[0].email
+        email: response.result.items[0].email,
+        accountId: response.result.items[0].accountId
       }
     }
 
     const token = jwt.sign(payload, secrets[0])
     const template = handlebars.compile(forgotPassword)
     const html = template({ token })
-    const mail = await Email(response.result.items[0].email, 'forget password link', html)
+    const mail = await sendEmail(response.result.items[0].email, 'forget password link', html)
 
     return {
       status: 200,
@@ -59,7 +63,8 @@ export default (apiServer) => {
       type: 'login',
       user: {
         _id: updatedUser.result._id,
-        email: updatedUser.result.email
+        email: updatedUser.result.email,
+        accountId: response.result.items[0].accountId
       }
     }
     const token = jwt.sign(payload, secrets[0])

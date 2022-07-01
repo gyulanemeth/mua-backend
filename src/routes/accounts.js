@@ -1,22 +1,25 @@
-import { list, readOne, deleteOne, deleteMany, patchOne, createOne } from 'mongoose-crudl'
+import crypto from 'crypto'
+import path from 'path'
+import fs from 'fs'
+import { fileURLToPath } from 'url'
+
+import jwt from 'jsonwebtoken'
+import handlebars from 'handlebars'
 
 import allowAccessTo from 'bearer-jwt-auth'
+import { ConflictError } from 'standard-api-errors'
+import { list, readOne, deleteOne, deleteMany, patchOne, createOne } from 'mongoose-crudl'
+
 import AccountModel from '../models/Account.js'
 import UserModel from '../models/User.js'
-import Email from '../helpers/Email'
-import { ConflictError } from 'standard-api-errors'
-import fs from 'fs'
-import crypto from 'crypto'
-import handlebars from 'handlebars'
-import path from 'path'
-import jwt from 'jsonwebtoken'
-import { fileURLToPath } from 'url'
+import sendEmail from '../helpers/sendEmail.js'
+
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const registration = fs.readFileSync(path.join(__dirname, '..', 'email-templates', 'registration.html'), 'utf8')
 
-export default (apiServer) => {
-  const secrets = process.env.SECRETS.split(' ')
+const secrets = process.env.SECRETS.split(' ')
 
+export default (apiServer) => {
   apiServer.get('/v1/accounts/check-availability', async req => {
     let available = false
     const response = await list(AccountModel, { urlFriendlyName: req.query.urlFriendlyName })
@@ -95,7 +98,7 @@ export default (apiServer) => {
     const template = handlebars.compile(registration)
     const html = template({ token })
 
-    const mail = await Email(newUser.result.email, 'Registration link ', html)
+    const mail = await sendEmail(newUser.result.email, 'Registration link ', html)
 
     return {
       status: 200,
@@ -106,8 +109,4 @@ export default (apiServer) => {
       }
     }
   })
-
-/*    apiServer.get('/v1/config', async req => {
-
-    }) */
 }

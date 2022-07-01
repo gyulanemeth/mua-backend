@@ -1,28 +1,31 @@
-import { list, readOne, deleteOne, patchOne, createOne } from 'mongoose-crudl'
-
-import allowAccessTo from 'bearer-jwt-auth'
-import AccountModel from '../models/Account.js'
-import UserModel from '../models/User.js'
-import { MethodNotAllowedError, ValidationError } from 'standard-api-errors'
-import jwt from 'jsonwebtoken'
 import crypto from 'crypto'
 
-export default (apiServer) => {
-  const secrets = process.env.SECRETS.split(' ')
+import jwt from 'jsonwebtoken'
+import allowAccessTo from 'bearer-jwt-auth'
 
+import { list, readOne, deleteOne, patchOne, createOne } from 'mongoose-crudl'
+import { MethodNotAllowedError, ValidationError } from 'standard-api-errors'
+
+import AccountModel from '../models/Account.js'
+import UserModel from '../models/User.js'
+
+const secrets = process.env.SECRETS.split(' ')
+
+export default (apiServer) => {
   apiServer.patch('/v1/accounts/:accountId/users/:id/name', async req => {
-    allowAccessTo(req, secrets, [{ type: 'admin' }, { type: 'user', role: 'admin' }, { type: 'user', user: { _id: req.params.id }, account:{ _id: req.params.accountId }}])
+    allowAccessTo(req, secrets, [{ type: 'admin' }, { type: 'user', role: 'admin' }, { type: 'user', user: { _id: req.params.id }, account: { _id: req.params.accountId } }])
     const user = await patchOne(UserModel, { id: req.params.id, accountId: req.params.accountId }, { name: req.body.name })
     return user
   })
 
   apiServer.patch('/v1/accounts/:accountId/users/:id/password', async req => {
-    allowAccessTo(req, secrets, [{ type: 'admin' }, { type: 'user', role: 'admin' }, { type: 'user', user: { _id: req.params.id }, account:{ _id: req.params.accountId } }])
-    if (req.body.password !== req.body.passwordAgain) {
+    allowAccessTo(req, secrets, [{ type: 'admin' }, { type: 'user', role: 'admin' }, { type: 'user', user: { _id: req.params.id }, account: { _id: req.params.accountId } }])
+    if (req.body.newPassword !== req.body.newPasswordAgain) {
       throw new ValidationError("Validation error passwords didn't match ")
     }
-    const hash = crypto.createHash('md5').update(req.body.password).digest('hex')
-    const user = await patchOne(UserModel, { id: req.params.id, accountId: req.params.accountId }, { password: hash })
+    const hash = crypto.createHash('md5').update(req.body.newPassword).digest('hex')
+    const oldHash = crypto.createHash('md5').update(req.body.oldPassword).digest('hex')
+    const user = await patchOne(UserModel, { id: req.params.id, accountId: req.params.accountId, password: oldHash }, { password: hash })
     return user
   })
 
@@ -55,10 +58,9 @@ export default (apiServer) => {
   })
 
   apiServer.get('/v1/accounts/:accountId/users/:id/access-token', async req => {
-    allowAccessTo(req, secrets, [{ type: 'admin' }, { type: 'login', user: { _id: req.params.id, accountId: req.params.accountId } }, { type: 'user', user: { _id: req.params.id, accountId: req.params.accountId } }])
-
-    const findUser = await readOne(UserModel, { id: req.params.id, accountId: req.params.accountId }, { select: { password: 0 } })
-    const getAccount = await readOne(AccountModel, { id: req.params.accountId }, req.query)
+    allowAccessTo(req, secrets, [{ type: 'admin' }, { type: 'login', user: { _id: req.params.id }, account: { _id: req.params.accountId } }, { type: 'user', user: { _id: req.params.id }, account: { _id: req.params.accountId } }])
+    const findUser = await readOne(UserModel, { _id: req.params.id, accountId: req.params.accountId }, { select: { password: 0 } })
+    const getAccount = await readOne(AccountModel, { _id: req.params.accountId }, req.query)
 
     const payload = {
       type: 'user',
@@ -73,6 +75,7 @@ export default (apiServer) => {
       role: findUser.result.role
     }
     const token = jwt.sign(payload, secrets[0])
+
     return {
       status: 200,
       result: {
@@ -90,7 +93,7 @@ export default (apiServer) => {
   apiServer.get('/v1/accounts/:accountId/users', async req => {
     allowAccessTo(req, secrets, [{ type: 'admin' }, { type: 'user' }])
     await readOne(AccountModel, { id: req.params.accountId }, req.query)
-    const userList = await list(UserModel, { accountId: req.params.accountId }, { select: { password: 0 } })
+    const userList = await list(UserModel, { accountId: req.params.accountId }, { ...req.query, select: { password: 0 } })
     return userList
   })
 
@@ -109,7 +112,7 @@ export default (apiServer) => {
   })
 
   apiServer.get('/v1/accounts/:accountId/users/:id', async req => {
-    allowAccessTo(req, secrets, [{ type: 'admin' }, { type: 'user', user: {_id: req.params.id }, account: { _id: req.params.accountId } }])
+    allowAccessTo(req, secrets, [{ type: 'admin' }, { type: 'user', user: { _id: req.params.id }, account: { _id: req.params.accountId } }])
     const user = await readOne(UserModel, { id: req.params.id, accountId: req.params.accountId }, { select: { password: 0 } })
     return user
   })

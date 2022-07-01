@@ -1,15 +1,17 @@
+import crypto from 'crypto'
+
+import jwt from 'jsonwebtoken'
 import mongoose from 'mongoose'
 import request from 'supertest'
-import crypto from 'crypto'
+
 import createMongooseMemoryServer from 'mongoose-memory'
-import jwt from 'jsonwebtoken'
 
 import createServer from './index.js'
-
 import Account from '../models/Account.js'
 import User from '../models/User.js'
 
 const mongooseMemoryServer = createMongooseMemoryServer(mongoose)
+
 const secrets = process.env.SECRETS.split(' ')
 
 describe('users test', () => {
@@ -75,7 +77,7 @@ describe('users test', () => {
     const user1 = new User({ email: 'user1@gmail.com', name: 'user1', password: hash1, accountId: account1._id })
     await user1.save()
 
-    const token = jwt.sign({ type: 'user', user: { _id: user1._id }, account:{ _id: account1._id } }, secrets[0])
+    const token = jwt.sign({ type: 'user', user: { _id: user1._id }, account: { _id: account1._id } }, secrets[0])
 
     const res = await request(app)
       .patch('/v1/accounts/' + account1._id + '/users/' + user1._id + '/name')
@@ -134,7 +136,7 @@ describe('users test', () => {
     const res = await request(app)
       .patch('/v1/accounts/' + account1._id + '/users/' + user1._id + '/password')
       .set('authorization', 'Bearer ' + token)
-      .send({ password: 'updatePassword', passwordAgain: 'updatePassword' })
+      .send({ oldPassword: 'user1Password', newPassword: 'updatePassword', newPasswordAgain: 'updatePassword' })
 
     expect(res.body.status).toBe(200)
   })
@@ -152,7 +154,7 @@ describe('users test', () => {
     const res = await request(app)
       .patch('/v1/accounts/' + account1._id + '/users/' + user1._id + '/password')
       .set('authorization', 'Bearer ' + token)
-      .send({ password: 'updatePassword', passwordAgain: 'updatePassword' })
+      .send({ oldPassword: 'user1Password', newPassword: 'updatePassword', newPasswordAgain: 'updatePassword' })
 
     expect(res.body.status).toBe(200)
   })
@@ -165,12 +167,12 @@ describe('users test', () => {
     const user1 = new User({ email: 'user1@gmail.com', name: 'user1', password: hash1, accountId: account1._id })
     await user1.save()
 
-    const token = jwt.sign({ type: 'user', user: { _id: user1._id }, account:{ _id: account1._id } }, secrets[0])
+    const token = jwt.sign({ type: 'user', user: { _id: user1._id }, account: { _id: account1._id } }, secrets[0])
 
     const res = await request(app)
       .patch('/v1/accounts/' + account1._id + '/users/' + user1._id + '/password')
       .set('authorization', 'Bearer ' + token)
-      .send({ password: 'updatePassword', passwordAgain: 'updatePassword' })
+      .send({ oldPassword: 'user1Password', newPassword: 'updatePassword', newPasswordAgain: 'updatePassword' })
 
     expect(res.body.status).toBe(200)
   })
@@ -188,7 +190,7 @@ describe('users test', () => {
     const res = await request(app)
       .patch('/v1/accounts/' + account1._id + '/users/' + user1._id + '/password')
       .set('authorization', 'Bearer ' + token)
-      .send({ password: 'updatePassword', passwordAgain: 'updatePassword' })
+      .send({ newPassword: 'updatePassword', newPasswordAgain: 'updatePassword' })
 
     expect(res.body.status).toBe(403)
   })
@@ -206,7 +208,7 @@ describe('users test', () => {
     const res = await request(app)
       .patch('/v1/accounts/' + account1._id + '/users/' + user1._id + '/password')
       .set('authorization', 'Bearer ' + token)
-      .send({ password: 'updatePassword', passwordAgain: 'updatePassword' })
+      .send({ newPassword: 'updatePassword', newPasswordAgain: 'updatePassword' })
 
     expect(res.body.status).toBe(403)
   })
@@ -224,7 +226,7 @@ describe('users test', () => {
     const res = await request(app)
       .patch('/v1/accounts/' + account1._id + '/users/' + user1._id + '/password')
       .set('authorization', 'Bearer ' + token)
-      .send({ password: 'updatePassword', passwordAgain: 'update111111Password' })
+      .send({ newPassword: 'updatePassword', newPasswordAgain: 'update111111Password' })
 
     expect(res.body.status).toBe(400)
   })
@@ -496,7 +498,7 @@ describe('users test', () => {
     const user1 = new User({ email: 'user1@gmail.com', name: 'user1', role: 'admin', password: hash1, accountId: account1._id })
     await user1.save()
 
-    const token = jwt.sign({ type: 'user', user: { _id: user1._id, accountId: account1._id } }, secrets[0])
+    const token = jwt.sign({ type: 'user', user: { _id: user1._id }, account: { _id: account1._id } }, secrets[0])
 
     const res = await request(app)
       .get('/v1/accounts/' + account1._id + '/users/' + user1._id + '/access-token')
@@ -782,7 +784,7 @@ describe('users test', () => {
     const user1 = new User({ email: 'user1@gmail.com', name: 'user1', password: hash1, accountId: account1._id })
     await user1.save()
 
-    const token = jwt.sign({ type: 'user', user:{ _id: user1._id }, account: { _id:account1._id } }, secrets[0])
+    const token = jwt.sign({ type: 'user', user: { _id: user1._id }, account: { _id: account1._id } }, secrets[0])
 
     const res = await request(app)
       .get('/v1/accounts/' + account1._id + '/users/' + user1._id)
@@ -818,7 +820,7 @@ describe('users test', () => {
     const user1 = new User({ email: 'user1@gmail.com', name: 'user1', password: hash1, accountId: account1._id })
     await user1.save()
 
-    const token = jwt.sign({ type: 'user', user:{ _id: user1._id }, account: { _id:account1._id }  }, secrets[0])
+    const token = jwt.sign({ type: 'user', user: { _id: user1._id }, account: { _id: account1._id } }, secrets[0])
     const id = new mongoose.Types.ObjectId()
     const res = await request(app)
       .get('/v1/accounts/' + id + '/users/' + user1._id)

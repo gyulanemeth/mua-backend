@@ -1,22 +1,25 @@
-import { list, readOne, patchOne, createOne } from 'mongoose-crudl'
-import allowAccessTo from 'bearer-jwt-auth'
+import crypto from 'crypto'
+import path from 'path'
+import fs from 'fs'
+import { fileURLToPath } from 'url'
+
 import jwt from 'jsonwebtoken'
+import handlebars from 'handlebars'
+
+import { list, readOne, patchOne, createOne } from 'mongoose-crudl'
+import { MethodNotAllowedError, ValidationError } from 'standard-api-errors'
+import allowAccessTo from 'bearer-jwt-auth'
+
 import AccountModel from '../models/Account.js'
 import UserModel from '../models/User.js'
-import Email from '../helpers/Email'
-import { MethodNotAllowedError, ValidationError } from 'standard-api-errors'
+import sendEmail from '../helpers/sendEmail.js'
 
-import crypto from 'crypto'
-import handlebars from 'handlebars'
-import fs from 'fs'
-import path from 'path'
-import { fileURLToPath } from 'url'
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const Invitation = fs.readFileSync(path.join(__dirname, '..', 'email-templates', 'invitation.html'), 'utf8')
 
-export default (apiServer) => {
-  const secrets = process.env.SECRETS.split(' ')
+const secrets = process.env.SECRETS.split(' ')
 
+export default (apiServer) => {
   apiServer.post('/v1/accounts/:id/invitation/send', async req => {
     allowAccessTo(req, secrets, [{ type: 'admin' }, { type: 'user', role: 'admin' }])
     const checkAccount = await readOne(AccountModel, { id: req.params.id }, req.query)
@@ -26,7 +29,6 @@ export default (apiServer) => {
       throw new MethodNotAllowedError('User exist')
     }
     const newUser = await createOne(UserModel, req.params, { email: req.body.email, accountId: req.params.id })
-
     const payload = {
       type: 'invitation',
       user: {
@@ -41,7 +43,7 @@ export default (apiServer) => {
     const token = jwt.sign(payload, secrets[0])
     const template = handlebars.compile(Invitation)
     const html = template({ token })
-    const info = await Email(newUser.result.email, 'invitation link ', html)
+    const info = await sendEmail(newUser.result.email, 'invitation link ', html)
     return {
       status: 201,
       result: {
@@ -68,7 +70,8 @@ export default (apiServer) => {
       type: 'login',
       user: {
         _id: updatedUser.result._id,
-        email: updatedUser.result.email
+        email: updatedUser.result.email,
+        accountId: updatedUser.result.accountId
       }
     }
     const token = jwt.sign(payload, secrets[0])
