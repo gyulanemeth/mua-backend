@@ -5,6 +5,7 @@ import invitation from './invitation.js'
 import forgotPassword from './forgotPassword.js'
 import account from './accounts.js'
 import users from './users.js'
+import config from './config.js'
 
 export default () => {
   function errorHandler (e) {
@@ -19,6 +20,7 @@ export default () => {
   const apiServer = createApiServer(errorHandler, () => {})
 
   users(apiServer)
+  config(apiServer)
   login(apiServer)
   invitation(apiServer)
   forgotPassword(apiServer)
