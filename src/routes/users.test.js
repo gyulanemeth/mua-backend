@@ -231,6 +231,24 @@ describe('users test', () => {
     expect(res.body.status).toBe(400)
   })
 
+  test('update user password not match with old password error   /v1/accounts/:accountId/users/:id/password', async () => {
+    const account1 = new Account({ name: 'accountExample1', urlFriendlyName: 'urlFriendlyNameExample1' })
+    await account1.save()
+
+    const hash1 = crypto.createHash('md5').update('user1Password').digest('hex')
+    const user1 = new User({ email: 'user1@gmail.com', name: 'user1', password: hash1, accountId: account1._id })
+    await user1.save()
+
+    const token = jwt.sign({ type: 'admin' }, secrets[0])
+
+    const res = await request(app)
+      .patch('/v1/accounts/' + account1._id + '/users/' + user1._id + '/password')
+      .set('authorization', 'Bearer ' + token)
+      .send({ oldPassword: 'userPassword', newPassword: 'updatePassword', newPasswordAgain: 'updatePassword' })
+
+    expect(res.body.status).toBe(400)
+  })
+
   test('success update user role in account by admin  /v1/accounts/:accountId/users/:id/role', async () => {
     const account1 = new Account({ name: 'accountExample1', urlFriendlyName: 'urlFriendlyNameExample1' })
     await account1.save()

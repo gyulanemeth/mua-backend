@@ -19,13 +19,18 @@ export default (apiServer) => {
   })
 
   apiServer.patch('/v1/accounts/:accountId/users/:id/password', async req => {
+
     allowAccessTo(req, secrets, [{ type: 'admin' }, { type: 'user', role: 'admin' }, { type: 'user', user: { _id: req.params.id }, account: { _id: req.params.accountId } }])
     if (req.body.newPassword !== req.body.newPasswordAgain) {
       throw new ValidationError("Validation error passwords didn't match ")
     }
     const hash = crypto.createHash('md5').update(req.body.newPassword).digest('hex')
     const oldHash = crypto.createHash('md5').update(req.body.oldPassword).digest('hex')
-    const user = await patchOne(UserModel, { id: req.params.id, accountId: req.params.accountId, password: oldHash }, { password: hash })
+    const getUser = await readOne(UserModel, { id: req.params.id, accountId: req.params.accountId }, req.query)
+    if (oldHash !== getUser.result.password) {
+      throw new ValidationError("Validation error passwords didn't match ")
+    }
+    const user = await patchOne(UserModel, { id: req.params.id, accountId: req.params.accountId}, { password: hash })
     return user
   })
 
