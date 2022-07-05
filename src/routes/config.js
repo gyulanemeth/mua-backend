@@ -1,7 +1,8 @@
 import allowAccessTo from 'bearer-jwt-auth'
 
+const secrets = process.env.SECRETS.split(' ')
+
 export default (apiServer) => {
-  const secrets = process.env.SECRETS.split(' ')
   apiServer.get('/v1/config', async req => {
     allowAccessTo(req, secrets, [{ type: 'admin' }, { type: 'user', role: 'admin' }])
     return {
