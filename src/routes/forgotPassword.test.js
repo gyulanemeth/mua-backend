@@ -154,7 +154,7 @@ describe('forgot-password test', () => {
     const res = await request(app)
       .post('/v1/accounts/' + account1._id + '/forgot-password/reset')
       .set('authorization', 'Bearer ' + token)
-      .send({ password: 'userNewPassword', passwordAgain: 'userWrongeNewPassword' })
+      .send({ password: 'userNewPassword', passwordAgain: 'userWrongNewPassword' })
     expect(res.body.status).toBe(400)
   })
 
