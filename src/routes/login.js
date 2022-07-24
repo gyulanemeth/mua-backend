@@ -38,7 +38,7 @@ export default (apiServer) => {
         _id: getAccount.result._id
       }
     }
-    const token = jwt.sign(payload, secrets[0])
+    const token = jwt.sign(payload, secrets[0], {expiresIn: "24h"})
     return {
       status: 200,
       result: {
@@ -53,10 +53,12 @@ export default (apiServer) => {
     if (findUserIds.result.count === 0) {
       throw new AuthenticationError('Invalid email')
     }
+    console.log(findUserIds);
+    const ids = findUserIds.result.items.map(item => item.accountId.toString())
+    console.log(ids);
 
-    const ids = findUserIds.result.items.map(item => item.accountId)
-    const getAccounts = await list(AccountModel, { id: { $in: ids } }, req.query)
-
+    const getAccounts = await list(AccountModel, {}, {filter: {_id: { $in: ids }}})
+    console.log(getAccounts);
     const payload = {
       type: 'login',
       user: {
@@ -65,9 +67,9 @@ export default (apiServer) => {
       accounts:
        getAccounts.result.items
     }
-    const token = jwt.sign(payload, secrets[0])
+    const token = jwt.sign(payload, secrets[0], {expiresIn: "24h"})
     const template = handlebars.compile(Login)
-    const html = template({ token })
+    const html = template({ href : `${process.env.APP_URL}loginSelect?token=${token}`})
     const info = await sendEmail(req.body.email, 'Login link ', html)
     return {
       status: 201,
