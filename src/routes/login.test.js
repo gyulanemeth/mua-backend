@@ -55,7 +55,7 @@ describe('login test ', () => {
     expect(res.body.status).toBe(200)
   })
 
-  test('login with wronge password', async () => {
+  test('login with Wrong password', async () => {
     const account1 = new Account({ name: 'account_example', urlFriendlyName: 'urlFriendlyName_example' })
     await account1.save()
 
@@ -73,7 +73,7 @@ describe('login test ', () => {
     expect(res.statusCode).toBe(401)
   })
 
-  test('login with wronge header', async () => {
+  test('login with Wrong header', async () => {
     const account1 = new Account({ name: 'account_example', urlFriendlyName: 'urlFriendlyName_example' })
     await account1.save()
 
