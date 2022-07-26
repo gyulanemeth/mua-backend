@@ -61,11 +61,11 @@ describe('forgot-password test', () => {
     const messageUrl = nodemailer.getTestMessageUrl(res.body.result.info)
 
     const html = await fetch(messageUrl).then(response => response.text())
-    const regex = /<a[\s]+id=\\"forgetPasswordLink\\"[^\n\r]*\?token=([^"&]+)">/g
+    const regex = /<a[\s]+id=\\"forgetPasswordLink\\"[^\n\r]*\?token&#x3D([^"&]+)">/g
     const found = html.match(regex)[0]
-    const tokenPosition = found.indexOf('token=')
+    const tokenPosition = found.indexOf('token&#x3D')
     const endTagPosition = found.indexOf('\\">')
-    const htmlToken = found.substring(tokenPosition + 6, endTagPosition)
+    const htmlToken = found.substring(tokenPosition + 11, endTagPosition)
     const verifiedToken = jwt.verify(htmlToken, secrets[0])
     expect(htmlToken).toBeDefined()
     expect(verifiedToken.type).toBe('forgot-password')
@@ -93,6 +93,7 @@ describe('forgot-password test', () => {
   })
 
   test('send forget password for wrong account  /v1/accounts/:accountId/forgot-password/send', async () => {
+    const id = new mongoose.Types.ObjectId()
     const account1 = new Account({ name: 'accountExample1', urlFriendlyName: 'urlFriendlyNameExample1' })
     await account1.save()
 
@@ -103,15 +104,11 @@ describe('forgot-password test', () => {
     const hash2 = crypto.createHash('md5').update('user2Password').digest('hex')
     const user2 = new User({ email: 'user2@gmail.com', name: 'user2', password: hash2, accountId: account1._id })
     await user2.save()
-    const id = new mongoose.Types.ObjectId()
-    const token = jwt.sign({ type: 'User', role: 'admin', account: { _id: id } }, secrets[0])
 
     const res = await request(app)
-      .post('/v1/accounts/' + account1._id + '/forgot-password/send')
-      .set('authorization', 'Bearer ' + token)
+      .post('/v1/accounts/' + id + '/forgot-password/send')
       .send({ email: user1.email })
-
-    expect(res.body.status).toBe(403)
+    expect(res.body.status).toBe(401)
   })
 
   // forget password  reset tests
@@ -133,7 +130,7 @@ describe('forgot-password test', () => {
     const res = await request(app)
       .post('/v1/accounts/' + account1._id + '/forgot-password/reset')
       .set('authorization', 'Bearer ' + token)
-      .send({ password: 'userNewPassword', passwordAgain: 'userNewPassword' })
+      .send({ newPassword: 'userNewPassword', newPasswordAgain: 'userNewPassword' })
     expect(res.body.status).toBe(200)
   })
 
@@ -154,7 +151,7 @@ describe('forgot-password test', () => {
     const res = await request(app)
       .post('/v1/accounts/' + account1._id + '/forgot-password/reset')
       .set('authorization', 'Bearer ' + token)
-      .send({ password: 'userNewPassword', passwordAgain: 'userWrongNewPassword' })
+      .send({ newPassword: 'userNewPassword', newPasswordAgain: 'userWrongNewPassword' })
     expect(res.body.status).toBe(400)
   })
 
