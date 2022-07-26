@@ -94,9 +94,9 @@ export default (apiServer) => {
         _id: newAccount.result._id
       }
     }
-    const token = jwt.sign(payload, secrets[0], {expiresIn: "24h"})
+    const token = jwt.sign(payload, secrets[0], { expiresIn: '24h' })
     const template = handlebars.compile(registration)
-    const html = template({ href : `${process.env.APP_URL}finalize-registration?token=${token}`})
+    const html = template({ href: `${process.env.APP_URL}finalize-registration?token=${token}` })
     const mail = await sendEmail(newUser.result.email, 'Registration link ', html)
 
     return {

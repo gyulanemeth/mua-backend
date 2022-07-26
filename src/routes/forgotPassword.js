@@ -33,9 +33,9 @@ export default (apiServer) => {
       }
     }
 
-    const token = jwt.sign(payload, secrets[0], {expiresIn: "24h"})
+    const token = jwt.sign(payload, secrets[0], { expiresIn: '24h' })
     const template = handlebars.compile(forgotPassword)
-    const html = template({ href : `${process.env.APP_URL}forgot-password/reset?token=${token}`})
+    const html = template({ href: `${process.env.APP_URL}forgot-password/reset?token=${token}` })
     const mail = await sendEmail(response.result.items[0].email, 'forget password link', html)
 
     return {
@@ -66,7 +66,7 @@ export default (apiServer) => {
         accountId: response.result.items[0].accountId
       }
     }
-    const token = jwt.sign(payload, secrets[0], {expiresIn: "24h"})
+    const token = jwt.sign(payload, secrets[0], { expiresIn: '24h' })
     return {
       status: 200,
       result: {

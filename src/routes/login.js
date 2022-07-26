@@ -38,7 +38,7 @@ export default (apiServer) => {
         _id: getAccount.result._id
       }
     }
-    const token = jwt.sign(payload, secrets[0], {expiresIn: "24h"})
+    const token = jwt.sign(payload, secrets[0], { expiresIn: '24h' })
     return {
       status: 200,
       result: {
@@ -55,7 +55,7 @@ export default (apiServer) => {
     }
     const ids = findUserIds.result.items.map(item => item.accountId.toString())
 
-    const getAccounts = await list(AccountModel, {}, {filter: {_id: { $in: ids }}})
+    const getAccounts = await list(AccountModel, {}, { filter: { _id: { $in: ids } } })
     const payload = {
       type: 'login',
       user: {
@@ -64,9 +64,9 @@ export default (apiServer) => {
       accounts:
        getAccounts.result.items
     }
-    const token = jwt.sign(payload, secrets[0], {expiresIn: "24h"})
+    const token = jwt.sign(payload, secrets[0], { expiresIn: '24h' })
     const template = handlebars.compile(Login)
-    const html = template({ href : `${process.env.APP_URL}loginSelect?token=${token}`})
+    const html = template({ href: `${process.env.APP_URL}loginSelect?token=${token}` })
     const info = await sendEmail(req.body.email, 'Login link ', html)
     return {
       status: 201,
