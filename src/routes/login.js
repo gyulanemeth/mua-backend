@@ -53,12 +53,9 @@ export default (apiServer) => {
     if (findUserIds.result.count === 0) {
       throw new AuthenticationError('Invalid email')
     }
-    console.log(findUserIds);
     const ids = findUserIds.result.items.map(item => item.accountId.toString())
-    console.log(ids);
 
     const getAccounts = await list(AccountModel, {}, {filter: {_id: { $in: ids }}})
-    console.log(getAccounts);
     const payload = {
       type: 'login',
       user: {

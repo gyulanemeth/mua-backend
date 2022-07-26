@@ -8,7 +8,6 @@ export default (apiServer) => {
     return {
       status: 200,
       result: {
-        accountsAppUrl: process.env.ACCOUNTS_APP_URL,
         appUrl: process.env.APP_URL,
         role: ['admin', 'user']
       }
