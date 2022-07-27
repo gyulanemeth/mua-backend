@@ -552,7 +552,7 @@ describe('users test', () => {
     const user1 = new User({ email: 'user1@gmail.com', name: 'user1', role: 'user', password: hash1, accountId: account1._id })
     await user1.save()
 
-    const token = jwt.sign({ type: 'registration', user: { accountId: account1._id, _id: user1._id } }, secrets[0])
+    const token = jwt.sign({ type: 'registration', user: { _id: user1._id }, account: { _id: account1._id } }, secrets[0])
 
     const res = await request(app)
       .post('/v1/accounts/' + account1._id + '/users/' + user1._id + '/finalize-registration')
@@ -592,7 +592,7 @@ describe('users test', () => {
     const user1 = new User({ email: 'user1@gmail.com', name: 'user1', role: 'admin', password: hash1, accountId: account1._id })
     await user1.save()
     const id = new mongoose.Types.ObjectId()
-    const token = jwt.sign({ type: 'registration', user: { accountId: id, _id: user1._id } }, secrets[0])
+    const token = jwt.sign({ type: 'registration', user: { _id: user1._id }, account: { _id: id } }, secrets[0])
 
     const res = await request(app)
       .post('/v1/accounts/' + id + '/users/' + user1._id + '/finalize-registration')
@@ -611,7 +611,7 @@ describe('users test', () => {
     await user1.save()
 
     const id = new mongoose.Types.ObjectId()
-    const token = jwt.sign({ type: 'registration', user: { _id: id, accountId: account1._id } }, secrets[0])
+    const token = jwt.sign({ type: 'registration', user: { _id: id }, account: { _id: account1._id } }, secrets[0])
 
     const res = await request(app)
       .post('/v1/accounts/' + account1._id + '/users/' + id + '/finalize-registration')

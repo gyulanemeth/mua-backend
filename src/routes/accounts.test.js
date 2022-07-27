@@ -471,11 +471,11 @@ describe('accounts test', () => {
     const messageUrl = nodemailer.getTestMessageUrl(res.body.result.info)
 
     const html = await fetch(messageUrl).then(response => response.text())
-    const regex = /<a[\s]+id=\\"registrationLink\\"[^\n\r]*\?token=([^"&]+)">/g
+    const regex = /<a[\s]+id=\\"registrationLink\\"[^\n\r]*\?token&#x3D([^"&]+)">/g
     const found = html.match(regex)[0]
-    const tokenPosition = found.indexOf('token=')
+    const tokenPosition = found.indexOf('token&#x3D')
     const endTagPosition = found.indexOf('\\">')
-    const htmlToken = found.substring(tokenPosition + 6, endTagPosition)
+    const htmlToken = found.substring(tokenPosition + 11, endTagPosition)
     const verifiedToken = jwt.verify(htmlToken, secrets[0])
 
     expect(htmlToken).toBeDefined()

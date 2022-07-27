@@ -20,7 +20,6 @@ const secrets = process.env.SECRETS.split(' ')
 
 export default (apiServer) => {
   apiServer.post('/v1/accounts/:id/forgot-password/send', async req => {
-    allowAccessTo(req, secrets, [{ type: 'admin' }, { type: 'user', role: 'admin' }])
     const response = await list(UserModel, { email: req.body.email, accountId: req.params.id }, { select: { password: 0 } })
     if (response.result.count === 0) {
       throw new AuthenticationError('Email Authentication Error ')
@@ -34,9 +33,9 @@ export default (apiServer) => {
       }
     }
 
-    const token = jwt.sign(payload, secrets[0])
+    const token = jwt.sign(payload, secrets[0], { expiresIn: '24h' })
     const template = handlebars.compile(forgotPassword)
-    const html = template({ token })
+    const html = template({ href: `${process.env.APP_URL}forgot-password/reset?token=${token}` })
     const mail = await sendEmail(response.result.items[0].email, 'forget password link', html)
 
     return {
@@ -54,10 +53,10 @@ export default (apiServer) => {
     if (response.result.count === 0) {
       throw new AuthenticationError('Email Authentication Error ')
     }
-    if (req.body.password !== req.body.passwordAgain) {
+    if (req.body.newPassword !== req.body.newPasswordAgain) {
       throw new ValidationError("Validation error passwords didn't match ")
     }
-    const hash = crypto.createHash('md5').update(req.body.password).digest('hex')
+    const hash = crypto.createHash('md5').update(req.body.newPassword).digest('hex')
     const updatedUser = await patchOne(UserModel, { id: data.user._id }, { password: hash })
     const payload = {
       type: 'login',
@@ -67,7 +66,7 @@ export default (apiServer) => {
         accountId: response.result.items[0].accountId
       }
     }
-    const token = jwt.sign(payload, secrets[0])
+    const token = jwt.sign(payload, secrets[0], { expiresIn: '24h' })
     return {
       status: 200,
       result: {

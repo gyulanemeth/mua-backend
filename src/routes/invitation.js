@@ -40,9 +40,9 @@ export default (apiServer) => {
         urlFriendlyName: checkAccount.result.urlFriendlyName
       }
     }
-    const token = jwt.sign(payload, secrets[0])
+    const token = jwt.sign(payload, secrets[0], { expiresIn: '24h' })
     const template = handlebars.compile(Invitation)
-    const html = template({ token })
+    const html = template({ href: `${process.env.APP_URL}invitation/accept?token=${token}` })
     const info = await sendEmail(newUser.result.email, 'invitation link ', html)
     return {
       status: 201,
@@ -65,7 +65,7 @@ export default (apiServer) => {
       throw new ValidationError("Validation error passwords didn't match ")
     }
     const hash = crypto.createHash('md5').update(req.body.newPassword).digest('hex')
-    const updatedUser = await patchOne(UserModel, { id: data.user._id }, { password: hash })
+    const updatedUser = await patchOne(UserModel, { id: data.user._id }, { password: hash, name: req.body.name })
     const payload = {
       type: 'login',
       user: {
@@ -74,7 +74,7 @@ export default (apiServer) => {
         accountId: updatedUser.result.accountId
       }
     }
-    const token = jwt.sign(payload, secrets[0])
+    const token = jwt.sign(payload, secrets[0], { expiresIn: '24h' })
     return {
       status: 200,
       result: {
