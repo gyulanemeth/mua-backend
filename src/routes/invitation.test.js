@@ -69,6 +69,7 @@ describe('invitation test', () => {
     expect(htmlToken).toBeDefined()
     expect(verifiedToken.type).toBe('invitation')
     expect(verifiedToken.user.email).toBe('user3@gmail.com')
+    expect(JSON.stringify(verifiedToken.account._id)).toBe(JSON.stringify(account1._id))
   })
 
   test('success send invitation by user role admin  /v1/accounts/:accountId/invitation/send', async () => {
@@ -106,6 +107,7 @@ describe('invitation test', () => {
     expect(htmlToken).toBeDefined()
     expect(verifiedToken.type).toBe('invitation')
     expect(verifiedToken.user.email).toBe('user3@gmail.com')
+    expect(JSON.stringify(verifiedToken.account._id)).toBe(JSON.stringify(account1._id))
   })
 
   test('send invitation error user exist  /v1/accounts/:accountId/invitation/send', async () => {

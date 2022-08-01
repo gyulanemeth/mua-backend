@@ -70,6 +70,7 @@ describe('forgot-password test', () => {
     expect(htmlToken).toBeDefined()
     expect(verifiedToken.type).toBe('forgot-password')
     expect(verifiedToken.user.email).toBe(user1.email)
+    expect(JSON.stringify(verifiedToken.account._id)).toBe(JSON.stringify(user1.accountId))
   })
   test('send forget password error user not found  /v1/accounts/:accountId/forgot-password/send', async () => {
     const account1 = new Account({ name: 'accountExample1', urlFriendlyName: 'urlFriendlyNameExample1' })
