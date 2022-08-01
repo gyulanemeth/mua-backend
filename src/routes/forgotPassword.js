@@ -28,8 +28,10 @@ export default (apiServer) => {
       type: 'forgot-password',
       user: {
         _id: response.result.items[0]._id,
-        email: response.result.items[0].email,
-        accountId: response.result.items[0].accountId
+        email: response.result.items[0].email
+      },
+      account: {
+        _id: response.result.items[0].accountId
       }
     }
 
@@ -62,8 +64,10 @@ export default (apiServer) => {
       type: 'login',
       user: {
         _id: updatedUser.result._id,
-        email: updatedUser.result.email,
-        accountId: response.result.items[0].accountId
+        email: updatedUser.result.email
+      },
+      account: {
+        _id: response.result.items[0].accountId
       }
     }
     const token = jwt.sign(payload, secrets[0], { expiresIn: '24h' })

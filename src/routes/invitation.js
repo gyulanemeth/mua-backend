@@ -70,8 +70,10 @@ export default (apiServer) => {
       type: 'login',
       user: {
         _id: updatedUser.result._id,
-        email: updatedUser.result.email,
-        accountId: updatedUser.result.accountId
+        email: updatedUser.result.email
+      },
+      account: {
+        _id: updatedUser.result.accountId
       }
     }
     const token = jwt.sign(payload, secrets[0], { expiresIn: '24h' })

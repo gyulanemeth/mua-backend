@@ -66,7 +66,7 @@ export default (apiServer) => {
     }
     const token = jwt.sign(payload, secrets[0], { expiresIn: '24h' })
     const template = handlebars.compile(Login)
-    const html = template({ href: `${process.env.APP_URL}loginSelect?token=${token}` })
+    const html = template({ href: `${process.env.APP_URL}login-select?token=${token}` })
     const info = await sendEmail(req.body.email, 'Login link ', html)
     return {
       status: 201,
