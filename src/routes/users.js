@@ -1,4 +1,9 @@
+import fs from 'fs'
+import path from 'path'
+import { fileURLToPath } from 'url'
+
 import crypto from 'crypto'
+import handlebars from 'handlebars'
 
 import jwt from 'jsonwebtoken'
 import allowAccessTo from 'bearer-jwt-auth'
@@ -8,8 +13,12 @@ import { MethodNotAllowedError, ValidationError } from 'standard-api-errors'
 
 import AccountModel from '../models/Account.js'
 import UserModel from '../models/User.js'
+import sendEmail from '../helpers/sendEmail.js'
 
 const secrets = process.env.SECRETS.split(' ')
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url))
+const VerifyEmail = fs.readFileSync(path.join(__dirname, '..', 'email-templates', 'verifyEmail.html'), 'utf8')
 
 export default (apiServer) => {
   apiServer.patch('/v1/accounts/:accountId/users/:id/name', async req => {
@@ -45,6 +54,46 @@ export default (apiServer) => {
     }
     const updatedUser = await patchOne(UserModel, { id: req.params.id, accountId: req.params.accountId }, { role: req.body.role })
     return updatedUser
+  })
+
+  apiServer.patch('/v1/accounts/:accountId/users/:id/email', async req => {
+    allowAccessTo(req, secrets, [{ type: 'admin' }, { type: 'user', user: { _id: req.params.id }, account: { _id: req.params.accountId } }])
+    const checkExist = await list(UserModel, { email: req.body.newEmail, accountId: req.params.accountId })
+    if (checkExist.result.count > 0) {
+      throw new MethodNotAllowedError('Email exist')
+    }
+    const response = await readOne(UserModel, { id: req.params.id, accountId: req.params.accountId }, { select: { password: 0, email: 0 } })
+    const payload = {
+      type: 'verfiy-email',
+      user: response.result,
+      newEmail: req.body.newEmail,
+      account: {
+        _id: req.params.accountId
+      }
+    }
+    const token = jwt.sign(payload, secrets[0], { expiresIn: '24h' })
+    const template = handlebars.compile(VerifyEmail)
+    const html = template({ href: `${process.env.APP_URL}verify-email?token=${token}` })
+    const mail = await sendEmail(req.body.newEmail, 'verify email link ', html)
+
+    return {
+      status: 200,
+      result: {
+        success: true,
+        info: mail.result.info
+      }
+    }
+  })
+
+  apiServer.patch('/v1/accounts/:accountId/users/:id/email-confirm', async req => {
+    const data = await allowAccessTo(req, secrets, [{ type: 'verfiy-email', user: { _id: req.params.id }, account: { _id: req.params.accountId } }])
+    await patchOne(UserModel, { id: req.params.id }, { email: data.newEmail })
+    return {
+      status: 200,
+      result: {
+        success: true
+      }
+    }
   })
 
   apiServer.delete('/v1/accounts/:accountId/users/:id', async req => {
