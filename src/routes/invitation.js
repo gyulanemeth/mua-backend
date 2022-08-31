@@ -12,7 +12,7 @@ import allowAccessTo from 'bearer-jwt-auth'
 
 import AccountModel from '../models/Account.js'
 import UserModel from '../models/User.js'
-import sendEmail from '../helpers/sendEmail.js'
+import sendEmail from 'aws-ses-send-email'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const Invitation = fs.readFileSync(path.join(__dirname, '..', 'email-templates', 'invitation.html'), 'utf8')
@@ -43,7 +43,7 @@ export default (apiServer) => {
     const token = jwt.sign(payload, secrets[0], { expiresIn: '24h' })
     const template = handlebars.compile(Invitation)
     const html = template({ href: `${process.env.APP_URL}invitation/accept?token=${token}` })
-    const info = await sendEmail(newUser.result.email, 'invitation link ', html)
+    const info = await sendEmail({ to: newUser.result.email, subject: 'invitation link ', html })
     return {
       status: 201,
       result: {

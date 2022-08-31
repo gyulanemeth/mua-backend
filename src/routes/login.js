@@ -11,7 +11,7 @@ import { AuthenticationError } from 'standard-api-errors'
 
 import AccountModel from '../models/Account.js'
 import UserModel from '../models/User.js'
-import sendEmail from '../helpers/sendEmail.js'
+import sendEmail from 'aws-ses-send-email'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const Login = fs.readFileSync(path.join(__dirname, '..', 'email-templates', 'login.html'), 'utf8')
@@ -67,7 +67,7 @@ export default (apiServer) => {
     const token = jwt.sign(payload, secrets[0], { expiresIn: '24h' })
     const template = handlebars.compile(Login)
     const html = template({ href: `${process.env.APP_URL}login-select?token=${token}` })
-    const info = await sendEmail(req.body.email, 'Login link ', html)
+    const info = await sendEmail({ to: req.body.email, subject: 'Login link ', html })
     return {
       status: 201,
       result: {

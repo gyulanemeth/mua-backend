@@ -12,7 +12,7 @@ import { list, readOne, deleteOne, deleteMany, patchOne, createOne } from 'mongo
 
 import AccountModel from '../models/Account.js'
 import UserModel from '../models/User.js'
-import sendEmail from '../helpers/sendEmail.js'
+import sendEmail from 'aws-ses-send-email'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const registration = fs.readFileSync(path.join(__dirname, '..', 'email-templates', 'registration.html'), 'utf8')
@@ -97,7 +97,7 @@ export default (apiServer) => {
     const token = jwt.sign(payload, secrets[0], { expiresIn: '24h' })
     const template = handlebars.compile(registration)
     const html = template({ href: `${process.env.APP_URL}finalize-registration?token=${token}` })
-    const mail = await sendEmail(newUser.result.email, 'Registration link ', html)
+    const mail = await sendEmail({ to: newUser.result.email, subject: 'Registration link ', html })
 
     return {
       status: 200,

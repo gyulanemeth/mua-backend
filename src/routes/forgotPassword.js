@@ -6,12 +6,13 @@ import { fileURLToPath } from 'url'
 import jwt from 'jsonwebtoken'
 import handlebars from 'handlebars'
 
-import { list, patchOne } from 'mongoose-crudl'
+import { list, patchOne, readOne } from 'mongoose-crudl'
 import allowAccessTo from 'bearer-jwt-auth'
 import { ValidationError, AuthenticationError } from 'standard-api-errors'
 
 import UserModel from '../models/User.js'
-import sendEmail from '../helpers/sendEmail.js'
+import AccountModel from '../models/Account.js'
+import sendEmail from 'aws-ses-send-email'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const forgotPassword = fs.readFileSync(path.join(__dirname, '..', 'email-templates', 'forgot-password.html'), 'utf8')
@@ -24,6 +25,7 @@ export default (apiServer) => {
     if (response.result.count === 0) {
       throw new AuthenticationError('Email Authentication Error ')
     }
+    const getAccount = await readOne(AccountModel, { id: req.params.id }, req.query)
     const payload = {
       type: 'forgot-password',
       user: {
@@ -31,14 +33,15 @@ export default (apiServer) => {
         email: response.result.items[0].email
       },
       account: {
-        _id: response.result.items[0].accountId
+        _id: response.result.items[0].accountId,
+        name: getAccount.result.name
       }
     }
 
     const token = jwt.sign(payload, secrets[0], { expiresIn: '24h' })
     const template = handlebars.compile(forgotPassword)
     const html = template({ href: `${process.env.APP_URL}forgot-password/reset?token=${token}` })
-    const mail = await sendEmail(response.result.items[0].email, 'forget password link', html)
+    const mail = await sendEmail({ to: response.result.items[0].email, subject: 'forget password link', html })
 
     return {
       status: 200,

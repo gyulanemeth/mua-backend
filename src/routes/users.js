@@ -13,7 +13,7 @@ import { MethodNotAllowedError, ValidationError } from 'standard-api-errors'
 
 import AccountModel from '../models/Account.js'
 import UserModel from '../models/User.js'
-import sendEmail from '../helpers/sendEmail.js'
+import sendEmail from 'aws-ses-send-email'
 
 const secrets = process.env.SECRETS.split(' ')
 
@@ -58,6 +58,9 @@ export default (apiServer) => {
 
   apiServer.patch('/v1/accounts/:accountId/users/:id/email', async req => {
     allowAccessTo(req, secrets, [{ type: 'admin' }, { type: 'user', user: { _id: req.params.id }, account: { _id: req.params.accountId } }])
+    if (req.body.newEmail !== req.body.newEmailAgain) {
+      throw new ValidationError('Validation error email didn\'t match.')
+    }
     const checkExist = await list(UserModel, { email: req.body.newEmail, accountId: req.params.accountId })
     if (checkExist.result.count > 0) {
       throw new MethodNotAllowedError('Email exist')
@@ -74,7 +77,7 @@ export default (apiServer) => {
     const token = jwt.sign(payload, secrets[0], { expiresIn: '24h' })
     const template = handlebars.compile(VerifyEmail)
     const html = template({ href: `${process.env.APP_URL}verify-email?token=${token}` })
-    const mail = await sendEmail(req.body.newEmail, 'verify email link ', html)
+    const mail = await sendEmail({ to: req.body.newEmail, subject: 'verify email link ', html })
 
     return {
       status: 200,
