@@ -9,7 +9,7 @@ import jwt from 'jsonwebtoken'
 import allowAccessTo from 'bearer-jwt-auth'
 
 import { list, readOne, deleteOne, patchOne, createOne } from 'mongoose-crudl'
-import { MethodNotAllowedError, ValidationError } from 'standard-api-errors'
+import { MethodNotAllowedError, ValidationError, AuthenticationError, AuthorizationError } from 'standard-api-errors'
 
 import AccountModel from '../models/Account.js'
 import UserModel from '../models/User.js'
@@ -100,8 +100,10 @@ export default (apiServer) => {
   })
 
   apiServer.delete('/v1/accounts/:accountId/users/:id', async req => {
-    allowAccessTo(req, secrets, [{ type: 'admin' }, { type: 'user', role: 'admin' }])
-
+    const tokenData = allowAccessTo(req, secrets, [{ type: 'admin' }, { type: 'user', role: 'admin' }, { type: 'delete' }])
+    if ((tokenData.type === 'admin' || tokenData.type === 'user') && tokenData.user._id === req.params.id) {
+      throw new AuthorizationError('Delete permission needed')
+    }
     let user = await readOne(UserModel, { id: req.params.id, accountId: req.params.accountId })
     if (user.result.role === 'admin') {
       const admin = await list(UserModel, { role: 'admin' }, { select: { password: 0 } })
@@ -111,6 +113,28 @@ export default (apiServer) => {
     }
     user = await deleteOne(UserModel, { id: req.params.id, accountId: req.params.accountId }, req.query)
     return user
+  })
+
+  apiServer.post('/v1/accounts/permission/:permissionFor', async req => {
+    const tokenData = allowAccessTo(req, secrets, [{ type: 'user' }, { type: 'admin' }])
+    const hash = crypto.createHash('md5').update(req.body.password).digest('hex')
+    const findUser = await list(UserModel, { email: tokenData.user.email, password: hash })
+    if (findUser.result.count === 0) {
+      throw new AuthenticationError('Invalid password')
+    }
+    const payload = {
+      type: req.params.permissionFor,
+      user: tokenData.user,
+      account: tokenData.account,
+      role: tokenData.role
+    }
+    const token = jwt.sign(payload, secrets[0], { expiresIn: '24h' })
+    return {
+      status: 200,
+      result: {
+        permissionToken: token
+      }
+    }
   })
 
   apiServer.get('/v1/accounts/:accountId/users/:id/access-token', async req => {
