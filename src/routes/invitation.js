@@ -43,19 +43,16 @@ export default (apiServer) => {
     const token = jwt.sign(payload, secrets[0], { expiresIn: '24h' })
     const template = handlebars.compile(Invitation)
     const html = template({ href: `${process.env.APP_URL}invitation/accept?token=${token}` })
-    const info = await sendEmail({ to: newUser.result.email, subject: 'invitation link ', html })
-      .then((response) => {
-      /* istanbul ignore if */
-        if (response.message) {
-          deleteOne(UserModel, { id: newUser.result._id, accountId: checkAccount.result._id })
-        }
-        return response
-      })
+    const mail = await sendEmail({ to: newUser.result.email, subject: 'invitation link ', html })
+    if (mail.message || mail.error) {
+      await deleteOne(UserModel, { id: newUser.result._id, accountId: checkAccount.result._id })
+    }
+
     return {
       status: 201,
       result: {
         success: true,
-        info: info.result.info
+        info: mail.result.info
       }
     }
   })
