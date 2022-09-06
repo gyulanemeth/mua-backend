@@ -9,7 +9,7 @@ import jwt from 'jsonwebtoken'
 import allowAccessTo from 'bearer-jwt-auth'
 
 import { list, readOne, deleteOne, patchOne, createOne } from 'mongoose-crudl'
-import { MethodNotAllowedError, ValidationError, AuthenticationError, AuthorizationError } from 'standard-api-errors'
+import { MethodNotAllowedError, ValidationError, AuthenticationError } from 'standard-api-errors'
 
 import AccountModel from '../models/Account.js'
 import UserModel from '../models/User.js'
