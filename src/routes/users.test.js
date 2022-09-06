@@ -405,7 +405,7 @@ describe('users test', () => {
     const user1 = new User({ email: 'user1@gmail.com', name: 'user1', password: hash1, accountId: account1._id })
     await user1.save()
 
-    const token = jwt.sign({ type: 'user', user:{_id:123123}, account: { _id: account1._id }, role: 'admin' }, secrets[0])
+    const token = jwt.sign({ type: 'delete', user:{_id:123123}, account: { _id: account1._id }, role: 'admin' }, secrets[0])
 
     const res = await request(app)
       .delete('/v1/accounts/' + account1._id + '/users/' + user1._id)
@@ -1021,7 +1021,7 @@ test('get permission error wrong Password ', async () => {
   const user2 = new User({ email: 'user2@gmail.com', name: 'user2', password: hash2, accountId: account1._id })
   await user2.save()
 
-  const token = jwt.sign({ type: 'admin', user: { email: 'user1@gmail.com' } }, secrets[0])
+  const token = jwt.sign({ type: 'user', user: { email: 'user1@gmail.com' } }, secrets[0])
 
   const res = await request(app)
     .post('/v1/accounts/permission/delete').set('authorization', 'Bearer ' + token)

@@ -100,10 +100,7 @@ export default (apiServer) => {
   })
 
   apiServer.delete('/v1/accounts/:accountId/users/:id', async req => {
-    const tokenData = allowAccessTo(req, secrets, [{ type: 'admin' }, { type: 'user', role: 'admin' }, { type: 'delete' }])
-    if ((tokenData.type === 'admin' || tokenData.type === 'user') && tokenData.user._id === req.params.id) {
-      throw new AuthorizationError('Delete permission needed')
-    }
+    allowAccessTo(req, secrets, [{ type: 'delete' }])
     let user = await readOne(UserModel, { id: req.params.id, accountId: req.params.accountId })
     if (user.result.role === 'admin') {
       const admin = await list(UserModel, { role: 'admin' }, { select: { password: 0 } })
@@ -116,7 +113,7 @@ export default (apiServer) => {
   })
 
   apiServer.post('/v1/accounts/permission/:permissionFor', async req => {
-    const tokenData = allowAccessTo(req, secrets, [{ type: 'user' }, { type: 'admin' }])
+    const tokenData = allowAccessTo(req, secrets, [{ type: 'user' }])
     const hash = crypto.createHash('md5').update(req.body.password).digest('hex')
     const findUser = await list(UserModel, { email: tokenData.user.email, password: hash })
     if (findUser.result.count === 0) {
