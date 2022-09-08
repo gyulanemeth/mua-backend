@@ -12,14 +12,13 @@ import allowAccessTo from 'bearer-jwt-auth'
 
 import AccountModel from '../models/Account.js'
 import UserModel from '../models/User.js'
-import sendEmail from 'aws-ses-send-email'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const Invitation = fs.readFileSync(path.join(__dirname, '..', 'email-templates', 'invitation.html'), 'utf8')
 
 const secrets = process.env.SECRETS.split(' ')
 
-export default (apiServer) => {
+export default (apiServer, sendEmail) => {
   apiServer.post('/v1/accounts/:id/invitation/send', async req => {
     allowAccessTo(req, secrets, [{ type: 'admin' }, { type: 'user', role: 'admin' }])
     const checkAccount = await readOne(AccountModel, { id: req.params.id }, req.query)
@@ -43,9 +42,12 @@ export default (apiServer) => {
     const token = jwt.sign(payload, secrets[0], { expiresIn: '24h' })
     const template = handlebars.compile(Invitation)
     const html = template({ href: `${process.env.APP_URL}invitation/accept?token=${token}` })
-    const mail = await sendEmail({ to: newUser.result.email, subject: 'invitation link ', html })
-    if (mail.message || mail.error) {
+    let mail
+    try {
+      mail = await sendEmail({ to: newUser.result.email, subject: 'invitation link ', html })
+    } catch (e) {
       await deleteOne(UserModel, { id: newUser.result._id, accountId: checkAccount.result._id })
+      throw e
     }
 
     return {

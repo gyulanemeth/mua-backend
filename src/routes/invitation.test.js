@@ -6,6 +6,8 @@ import request from 'supertest'
 import nodemailer from 'nodemailer'
 
 import createMongooseMemoryServer from 'mongoose-memory'
+import sendEmail from 'aws-ses-send-email'
+import { jest } from '@jest/globals'
 
 import createServer from './index.js'
 import Account from '../models/Account.js'
@@ -21,7 +23,7 @@ describe('invitation test', () => {
     await mongooseMemoryServer.start()
     await mongooseMemoryServer.connect('test-db')
 
-    app = createServer()
+    app = createServer(sendEmail)
     app = app._expressServer
   })
 
@@ -128,6 +130,32 @@ describe('invitation test', () => {
       .post('/v1/accounts/' + account1._id + '/invitation/send').set('authorization', 'Bearer ' + token).send({ email: 'user1@gmail.com' })
 
     expect(res.body.status).toBe(405)
+  })
+
+  test('send invitation error sending  /v1/accounts/:accountId/invitation/send', async () => {
+    const account1 = new Account({ name: 'accountExample1', urlFriendlyName: 'urlFriendlyNameExample1' })
+    await account1.save()
+
+    const hash1 = crypto.createHash('md5').update('user1Password').digest('hex')
+    const user1 = new User({ email: 'user1@gmail.com', name: 'user1', password: hash1, accountId: account1._id })
+    await user1.save()
+
+    const hash2 = crypto.createHash('md5').update('user2Password').digest('hex')
+    const user2 = new User({ email: 'user2@gmail.com', name: 'user2', password: hash2, accountId: account1._id })
+    await user2.save()
+
+    const token = jwt.sign({ type: 'admin' }, secrets[0])
+
+    const mockSendEmail = jest.fn(() => {
+      throw new Error('test mock send email error')
+    })
+    app = createServer(mockSendEmail)
+    app = app._expressServer
+
+    const res = await request(app)
+      .post('/v1/accounts/' + account1._id + '/invitation/send').set('authorization', 'Bearer ' + token).send({ email: 'user3@gmail.com' })
+
+    expect(res.body.error.message).toEqual('test mock send email error')
   })
 
   test('send invitation error unAuthorized header  /v1/accounts/:accountId/invitation/send', async () => {

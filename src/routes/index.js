@@ -7,7 +7,7 @@ import account from './accounts.js'
 import users from './users.js'
 import config from './config.js'
 
-export default () => {
+export default (sendEmail) => {
   function errorHandler (e) {
     return {
       status: e.status,
@@ -22,7 +22,7 @@ export default () => {
   users(apiServer)
   config(apiServer)
   login(apiServer)
-  invitation(apiServer)
+  invitation(apiServer, sendEmail)
   forgotPassword(apiServer)
   account(apiServer)
 
