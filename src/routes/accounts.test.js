@@ -5,6 +5,8 @@ import mongoose from 'mongoose'
 import request from 'supertest'
 import nodemailer from 'nodemailer'
 
+import { ValidationError } from 'standard-api-errors'
+
 import createMongooseMemoryServer from 'mongoose-memory'
 
 import createServer from './index.js'
@@ -15,13 +17,26 @@ const mongooseMemoryServer = createMongooseMemoryServer(mongoose)
 
 const secrets = process.env.SECRETS.split(' ')
 
+const mokeConnector = () => {
+  const mockDeleteAccount = (param) => {
+    if (!param || !param.id) {
+      throw new ValidationError('Id Is Required')
+    }
+    return { success: true }
+  }
+
+  return {
+    deleteAccount: mockDeleteAccount
+  }
+}
+
 describe('accounts test', () => {
   let app
   beforeAll(async () => {
     await mongooseMemoryServer.start()
     await mongooseMemoryServer.connect('test-db')
 
-    app = createServer()
+    app = createServer({}, mokeConnector())
     app = app._expressServer
   })
 
@@ -380,7 +395,6 @@ describe('accounts test', () => {
     await user4.save()
 
     const token = jwt.sign({ type: 'admin' }, secrets[0])
-
     const res = await request(app)
       .delete('/v1/accounts/' + account1._id)
       .set('authorization', 'Bearer ' + token)

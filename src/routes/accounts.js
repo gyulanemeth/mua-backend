@@ -19,7 +19,7 @@ const registration = fs.readFileSync(path.join(__dirname, '..', 'email-templates
 
 const secrets = process.env.SECRETS.split(' ')
 
-export default (apiServer) => {
+export default (apiServer, connectors) => {
   apiServer.get('/v1/accounts/check-availability', async req => {
     let available = false
     const response = await list(AccountModel, { urlFriendlyName: req.query.urlFriendlyName })
@@ -66,6 +66,7 @@ export default (apiServer) => {
 
   apiServer.delete('/v1/accounts/:id', async req => {
     allowAccessTo(req, secrets, [{ type: 'admin' }, { type: 'user', role: 'admin' }])
+    connectors.deleteAccount({ id: req.params.id })
     deleteMany(UserModel, { accountId: req.params.id })
     const deletedAccount = await deleteOne(AccountModel, { id: req.params.id })
     return {
