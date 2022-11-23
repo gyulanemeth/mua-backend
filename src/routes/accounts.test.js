@@ -5,6 +5,8 @@ import mongoose from 'mongoose'
 import request from 'supertest'
 import nodemailer from 'nodemailer'
 
+import { jest } from '@jest/globals'
+
 import { ValidationError } from 'standard-api-errors'
 
 import createMongooseMemoryServer from 'mongoose-memory'
@@ -30,13 +32,14 @@ const mokeConnector = () => {
   }
 }
 
+const connectors = mokeConnector()
 describe('accounts test', () => {
   let app
   beforeAll(async () => {
     await mongooseMemoryServer.start()
     await mongooseMemoryServer.connect('test-db')
 
-    app = createServer({}, mokeConnector())
+    app = createServer({}, connectors)
     app = app._expressServer
   })
 
@@ -394,13 +397,17 @@ describe('accounts test', () => {
     const user4 = new User({ email: 'user4@gmail.com', name: 'user4', password: hash4, accountId: account1._id })
     await user4.save()
 
+    jest.spyOn(connectors, 'deleteAccount')
+
     const token = jwt.sign({ type: 'admin' }, secrets[0])
     const res = await request(app)
       .delete('/v1/accounts/' + account1._id)
       .set('authorization', 'Bearer ' + token)
       .send()
 
+    expect(connectors.deleteAccount).toHaveBeenCalled()
     expect(res.body.status).toBe(200)
+    connectors.deleteAccount.mockRestore()
   })
 
   test('delete account by user role admin   /v1/accounts/:id', async () => {
@@ -415,14 +422,17 @@ describe('accounts test', () => {
     const user2 = new User({ email: 'user2@gmail.com', name: 'user2', password: hash2, accountId: account1._id })
     await user2.save()
 
-    const token = jwt.sign({ type: 'user', account: { _id: account1._id }, role: 'admin' }, secrets[0])
+    jest.spyOn(connectors, 'deleteAccount')
 
+    const token = jwt.sign({ type: 'user', account: { _id: account1._id }, role: 'admin' }, secrets[0])
     const res = await request(app)
       .delete('/v1/accounts/' + account1._id)
       .set('authorization', 'Bearer ' + token)
       .send()
 
+    expect(connectors.deleteAccount).toHaveBeenCalled()
     expect(res.body.status).toBe(200)
+    connectors.deleteAccount.mockRestore()
   })
 
   test('delete account error unAuthorized header   /v1/accounts/:id', async () => {
@@ -437,6 +447,8 @@ describe('accounts test', () => {
     const user2 = new User({ email: 'user2@gmail.com', name: 'user2', password: hash2, accountId: account1._id })
     await user2.save()
 
+    jest.spyOn(connectors, 'deleteAccount')
+
     const token = jwt.sign({ type: 'value' }, secrets[0])
 
     const res = await request(app)
@@ -444,7 +456,9 @@ describe('accounts test', () => {
       .set('authorization', 'Bearer ' + token)
       .send()
 
+    expect(connectors.deleteAccount).not.toHaveBeenCalled()
     expect(res.body.status).toBe(403)
+    connectors.deleteAccount.mockRestore()
   })
 
   test('delete account unAuthorized user   /v1/accounts/:id', async () => {
@@ -460,6 +474,9 @@ describe('accounts test', () => {
     await user2.save()
 
     const id = new mongoose.Types.ObjectId()
+
+    jest.spyOn(connectors, 'deleteAccount')
+
     const token = jwt.sign({ type: 'user', account: { _id: id }, role: 'user' }, secrets[0])
 
     const res = await request(app)
@@ -467,7 +484,9 @@ describe('accounts test', () => {
       .set('authorization', 'Bearer ' + token)
       .send()
 
+    expect(connectors.deleteAccount).not.toHaveBeenCalled()
     expect(res.body.status).toBe(403)
+    connectors.deleteAccount.mockRestore()
   })
 
   test('success create account   /v1/accounts/create', async () => {

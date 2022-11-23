@@ -4,7 +4,7 @@ import { createDeleteConnector } from 'standard-json-api-connectors'
 import { ValidationError } from 'standard-api-errors'
 
 const secrets = process.env.SECRETS.split(' ')
-const emailFoxApiUrl = process.env.EMAILFOX_API_URL
+const apiUrl = process.env.EMAILFOX_API_URL
 
 export default () => {
   const generateAdditionalHeaders = (params) => {
@@ -16,7 +16,7 @@ export default () => {
     return `/v1/accounts/${params.id}`
   }
 
-  const deletAccountRoute = createDeleteConnector(fetch, emailFoxApiUrl, generateDeleteAccountRoute, generateAdditionalHeaders)
+  const deletAccountRoute = createDeleteConnector(fetch, apiUrl, generateDeleteAccountRoute, generateAdditionalHeaders)
 
   const deleteAccount = async function (param) {
     if (!param || !param.id) {
