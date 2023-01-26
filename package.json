@@ -7,8 +7,7 @@
   "scripts": {
     "lint": "npx standard",
     "lint-fix": "npx standard --fix",
-    "test": "node --experimental-vm-modules node_modules/jest/bin/jest.js --collect-coverage",
-    "test-brk": "node --inspect-brk --experimental-vm-modules node_modules/jest/bin/jest.js",
+    "test": "npm run lint; npx vitest run --coverage -- --check-coverage --lines 100 --functions 100 --branches 100 --statements 100",
     "serve": "cd src; node --require dotenv/config index.js dotenv_config_path=../.env",
     "serve:dev": "cd src; nodemon --require dotenv/config index.js dotenv_config_path=../.env"
   },
@@ -24,23 +23,6 @@
     "env": [
       "jest"
     ]
-  },
-  "jest": {
-    "setupFiles": [
-      "dotenv/config"
-    ],
-    "testEnvironment": "jest-environment-node",
-    "transform": {},
-    "verbose": true,
-    "testTimeout": 50000,
-    "coverageThreshold": {
-      "global": {
-        "branches": 100,
-        "functions": 100,
-        "lines": 100,
-        "statements": 100
-      }
-    }
   },
   "dependencies": {
     "@aws-sdk/client-ses": "^3.131.0",
@@ -58,10 +40,11 @@
     "textversionjs": "^1.1.3"
   },
   "devDependencies": {
-    "jest": "^28.1.0",
+    "@vitest/coverage-c8": "^0.28.2",
     "mongoose-memory": "^1.0.0",
     "standard": "^17.0.0",
-    "supertest": "^6.2.3"
+    "supertest": "^6.2.3",
+    "vitest": "^0.28.2"
   },
   "author": "GYN",
   "license": "MIT"
