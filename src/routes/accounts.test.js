@@ -5,7 +5,7 @@ import mongoose from 'mongoose'
 import request from 'supertest'
 import nodemailer from 'nodemailer'
 
-import { jest } from '@jest/globals'
+import { vi } from 'vitest'
 
 import { ValidationError } from 'standard-api-errors'
 
@@ -397,7 +397,7 @@ describe('accounts test', () => {
     const user4 = new User({ email: 'user4@gmail.com', name: 'user4', password: hash4, accountId: account1._id })
     await user4.save()
 
-    jest.spyOn(connectors, 'deleteAccount')
+    vi.spyOn(connectors, 'deleteAccount')
 
     const token = jwt.sign({ type: 'admin' }, secrets[0])
     const res = await request(app)
@@ -422,7 +422,7 @@ describe('accounts test', () => {
     const user2 = new User({ email: 'user2@gmail.com', name: 'user2', password: hash2, accountId: account1._id })
     await user2.save()
 
-    jest.spyOn(connectors, 'deleteAccount')
+    vi.spyOn(connectors, 'deleteAccount')
 
     const token = jwt.sign({ type: 'user', account: { _id: account1._id }, role: 'admin' }, secrets[0])
     const res = await request(app)
@@ -447,7 +447,7 @@ describe('accounts test', () => {
     const user2 = new User({ email: 'user2@gmail.com', name: 'user2', password: hash2, accountId: account1._id })
     await user2.save()
 
-    jest.spyOn(connectors, 'deleteAccount')
+    vi.spyOn(connectors, 'deleteAccount')
 
     const token = jwt.sign({ type: 'value' }, secrets[0])
 
@@ -475,7 +475,7 @@ describe('accounts test', () => {
 
     const id = new mongoose.Types.ObjectId()
 
-    jest.spyOn(connectors, 'deleteAccount')
+    vi.spyOn(connectors, 'deleteAccount')
 
     const token = jwt.sign({ type: 'user', account: { _id: id }, role: 'user' }, secrets[0])
 
