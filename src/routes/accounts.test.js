@@ -490,8 +490,12 @@ describe('accounts test', () => {
   })
 
   test('success create account   /v1/accounts/create', async () => {
+    // in alpah version just system admin can create account
+    const token = jwt.sign({ type: 'admin' }, secrets[0])
+
     const res = await request(app)
       .post('/v1/accounts/create')
+      .set('authorization', 'Bearer ' + token)
       .send({
         user: { name: 'user1', email: 'user1@gmail.com', password: 'userPassword' },
         account: { name: 'account1', urlFriendlyName: 'account1UrlFriendlyName' }
@@ -520,8 +524,12 @@ describe('accounts test', () => {
     const account1 = new Account({ name: 'accountExample1', urlFriendlyName: 'urlFriendlyNameExample1' })
     await account1.save()
 
+    // in alpah version just system admin can create account
+    const token = jwt.sign({ type: 'admin' }, secrets[0])
+
     const res = await request(app)
       .post('/v1/accounts/create')
+      .set('authorization', 'Bearer ' + token)
       .send({
         user: { name: 'user1', email: 'user1@gmail.com', password: 'userPassword' },
         account: { name: 'account1', urlFriendlyName: 'urlFriendlyNameExample1' }

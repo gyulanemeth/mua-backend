@@ -73,7 +73,7 @@ describe('invitation test', () => {
     expect(verifiedToken.user.email).toBe('user3@gmail.com')
     expect(JSON.stringify(verifiedToken.account._id)).toBe(JSON.stringify(account1._id))
   })
-
+  /* // in alpah version user won't be able to invite
   test('success send invitation by user role admin  /v1/accounts/:accountId/invitation/send', async () => {
     const account1 = new Account({ name: 'accountExample1', urlFriendlyName: 'urlFriendlyNameExample1' })
     await account1.save()
@@ -111,7 +111,7 @@ describe('invitation test', () => {
     expect(verifiedToken.user.email).toBe('user3@gmail.com')
     expect(JSON.stringify(verifiedToken.account._id)).toBe(JSON.stringify(account1._id))
   })
-
+*/
   test('send invitation error user exist  /v1/accounts/:accountId/invitation/send', async () => {
     const account1 = new Account({ name: 'accountExample1', urlFriendlyName: 'urlFriendlyNameExample1' })
     await account1.save()

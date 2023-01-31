@@ -20,7 +20,7 @@ const secrets = process.env.SECRETS.split(' ')
 
 export default (apiServer, sendEmail) => {
   apiServer.post('/v1/accounts/:id/invitation/send', async req => {
-    allowAccessTo(req, secrets, [{ type: 'admin' }, { type: 'user', role: 'admin' }])
+    allowAccessTo(req, secrets, [{ type: 'admin' }])
     const checkAccount = await readOne(AccountModel, { id: req.params.id }, req.query)
 
     const checkUser = await list(UserModel, { email: req.body.email, accountId: req.params.id }, req.query)

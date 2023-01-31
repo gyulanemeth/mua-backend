@@ -78,6 +78,7 @@ export default (apiServer, connectors) => {
   })
 
   apiServer.post('/v1/accounts/create', async req => {
+    allowAccessTo(req, secrets, [{ type: 'admin' }]) // for alpha version only admin can creat accout --will be removed in beta
     const response = await list(AccountModel, { urlFriendlyName: req.body.account.urlFriendlyName }, req.query)
     if (response.result.count > 0) {
       throw new ConflictError('urlFriendlyName exist')
