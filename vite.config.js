@@ -4,6 +4,7 @@ export default defineConfig({
   test: {
     setupFiles: ['dotenv/config'],
     globals: true,
+    testTimeout: 10000,
     coverage: {
       reporter: ['text', 'json', 'html'],
       lines: 100,

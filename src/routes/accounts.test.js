@@ -18,6 +18,7 @@ import User from '../models/User.js'
 const mongooseMemoryServer = createMongooseMemoryServer(mongoose)
 
 const secrets = process.env.SECRETS.split(' ')
+const originalEnv = process.env
 
 const mokeConnector = () => {
   const mockDeleteAccount = (param) => {
@@ -45,6 +46,7 @@ describe('accounts test', () => {
 
   afterEach(async () => {
     await mongooseMemoryServer.purge()
+    process.env = originalEnv
   })
 
   afterAll(async () => {
@@ -490,6 +492,37 @@ describe('accounts test', () => {
   })
 
   test('success create account   /v1/accounts/create', async () => {
+    process.env.ALPHA_MODE = false
+
+    const res = await request(app)
+      .post('/v1/accounts/create')
+      .send({
+        user: { name: 'user1', email: 'user1@gmail.com', password: 'userPassword' },
+        account: { name: 'account1', urlFriendlyName: 'account1UrlFriendlyName' }
+      })
+
+    expect(res.body.status).toBe(200)
+
+    // testing email sent
+
+    const messageUrl = nodemailer.getTestMessageUrl(res.body.result.info)
+
+    const html = await fetch(messageUrl).then(response => response.text())
+    const regex = /<a[\s]+id=\\"registrationLink\\"[^\n\r]*\?token&#x3D([^"&]+)">/g
+    const found = html.match(regex)[0]
+    const tokenPosition = found.indexOf('token&#x3D')
+    const endTagPosition = found.indexOf('\\">')
+    const htmlToken = found.substring(tokenPosition + 11, endTagPosition)
+    const verifiedToken = jwt.verify(htmlToken, secrets[0])
+
+    expect(htmlToken).toBeDefined()
+    expect(verifiedToken.type).toBe('registration')
+    expect(verifiedToken.user.email).toBe('user1@gmail.com')
+  })
+
+  test('success create account alpha   /v1/accounts/create', async () => {
+    process.env.ALPHA_MODE = true
+
     // in alpah version just system admin can create account
     const token = jwt.sign({ type: 'admin' }, secrets[0])
 
@@ -520,16 +553,27 @@ describe('accounts test', () => {
     expect(verifiedToken.user.email).toBe('user1@gmail.com')
   })
 
-  test('create account urlFriendlyName exist   /v1/accounts/create', async () => {
-    const account1 = new Account({ name: 'accountExample1', urlFriendlyName: 'urlFriendlyNameExample1' })
-    await account1.save()
-
-    // in alpah version just system admin can create account
-    const token = jwt.sign({ type: 'admin' }, secrets[0])
+  test('error create account alpha non-admin   /v1/accounts/create', async () => {
+    process.env.ALPHA_MODE = true
 
     const res = await request(app)
       .post('/v1/accounts/create')
-      .set('authorization', 'Bearer ' + token)
+      .send({
+        user: { name: 'user1', email: 'user1@gmail.com', password: 'userPassword' },
+        account: { name: 'account1', urlFriendlyName: 'account1UrlFriendlyName' }
+      })
+
+    expect(res.body.status).toBe(401)
+  })
+
+  test('create account urlFriendlyName exist   /v1/accounts/create', async () => {
+    process.env.ALPHA_MODE = false
+
+    const account1 = new Account({ name: 'accountExample1', urlFriendlyName: 'urlFriendlyNameExample1' })
+    await account1.save()
+
+    const res = await request(app)
+      .post('/v1/accounts/create')
       .send({
         user: { name: 'user1', email: 'user1@gmail.com', password: 'userPassword' },
         account: { name: 'account1', urlFriendlyName: 'urlFriendlyNameExample1' }
