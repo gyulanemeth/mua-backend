@@ -3,7 +3,7 @@ const Schema = mongoose.Schema
 
 const UserSchema = new mongoose.Schema({
   name: { type: String },
-  email: { type: String, lowercase: true, required: true, match: /.+[\\@].+\..+/, unique: true },
+  email: { type: String, lowercase: true, required: true, match: /.+[\\@].+\..+/ },
   password: { type: String },
   role: { type: String, default: 'user' },
   accountId: { type: Schema.Types.ObjectId, ref: 'Account', required: true }
