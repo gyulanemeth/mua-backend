@@ -1022,36 +1022,4 @@ describe('users test', () => {
 
     expect(res.body.status).toBe(401)
   })
-
-  test('success query all account users   /v1/accounts/:accountId/users', async () => {
-    const account1 = new Account({ name: 'accountExample1', urlFriendlyName: 'urlFriendlyNameExample1' })
-    await account1.save()
-
-    const hash1 = crypto.createHash('md5').update('user1Password').digest('hex')
-    const user1 = new User({ email: 'user1@gmail.com', name: 'user1', password: hash1, accountId: account1._id })
-    await user1.save()
-
-    const hash2 = crypto.createHash('md5').update('user2Password').digest('hex')
-    const user2 = new User({ email: 'user2@gmail.com', name: 'user2', password: hash2, accountId: account1._id })
-    await user2.save()
-
-    const hash3 = crypto.createHash('md5').update('user3Password').digest('hex')
-    const user3 = new User({ email: 'user3@gmail.com', name: 'user3', password: hash3, accountId: account1._id })
-    await user3.save()
-
-    const token = jwt.sign({ type: 'admin' }, secrets[0])
-
-    const res = await request(app)
-      .get('/v1/accounts/' + account1._id + '/users')
-      .set('authorization', 'Bearer ' + token).query({
-        filter: {
-          $regex: 'user1',
-          $options: 'i'
-        }
-      })
-      .send()
-
-    expect(res.body.status).toBe(200)
-    expect(res.body.result.count).toBe(1)
-  })
 })

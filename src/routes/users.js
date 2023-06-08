@@ -169,14 +169,6 @@ export default (apiServer) => {
 
   apiServer.get('/v1/accounts/:accountId/users', async req => {
     allowAccessTo(req, secrets, [{ type: 'admin' }, { type: 'user' }])
-    if (req.query.filter) {
-      req.query.filter = {
-        $or: [
-          { name: req.query.filter },
-          { email: req.query.filter }
-        ]
-      }
-    }
     await readOne(AccountModel, { id: req.params.accountId }, req.query)
     const userList = await list(UserModel, { accountId: req.params.accountId }, { ...req.query, select: { password: 0 } })
     return userList
