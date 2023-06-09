@@ -9,7 +9,8 @@
     "lint-fix": "npx standard --fix",
     "test": "npm run lint; npx vitest run --coverage -- --check-coverage --lines 100 --functions 100 --branches 100 --statements 100",
     "serve": "cd src; node --require dotenv/config index.js dotenv_config_path=../.env",
-    "serve:dev": "cd src; nodemon --require dotenv/config index.js dotenv_config_path=../.env"
+    "serve:dev": "cd src; nodemon --require dotenv/config index.js dotenv_config_path=../.env",
+    "serve:static": "cd src/tmp/bluefox && static-server -p 10007"
   },
   "repository": {
     "type": "git",
@@ -26,12 +27,15 @@
   },
   "dependencies": {
     "@aws-sdk/client-ses": "^3.131.0",
+    "aws-sdk": "^2.1216.0",
     "aws-ses-send-email": "^0.0.2",
     "bearer-jwt-auth": "^1.0.0",
     "dotenv": "^16.0.1",
-    "express-async-api": "^0.2.0",
+    "express-async-api": "^0.6.0",
     "handlebars": "^4.7.7",
     "jsonwebtoken": "^8.5.1",
+    "mime-types": "^2.1.35",
+    "mock-aws-s3": "^4.0.2",
     "mongoose": "^6.3.5",
     "mongoose-crudl": "^1.0.0",
     "nodemailer": "^6.7.5",

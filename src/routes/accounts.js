@@ -5,6 +5,7 @@ import { fileURLToPath } from 'url'
 
 import jwt from 'jsonwebtoken'
 import handlebars from 'handlebars'
+import mime from 'mime-types'
 
 import allowAccessTo from 'bearer-jwt-auth'
 import { ConflictError } from 'standard-api-errors'
@@ -13,9 +14,13 @@ import { list, readOne, deleteOne, deleteMany, patchOne, createOne } from 'mongo
 import AccountModel from '../models/Account.js'
 import UserModel from '../models/User.js'
 import sendEmail from 'aws-ses-send-email'
+import aws from '../helpers/awsBucket.js'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const registration = fs.readFileSync(path.join(__dirname, '..', 'email-templates', 'registration.html'), 'utf8')
+const baseUrl = process.env.STATIC_SERVER_URL
+const bucketName = process.env.AWS_BUCKET_NAME
+const s3 = await aws()
 
 const secrets = process.env.SECRETS.split(' ')
 
@@ -112,4 +117,22 @@ export default (apiServer, connectors) => {
       }
     }
   })
+
+  apiServer.postBinary('/v1/accounts/:id/upload-avatar', { mimeTypes: ['image/jpeg', 'image/png', 'image/gif'], fieldName: 'avatar' }, async req => {
+    allowAccessTo(req, secrets, [{ type: 'admin' }, { type: 'user', role: 'admin' }])
+    const uploadParams = {
+      Bucket: bucketName,
+      Body: req.file.buffer,
+      Key: `mua-accounts/accounts/${req.params.id}.${mime.extension(req.file.mimetype)}`
+    }
+    const result = await s3.upload(uploadParams).promise()
+    await patchOne(AccountModel, { id: req.params.id }, { avatar: baseUrl + result.Key })
+    return {
+      status: 200,
+      result: {
+        success: true
+      }
+    }
+  })
+
 }

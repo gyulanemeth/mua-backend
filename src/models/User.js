@@ -6,7 +6,8 @@ const UserSchema = new mongoose.Schema({
   email: { type: String, lowercase: true, required: true, match: /.+[\\@].+\..+/ },
   password: { type: String },
   role: { type: String, default: 'user' },
-  accountId: { type: Schema.Types.ObjectId, ref: 'Account', required: true }
+  accountId: { type: Schema.Types.ObjectId, ref: 'Account', required: true },
+  avatar: { type: String }
 }, { timestamps: true })
 UserSchema.index({ name: 'text', email: 'text' })
 export default mongoose.model('User', UserSchema)
