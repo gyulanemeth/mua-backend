@@ -134,5 +134,4 @@ export default (apiServer, connectors) => {
       }
     }
   })
-
 }
