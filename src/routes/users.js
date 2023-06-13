@@ -211,6 +211,23 @@ export default (apiServer) => {
     return {
       status: 200,
       result: {
+        success: true,
+        avatar: baseUrl + result.Key
+      }
+    }
+  })
+  apiServer.delete('/v1/accounts/:accountId/users/:id/delete-avatar', async req => {
+    allowAccessTo(req, secrets, [{ type: 'admin' }, { type: 'user', user: { _id: req.params.id }, account: { _id: req.params.accountId } }])
+    const userData = await readOne(UserModel, { id: req.params.id, accountId: req.params.accountId }, { select: { password: 0 } })
+    const key = userData.result.avatar.substring(userData.result.avatar.lastIndexOf('/') + 1)
+    await s3.deleteObject({
+      Bucket: bucketName,
+      Key: `mua-accounts/users/${key}`
+    }).promise()
+    await patchOne(UserModel, { id: req.params.id, accountId: req.params.accountId }, { avatar: null })
+    return {
+      status: 200,
+      result: {
         success: true
       }
     }

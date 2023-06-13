@@ -655,4 +655,30 @@ describe('accounts test', () => {
     expect(pic.status).toBe(200)
     expect(res.body.status).toBe(200)
   })
+
+  test('success delete avatar ', async () => {
+    const account1 = new Account({ name: 'accountExample1', urlFriendlyName: 'urlFriendlyNameExample1' })
+    await account1.save()
+
+    const hash1 = crypto.createHash('md5').update('user1Password').digest('hex')
+    const user1 = new User({ email: 'user1@gmail.com', name: 'user1', password: hash1, accountId: account1._id })
+    await user1.save()
+
+    const token = jwt.sign({ type: 'user', account: { _id: account1._id }, role: 'admin' }, secrets[0])
+
+    const uploadRes = await request(app).post(`/v1/accounts/${account1._id}/upload-avatar`)
+      .set('authorization', 'Bearer ' + token)
+      .attach('avatar', path.join(__dirname, '..', 'helpers/testPics', 'test.png'))
+
+    await server.start()
+    const picBeforeDelete = await fetch(uploadRes.body.result.avatar)
+    expect(picBeforeDelete.status).toBe(200)
+
+    const res = await request(app).delete(`/v1/accounts/${account1._id}/delete-avatar `)
+      .set('authorization', 'Bearer ' + token).send()
+
+    const pic = await fetch(uploadRes.body.result.avatar)
+    expect(pic.status).toBe(404)
+    expect(res.body.status).toBe(200)
+  })
 })
