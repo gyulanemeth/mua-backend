@@ -1040,7 +1040,7 @@ describe('users test', () => {
     expect(res.body.status).toBe(401)
   })
 
-  test('success upload avatar ', async () => {
+  test('success upload profilePicture ', async () => {
     const account1 = new Account({ name: 'accountExample1', urlFriendlyName: 'urlFriendlyNameExample1' })
     await account1.save()
 
@@ -1050,9 +1050,9 @@ describe('users test', () => {
 
     const token = jwt.sign({ type: 'user', user: { _id: user1._id }, account: { _id: account1._id } }, secrets[0])
 
-    const res = await request(app).post(`/v1/accounts/${account1._id}/users/${user1._id}/upload-avatar`)
+    const res = await request(app).post(`/v1/accounts/${account1._id}/users/${user1._id}/profile-picture`)
       .set('authorization', 'Bearer ' + token)
-      .attach('avatar', path.join(__dirname, '..', 'helpers/testPics', 'test.png'))
+      .attach('profilePicture', path.join(__dirname, '..', 'helpers/testPics', 'test.png'))
 
     const userData = await request(app)
       .get('/v1/accounts/' + account1._id + '/users/' + user1._id)
@@ -1060,12 +1060,12 @@ describe('users test', () => {
       .send()
 
     await server.start()
-    const pic = await fetch(userData.body.result.avatar)
+    const pic = await fetch(userData.body.result.profilePicture)
     expect(pic.status).toBe(200)
     expect(res.body.status).toBe(200)
   })
 
-  test('success delete avatar ', async () => {
+  test('success delete profilePicture ', async () => {
     const account1 = new Account({ name: 'accountExample1', urlFriendlyName: 'urlFriendlyNameExample1' })
     await account1.save()
 
@@ -1075,18 +1075,18 @@ describe('users test', () => {
 
     const token = jwt.sign({ type: 'user', user: { _id: user1._id }, account: { _id: account1._id } }, secrets[0])
 
-    const uploadRes = await request(app).post(`/v1/accounts/${account1._id}/users/${user1._id}/upload-avatar`)
+    const uploadRes = await request(app).post(`/v1/accounts/${account1._id}/users/${user1._id}/profile-picture`)
       .set('authorization', 'Bearer ' + token)
-      .attach('avatar', path.join(__dirname, '..', 'helpers/testPics', 'test.png'))
+      .attach('profilePicture', path.join(__dirname, '..', 'helpers/testPics', 'test.png'))
 
     await server.start()
-    const picBeforeDelete = await fetch(uploadRes.body.result.avatar)
+    const picBeforeDelete = await fetch(uploadRes.body.result.profilePicture)
     expect(picBeforeDelete.status).toBe(200)
 
-    const res = await request(app).delete(`/v1/accounts/${account1._id}/users/${user1._id}/delete-avatar`)
+    const res = await request(app).delete(`/v1/accounts/${account1._id}/users/${user1._id}/profile-picture`)
       .set('authorization', 'Bearer ' + token).send()
 
-    const pic = await fetch(uploadRes.body.result.avatar)
+    const pic = await fetch(uploadRes.body.result.profilePicture)
     expect(pic.status).toBe(404)
     expect(res.body.status).toBe(200)
   })

@@ -118,34 +118,34 @@ export default (apiServer, connectors) => {
     }
   })
 
-  apiServer.postBinary('/v1/accounts/:id/upload-avatar', { mimeTypes: ['image/jpeg', 'image/png', 'image/gif'], fieldName: 'avatar' }, async req => {
+  apiServer.postBinary('/v1/accounts/:id/profile-picture', { mimeTypes: ['image/jpeg', 'image/png', 'image/gif'], fieldName: 'profilePicture' }, async req => {
     allowAccessTo(req, secrets, [{ type: 'admin' }, { type: 'user', role: 'admin' }])
     const uploadParams = {
       Bucket: bucketName,
       Body: req.file.buffer,
-      Key: `mua-accounts/accounts/${req.params.id}.${mime.extension(req.file.mimetype)}`
+      Key: `accounts/${req.params.id}.${mime.extension(req.file.mimetype)}`
     }
     const result = await s3.upload(uploadParams).promise()
-    await patchOne(AccountModel, { id: req.params.id }, { avatar: baseUrl + result.Key })
+    await patchOne(AccountModel, { id: req.params.id }, { profilePicture: baseUrl + result.Key })
     return {
       status: 200,
       result: {
         success: true,
-        avatar: baseUrl + result.Key
+        profilePicture: baseUrl + result.Key
       }
     }
   })
 
-  apiServer.delete('/v1/accounts/:id/delete-avatar', async req => {
+  apiServer.delete('/v1/accounts/:id/profile-picture', async req => {
     allowAccessTo(req, secrets, [{ type: 'admin' }, { type: 'user', role: 'admin' }])
     const accountData = await readOne(AccountModel, { id: req.params.id }, req.query)
-    const key = accountData.result.avatar.substring(accountData.result.avatar.lastIndexOf('/') + 1)
+    const key = accountData.result.profilePicture.substring(accountData.result.profilePicture.lastIndexOf('/') + 1)
 
     await s3.deleteObject({
       Bucket: bucketName,
-      Key: `mua-accounts/accounts/${key}`
+      Key: `accounts/${key}`
     }).promise()
-    await patchOne(AccountModel, { id: req.params.id }, { avatar: null })
+    await patchOne(AccountModel, { id: req.params.id }, { profilePicture: null })
     return {
       status: 200,
       result: {

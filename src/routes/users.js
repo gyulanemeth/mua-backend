@@ -199,32 +199,32 @@ export default (apiServer) => {
     return user
   })
 
-  apiServer.postBinary('/v1/accounts/:accountId/users/:id/upload-avatar', { mimeTypes: ['image/jpeg', 'image/png', 'image/gif'], fieldName: 'avatar' }, async req => {
+  apiServer.postBinary('/v1/accounts/:accountId/users/:id/profile-picture', { mimeTypes: ['image/jpeg', 'image/png', 'image/gif'], fieldName: 'profilePicture' }, async req => {
     allowAccessTo(req, secrets, [{ type: 'admin' }, { type: 'user', user: { _id: req.params.id }, account: { _id: req.params.accountId } }])
     const uploadParams = {
       Bucket: bucketName,
       Body: req.file.buffer,
-      Key: `mua-accounts/users/${req.params.id}.${mime.extension(req.file.mimetype)}`
+      Key: `users/${req.params.id}.${mime.extension(req.file.mimetype)}`
     }
     const result = await s3.upload(uploadParams).promise()
-    await patchOne(UserModel, { id: req.params.id, accountId: req.params.accountId }, { avatar: baseUrl + result.Key })
+    await patchOne(UserModel, { id: req.params.id, accountId: req.params.accountId }, { profilePicture: baseUrl + result.Key })
     return {
       status: 200,
       result: {
         success: true,
-        avatar: baseUrl + result.Key
+        profilePicture: baseUrl + result.Key
       }
     }
   })
-  apiServer.delete('/v1/accounts/:accountId/users/:id/delete-avatar', async req => {
+  apiServer.delete('/v1/accounts/:accountId/users/:id/profile-picture', async req => {
     allowAccessTo(req, secrets, [{ type: 'admin' }, { type: 'user', user: { _id: req.params.id }, account: { _id: req.params.accountId } }])
     const userData = await readOne(UserModel, { id: req.params.id, accountId: req.params.accountId }, { select: { password: 0 } })
-    const key = userData.result.avatar.substring(userData.result.avatar.lastIndexOf('/') + 1)
+    const key = userData.result.profilePicture.substring(userData.result.profilePicture.lastIndexOf('/') + 1)
     await s3.deleteObject({
       Bucket: bucketName,
-      Key: `mua-accounts/users/${key}`
+      Key: `users/${key}`
     }).promise()
-    await patchOne(UserModel, { id: req.params.id, accountId: req.params.accountId }, { avatar: null })
+    await patchOne(UserModel, { id: req.params.id, accountId: req.params.accountId }, { profilePicture: null })
     return {
       status: 200,
       result: {

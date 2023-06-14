@@ -7,7 +7,7 @@ const UserSchema = new mongoose.Schema({
   password: { type: String },
   role: { type: String, default: 'user' },
   accountId: { type: Schema.Types.ObjectId, ref: 'Account', required: true },
-  avatar: { type: String }
+  profilePicture: { type: String }
 }, { timestamps: true })
 UserSchema.index({ name: 'text', email: 'text' })
 export default mongoose.model('User', UserSchema)
