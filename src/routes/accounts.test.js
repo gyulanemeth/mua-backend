@@ -641,7 +641,7 @@ describe('accounts test', () => {
 
     const token = jwt.sign({ type: 'user', account: { _id: account1._id }, role: 'admin' }, secrets[0])
 
-    const res = await request(app).post(`/v1/accounts/${account1._id}/profile-picture`)
+    const res = await request(app).post(`/v1/accounts/${account1._id}/logo`)
       .set('authorization', 'Bearer ' + token)
       .attach('logo', path.join(__dirname, '..', 'helpers/testPics', 'test.png'))
 
@@ -666,7 +666,7 @@ describe('accounts test', () => {
 
     const token = jwt.sign({ type: 'user', account: { _id: account1._id }, role: 'admin' }, secrets[0])
 
-    const uploadRes = await request(app).post(`/v1/accounts/${account1._id}/profile-picture`)
+    const uploadRes = await request(app).post(`/v1/accounts/${account1._id}/logo`)
       .set('authorization', 'Bearer ' + token)
       .attach('logo', path.join(__dirname, '..', 'helpers/testPics', 'test.png'))
 
@@ -674,7 +674,7 @@ describe('accounts test', () => {
     const picBeforeDelete = await fetch(uploadRes.body.result.logo)
     expect(picBeforeDelete.status).toBe(200)
 
-    const res = await request(app).delete(`/v1/accounts/${account1._id}/profile-picture `)
+    const res = await request(app).delete(`/v1/accounts/${account1._id}/logo`)
       .set('authorization', 'Bearer ' + token).send()
 
     const pic = await fetch(uploadRes.body.result.logo)

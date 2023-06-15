@@ -118,7 +118,7 @@ export default (apiServer, connectors) => {
     }
   })
 
-  apiServer.postBinary('/v1/accounts/:id/profile-picture', { mimeTypes: ['image/jpeg', 'image/png', 'image/gif'], fieldName: 'logo' }, async req => {
+  apiServer.postBinary('/v1/accounts/:id/logo', { mimeTypes: ['image/jpeg', 'image/png', 'image/gif'], fieldName: 'logo' }, async req => {
     allowAccessTo(req, secrets, [{ type: 'admin' }, { type: 'user', role: 'admin' }])
     const uploadParams = {
       Bucket: bucketName,
@@ -136,7 +136,7 @@ export default (apiServer, connectors) => {
     }
   })
 
-  apiServer.delete('/v1/accounts/:id/profile-picture', async req => {
+  apiServer.delete('/v1/accounts/:id/logo', async req => {
     allowAccessTo(req, secrets, [{ type: 'admin' }, { type: 'user', role: 'admin' }])
     const accountData = await readOne(AccountModel, { id: req.params.id }, req.query)
     const key = accountData.result.logo.substring(accountData.result.logo.lastIndexOf('/') + 1)
