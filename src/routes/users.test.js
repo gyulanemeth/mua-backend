@@ -4,16 +4,30 @@ import jwt from 'jsonwebtoken'
 import mongoose from 'mongoose'
 import request from 'supertest'
 import nodemailer from 'nodemailer'
+import StaticServer from 'static-server'
 
 import createMongooseMemoryServer from 'mongoose-memory'
 
 import createServer from './index.js'
 import Account from '../models/Account.js'
 import User from '../models/User.js'
+import aws from '../helpers/awsBucket.js'
+
+import path from 'path'
+import { fileURLToPath } from 'url'
 
 const mongooseMemoryServer = createMongooseMemoryServer(mongoose)
+const bucketName = process.env.AWS_BUCKET_NAME
+const s3 = await aws()
 
 const secrets = process.env.SECRETS.split(' ')
+const __dirname = path.dirname(fileURLToPath(import.meta.url))
+
+const server = new StaticServer({
+  rootPath: './tmp/' + process.env.AWS_BUCKET_NAME, // required, the root of the server file tree
+  port: process.env.STATIC_SERVER_PORT, // required, the port to listen
+  name: process.env.STATIC_SERVER_URL
+})
 
 describe('users test', () => {
   let app
@@ -27,9 +41,12 @@ describe('users test', () => {
 
   afterEach(async () => {
     await mongooseMemoryServer.purge()
+    await server.stop()
   })
 
   afterAll(async () => {
+    await s3.deleteBucket({ Bucket: bucketName }).promise()
+
     await mongooseMemoryServer.disconnect()
     await mongooseMemoryServer.stop()
   })
@@ -1021,5 +1038,56 @@ describe('users test', () => {
       .send({ password: 'wrongPassword' })
 
     expect(res.body.status).toBe(401)
+  })
+
+  test('success upload profilePicture ', async () => {
+    const account1 = new Account({ name: 'accountExample1', urlFriendlyName: 'urlFriendlyNameExample1' })
+    await account1.save()
+
+    const hash1 = crypto.createHash('md5').update('user1Password').digest('hex')
+    const user1 = new User({ email: 'user1@gmail.com', name: 'user1', password: hash1, accountId: account1._id })
+    await user1.save()
+
+    const token = jwt.sign({ type: 'user', user: { _id: user1._id }, account: { _id: account1._id } }, secrets[0])
+
+    const res = await request(app).post(`/v1/accounts/${account1._id}/users/${user1._id}/profile-picture`)
+      .set('authorization', 'Bearer ' + token)
+      .attach('profilePicture', path.join(__dirname, '..', 'helpers/testPics', 'test.png'))
+
+    const userData = await request(app)
+      .get('/v1/accounts/' + account1._id + '/users/' + user1._id)
+      .set('authorization', 'Bearer ' + token)
+      .send()
+
+    await server.start()
+    const pic = await fetch(userData.body.result.profilePicture)
+    expect(pic.status).toBe(200)
+    expect(res.body.status).toBe(200)
+  })
+
+  test('success delete profilePicture ', async () => {
+    const account1 = new Account({ name: 'accountExample1', urlFriendlyName: 'urlFriendlyNameExample1' })
+    await account1.save()
+
+    const hash1 = crypto.createHash('md5').update('user1Password').digest('hex')
+    const user1 = new User({ email: 'user1@gmail.com', name: 'user1', password: hash1, accountId: account1._id })
+    await user1.save()
+
+    const token = jwt.sign({ type: 'user', user: { _id: user1._id }, account: { _id: account1._id } }, secrets[0])
+
+    const uploadRes = await request(app).post(`/v1/accounts/${account1._id}/users/${user1._id}/profile-picture`)
+      .set('authorization', 'Bearer ' + token)
+      .attach('profilePicture', path.join(__dirname, '..', 'helpers/testPics', 'test.png'))
+
+    await server.start()
+    const picBeforeDelete = await fetch(uploadRes.body.result.profilePicture)
+    expect(picBeforeDelete.status).toBe(200)
+
+    const res = await request(app).delete(`/v1/accounts/${account1._id}/users/${user1._id}/profile-picture`)
+      .set('authorization', 'Bearer ' + token).send()
+
+    const pic = await fetch(uploadRes.body.result.profilePicture)
+    expect(pic.status).toBe(404)
+    expect(res.body.status).toBe(200)
   })
 })

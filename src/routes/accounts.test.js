@@ -14,11 +14,27 @@ import createMongooseMemoryServer from 'mongoose-memory'
 import createServer from './index.js'
 import Account from '../models/Account.js'
 import User from '../models/User.js'
+import aws from '../helpers/awsBucket.js'
+import StaticServer from 'static-server'
+
+import path from 'path'
+import { fileURLToPath } from 'url'
 
 const mongooseMemoryServer = createMongooseMemoryServer(mongoose)
 
+const bucketName = process.env.AWS_BUCKET_NAME
+const s3 = await aws()
+
 const secrets = process.env.SECRETS.split(' ')
 const originalEnv = process.env
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url))
+
+const server = new StaticServer({
+  rootPath: './tmp/' + process.env.AWS_BUCKET_NAME, // required, the root of the server file tree
+  port: process.env.STATIC_SERVER_PORT, // required, the port to listen
+  name: process.env.STATIC_SERVER_URL
+})
 
 const mokeConnector = () => {
   const mockDeleteAccount = (param) => {
@@ -47,9 +63,12 @@ describe('accounts test', () => {
   afterEach(async () => {
     await mongooseMemoryServer.purge()
     process.env = originalEnv
+    await server.stop()
   })
 
   afterAll(async () => {
+    await s3.deleteBucket({ Bucket: bucketName }).promise()
+
     await mongooseMemoryServer.disconnect()
     await mongooseMemoryServer.stop()
   })
@@ -609,6 +628,57 @@ describe('accounts test', () => {
         urlFrientlyName: 'test'
       })
       .send()
+    expect(res.body.status).toBe(200)
+  })
+
+  test('success upload logo ', async () => {
+    const account1 = new Account({ name: 'accountExample1', urlFriendlyName: 'urlFriendlyNameExample1' })
+    await account1.save()
+
+    const hash1 = crypto.createHash('md5').update('user1Password').digest('hex')
+    const user1 = new User({ email: 'user1@gmail.com', name: 'user1', password: hash1, accountId: account1._id })
+    await user1.save()
+
+    const token = jwt.sign({ type: 'user', account: { _id: account1._id }, role: 'admin' }, secrets[0])
+
+    const res = await request(app).post(`/v1/accounts/${account1._id}/logo`)
+      .set('authorization', 'Bearer ' + token)
+      .attach('logo', path.join(__dirname, '..', 'helpers/testPics', 'test.png'))
+
+    const accountData = await request(app)
+      .get('/v1/accounts/' + account1._id)
+      .set('authorization', 'Bearer ' + token)
+      .send()
+
+    await server.start()
+    const pic = await fetch(accountData.body.result.logo)
+    expect(pic.status).toBe(200)
+    expect(res.body.status).toBe(200)
+  })
+
+  test('success delete logo ', async () => {
+    const account1 = new Account({ name: 'accountExample1', urlFriendlyName: 'urlFriendlyNameExample1' })
+    await account1.save()
+
+    const hash1 = crypto.createHash('md5').update('user1Password').digest('hex')
+    const user1 = new User({ email: 'user1@gmail.com', name: 'user1', password: hash1, accountId: account1._id })
+    await user1.save()
+
+    const token = jwt.sign({ type: 'user', account: { _id: account1._id }, role: 'admin' }, secrets[0])
+
+    const uploadRes = await request(app).post(`/v1/accounts/${account1._id}/logo`)
+      .set('authorization', 'Bearer ' + token)
+      .attach('logo', path.join(__dirname, '..', 'helpers/testPics', 'test.png'))
+
+    await server.start()
+    const picBeforeDelete = await fetch(uploadRes.body.result.logo)
+    expect(picBeforeDelete.status).toBe(200)
+
+    const res = await request(app).delete(`/v1/accounts/${account1._id}/logo`)
+      .set('authorization', 'Bearer ' + token).send()
+
+    const pic = await fetch(uploadRes.body.result.logo)
+    expect(pic.status).toBe(404)
     expect(res.body.status).toBe(200)
   })
 })
