@@ -118,7 +118,7 @@ export default (apiServer, connectors) => {
     }
   })
 
-  apiServer.postBinary('/v1/accounts/:id/profile-picture', { mimeTypes: ['image/jpeg', 'image/png', 'image/gif'], fieldName: 'profilePicture' }, async req => {
+  apiServer.postBinary('/v1/accounts/:id/profile-picture', { mimeTypes: ['image/jpeg', 'image/png', 'image/gif'], fieldName: 'logo' }, async req => {
     allowAccessTo(req, secrets, [{ type: 'admin' }, { type: 'user', role: 'admin' }])
     const uploadParams = {
       Bucket: bucketName,
@@ -126,12 +126,12 @@ export default (apiServer, connectors) => {
       Key: `accounts/${req.params.id}.${mime.extension(req.file.mimetype)}`
     }
     const result = await s3.upload(uploadParams).promise()
-    await patchOne(AccountModel, { id: req.params.id }, { profilePicture: baseUrl + result.Key })
+    await patchOne(AccountModel, { id: req.params.id }, { logo: baseUrl + result.Key })
     return {
       status: 200,
       result: {
         success: true,
-        profilePicture: baseUrl + result.Key
+        logo: baseUrl + result.Key
       }
     }
   })
@@ -139,13 +139,13 @@ export default (apiServer, connectors) => {
   apiServer.delete('/v1/accounts/:id/profile-picture', async req => {
     allowAccessTo(req, secrets, [{ type: 'admin' }, { type: 'user', role: 'admin' }])
     const accountData = await readOne(AccountModel, { id: req.params.id }, req.query)
-    const key = accountData.result.profilePicture.substring(accountData.result.profilePicture.lastIndexOf('/') + 1)
+    const key = accountData.result.logo.substring(accountData.result.logo.lastIndexOf('/') + 1)
 
     await s3.deleteObject({
       Bucket: bucketName,
       Key: `accounts/${key}`
     }).promise()
-    await patchOne(AccountModel, { id: req.params.id }, { profilePicture: null })
+    await patchOne(AccountModel, { id: req.params.id }, { logo: null })
     return {
       status: 200,
       result: {
