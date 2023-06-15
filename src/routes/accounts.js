@@ -42,6 +42,10 @@ export default (apiServer, connectors) => {
 
   apiServer.post('/v1/accounts/', async req => {
     allowAccessTo(req, secrets, [{ type: 'admin' }])
+    const checkExist = await list(AccountModel, { urlFriendlyName: req.body.urlFriendlyName }, req.query)
+    if (checkExist.result.count > 0) {
+      throw new ConflictError('urlFriendlyName exist')
+    }
     const response = await createOne(AccountModel, req.params, req.body)
     return response
   })
