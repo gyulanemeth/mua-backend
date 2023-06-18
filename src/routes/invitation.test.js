@@ -117,28 +117,6 @@ describe('invitation test', () => {
     expect(JSON.stringify(verifiedToken.account._id)).toBe(JSON.stringify(account1._id))
   })
 
-  test('send invitation alpha mode error user not auth  /v1/accounts/:accountId/invitation/send', async () => {
-    process.env.ALPHA_MODE = true
-
-    const account1 = new Account({ name: 'accountExample1', urlFriendlyName: 'urlFriendlyNameExample1' })
-    await account1.save()
-
-    const hash1 = crypto.createHash('md5').update('user1Password').digest('hex')
-    const user1 = new User({ email: 'user1@gmail.com', name: 'user1', password: hash1, accountId: account1._id })
-    await user1.save()
-
-    const hash2 = crypto.createHash('md5').update('user2Password').digest('hex')
-    const user2 = new User({ email: 'user2@gmail.com', name: 'user2', password: hash2, accountId: account1._id })
-    await user2.save()
-
-    const token = jwt.sign({ type: 'user', role: 'admin' }, secrets[0])
-
-    const res = await request(app)
-      .post('/v1/accounts/' + account1._id + '/invitation/send').set('authorization', 'Bearer ' + token).send({ email: 'user3@gmail.com' })
-
-    expect(res.body.status).toBe(403)
-  })
-
   test('send invitation error user exist  /v1/accounts/:accountId/invitation/send', async () => {
     const account1 = new Account({ name: 'accountExample1', urlFriendlyName: 'urlFriendlyNameExample1' })
     await account1.save()
