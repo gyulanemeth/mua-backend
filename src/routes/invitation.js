@@ -69,7 +69,7 @@ export default (apiServer, sendEmail) => {
     const user = await readOne(UserModel, { id: data.user._id, email: data.user.email, accountId: req.params.id }, req.query)
 
     if (user.result.password) {
-      throw new MethodNotAllowedError('User already has a password')
+      throw new MethodNotAllowedError('Token already used, user exists')
     }
     if (req.body.newPassword !== req.body.newPasswordAgain) { // check password matching
       throw new ValidationError("Validation error passwords didn't match ")
