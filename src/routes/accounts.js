@@ -20,6 +20,8 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const registration = fs.readFileSync(path.join(__dirname, '..', 'email-templates', 'registration.html'), 'utf8')
 const baseUrl = process.env.STATIC_SERVER_URL
 const bucketName = process.env.AWS_BUCKET_NAME
+const folderName = process.env.AWS_FOLDER_NAME
+
 const s3 = await aws()
 
 const secrets = process.env.SECRETS.split(' ')
@@ -123,7 +125,7 @@ export default (apiServer, connectors) => {
     const uploadParams = {
       Bucket: bucketName,
       Body: req.file.buffer,
-      Key: `accounts/${req.params.id}.${mime.extension(req.file.mimetype)}`
+      Key: `${folderName}/accounts/${req.params.id}.${mime.extension(req.file.mimetype)}`
     }
     const result = await s3.upload(uploadParams).promise()
     await patchOne(AccountModel, { id: req.params.id }, { logo: baseUrl + result.Key })
@@ -143,7 +145,7 @@ export default (apiServer, connectors) => {
 
     await s3.deleteObject({
       Bucket: bucketName,
-      Key: `accounts/${key}`
+      Key: `${folderName}/accounts/${key}`
     }).promise()
     await patchOne(AccountModel, { id: req.params.id }, { logo: null })
     return {
