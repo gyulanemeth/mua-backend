@@ -169,7 +169,23 @@ export default (apiServer) => {
   apiServer.post('/v1/accounts/:accountId/users/:id/finalize-registration', async req => {
     const data = allowAccessTo(req, secrets, [{ type: 'registration', user: { _id: req.params.id }, account: { _id: req.params.accountId } }])
     const user = await patchOne(UserModel, { id: data.user._id, accountId: req.params.accountId }, { role: 'admin' })
-    return user
+    const payload = {
+      type: 'login',
+      user: {
+        _id: user.result._id,
+        email: user.result.email
+      },
+      account: {
+        _id: user.result.accountId
+      }
+    }
+    const token = jwt.sign(payload, secrets[0], { expiresIn: '24h' })
+    return {
+      status: 200,
+      result: {
+        loginToken: token
+      }
+    }
   })
 
   apiServer.get('/v1/accounts/:accountId/users', async req => {
