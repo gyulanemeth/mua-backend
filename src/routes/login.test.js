@@ -55,6 +55,72 @@ describe('login test ', () => {
     expect(res.body.status).toBe(200)
   })
 
+  test('success login with urlFriendlyName  ', async () => {
+    const account1 = new Account({ name: 'accountExample1', urlFriendlyName: 'urlFriendlyNameExample1' })
+    await account1.save()
+
+    const hash1 = crypto.createHash('md5').update('user1Password').digest('hex')
+    const user1 = new User({ email: 'user1@gmail.com', name: 'user1', password: hash1, accountId: account1._id })
+    await user1.save()
+
+    const hash2 = crypto.createHash('md5').update('user2Password').digest('hex')
+    const user2 = new User({ email: 'user2@gmail.com', name: 'user2', password: hash2, accountId: account1._id })
+    await user2.save()
+
+    const token = jwt.sign({ type: 'login', user: { email: user1.email }, account: { urlFriendlyName: 'urlFriendlyName1' } }, secrets[0])
+
+    const res = await request(app)
+      .post('/v1/accounts/' + account1.urlFriendlyName + '/urlFriendlyName-login')
+      .set('authorization', 'Bearer ' + token)
+      .send({ password: 'user1Password', email: user1.email })
+
+    expect(res.body.status).toBe(200)
+  })
+
+  test('error login with urlFriendlyName unexist urlFriendlyName  ', async () => {
+    const account1 = new Account({ name: 'accountExample1', urlFriendlyName: 'urlFriendlyNameExample1' })
+    await account1.save()
+
+    const hash1 = crypto.createHash('md5').update('user1Password').digest('hex')
+    const user1 = new User({ email: 'user1@gmail.com', name: 'user1', password: hash1, accountId: account1._id })
+    await user1.save()
+
+    const hash2 = crypto.createHash('md5').update('user2Password').digest('hex')
+    const user2 = new User({ email: 'user2@gmail.com', name: 'user2', password: hash2, accountId: account1._id })
+    await user2.save()
+
+    const token = jwt.sign({ type: 'login', user: { email: user1.email }, account: { urlFriendlyName: 'urlFriendlyName1' } }, secrets[0])
+
+    const res = await request(app)
+      .post('/v1/accounts/' + account1.urlFriendlyName + '/urlFriendlyName-login')
+      .set('authorization', 'Bearer ' + token)
+      .send({})
+
+    expect(res.body.status).toBe(401)
+  })
+
+  test('login with urlFriendlyName wrong password ', async () => {
+    const account1 = new Account({ name: 'accountExample1', urlFriendlyName: 'urlFriendlyNameExample1' })
+    await account1.save()
+
+    const hash1 = crypto.createHash('md5').update('user1Password').digest('hex')
+    const user1 = new User({ email: 'user1@gmail.com', name: 'user1', password: hash1, accountId: account1._id })
+    await user1.save()
+
+    const hash2 = crypto.createHash('md5').update('user2Password').digest('hex')
+    const user2 = new User({ email: 'user2@gmail.com', name: 'user2', password: hash2, accountId: account1._id })
+    await user2.save()
+
+    const token = jwt.sign({ type: 'login', user: { email: user1.email }, account: { urlFriendlyName: 'urlFriendlyName1' } }, secrets[0])
+
+    const res = await request(app)
+      .post('/v1/accounts/' + account1.urlFriendlyName + '/urlFriendlyName-login')
+      .set('authorization', 'Bearer ' + token)
+      .send({ password: 'user4Password', email: user1.email })
+
+    expect(res.body.status).toBe(401)
+  })
+
   test('login with Wrong password', async () => {
     const account1 = new Account({ name: 'account_example', urlFriendlyName: 'urlFriendlyName_example' })
     await account1.save()
