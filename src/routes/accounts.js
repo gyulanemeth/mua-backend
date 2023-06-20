@@ -8,7 +8,7 @@ import handlebars from 'handlebars'
 import mime from 'mime-types'
 
 import allowAccessTo from 'bearer-jwt-auth'
-import { ConflictError } from 'standard-api-errors'
+import { ConflictError, AuthenticationError } from 'standard-api-errors'
 import { list, readOne, deleteOne, deleteMany, patchOne, createOne } from 'mongoose-crudl'
 
 import AccountModel from '../models/Account.js'
@@ -84,7 +84,11 @@ export default (apiServer, connectors) => {
 
   apiServer.post('/v1/accounts/create', async req => {
     if (process.env.ALPHA_MODE === 'true') {
-      allowAccessTo(req, secrets, [{ type: 'admin' }])
+      try {
+        allowAccessTo(req, secrets, [{ type: 'admin' }])
+      } catch (error) {
+        throw new AuthenticationError('NOT ALLOWED IN ALPHA MODE')
+      }
     }
     const response = await list(AccountModel, { urlFriendlyName: req.body.account.urlFriendlyName }, req.query)
     if (response.result.count > 0) {
