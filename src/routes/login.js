@@ -47,6 +47,38 @@ export default (apiServer) => {
     }
   })
 
+  apiServer.post('/v1/accounts/:id/login/url-friendly-name', async req => {
+    let getAccount
+    let findUser
+    try {
+      req.body.password = crypto.createHash('md5').update(req.body.password).digest('hex')
+      getAccount = await list(AccountModel, { urlFriendlyName: req.params.id }, req.query)
+      findUser = await list(UserModel, { email: req.body.email, accountId: getAccount.result.items[0]._id, password: req.body.password }, req.query)
+      if (!getAccount.result.count || !findUser.result.count) {
+        throw new Error()
+      }
+    } catch (error) {
+      throw new AuthenticationError('Invalid urlFriendlyName, email or password ')
+    }
+    const payload = {
+      type: 'login',
+      user: {
+        _id: findUser.result.items[0]._id,
+        email: findUser.result.items[0].email
+      },
+      account: {
+        _id: getAccount.result.items[0]._id
+      }
+    }
+    const token = jwt.sign(payload, secrets[0], { expiresIn: '24h' })
+    return {
+      status: 200,
+      result: {
+        loginToken: token
+      }
+    }
+  })
+
   apiServer.post('/v1/accounts/login', async req => {
     req.body.email = req.body.email.toLowerCase()
     const findUserIds = await list(UserModel, { email: req.body.email }, { select: { accountId: 1 } })
