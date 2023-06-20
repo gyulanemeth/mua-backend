@@ -70,7 +70,7 @@ describe('login test ', () => {
     const token = jwt.sign({ type: 'login', user: { email: user1.email }, account: { urlFriendlyName: 'urlFriendlyName1' } }, secrets[0])
 
     const res = await request(app)
-      .post('/v1/accounts/' + account1.urlFriendlyName + '/urlFriendlyName-login')
+      .post('/v1/accounts/' + account1.urlFriendlyName + '/login/url-Friendly-Name')
       .set('authorization', 'Bearer ' + token)
       .send({ password: 'user1Password', email: user1.email })
 
@@ -92,7 +92,7 @@ describe('login test ', () => {
     const token = jwt.sign({ type: 'login', user: { email: user1.email }, account: { urlFriendlyName: 'urlFriendlyName1' } }, secrets[0])
 
     const res = await request(app)
-      .post('/v1/accounts/' + account1.urlFriendlyName + '/urlFriendlyName-login')
+      .post('/v1/accounts/' + account1.urlFriendlyName + '/login/url-Friendly-Name')
       .set('authorization', 'Bearer ' + token)
       .send({})
 
@@ -114,7 +114,7 @@ describe('login test ', () => {
     const token = jwt.sign({ type: 'login', user: { email: user1.email }, account: { urlFriendlyName: 'urlFriendlyName1' } }, secrets[0])
 
     const res = await request(app)
-      .post('/v1/accounts/' + account1.urlFriendlyName + '/urlFriendlyName-login')
+      .post('/v1/accounts/' + account1.urlFriendlyName + '/login/url-Friendly-Name')
       .set('authorization', 'Bearer ' + token)
       .send({ password: 'user4Password', email: user1.email })
 

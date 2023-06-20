@@ -47,7 +47,7 @@ export default (apiServer) => {
     }
   })
 
-  apiServer.post('/v1/accounts/:id/urlFriendlyName-login', async req => {
+  apiServer.post('/v1/accounts/:id/login/url-Friendly-Name', async req => {
     let getAccount
     let findUser
     try {
