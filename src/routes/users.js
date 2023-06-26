@@ -20,6 +20,8 @@ import aws from '../helpers/awsBucket.js'
 const secrets = process.env.SECRETS.split(' ')
 const baseUrl = process.env.STATIC_SERVER_URL
 const bucketName = process.env.AWS_BUCKET_NAME
+const folderName = process.env.AWS_FOLDER_NAME
+
 const s3 = await aws()
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
@@ -220,7 +222,7 @@ export default (apiServer) => {
     const uploadParams = {
       Bucket: bucketName,
       Body: req.file.buffer,
-      Key: `users/${req.params.id}.${mime.extension(req.file.mimetype)}`
+      Key: `${folderName}/users/${req.params.id}.${mime.extension(req.file.mimetype)}`
     }
     const result = await s3.upload(uploadParams).promise()
     await patchOne(UserModel, { id: req.params.id, accountId: req.params.accountId }, { profilePicture: baseUrl + result.Key })
@@ -238,7 +240,7 @@ export default (apiServer) => {
     const key = userData.result.profilePicture.substring(userData.result.profilePicture.lastIndexOf('/') + 1)
     await s3.deleteObject({
       Bucket: bucketName,
-      Key: `users/${key}`
+      Key: `${folderName}/users/${key}`
     }).promise()
     await patchOne(UserModel, { id: req.params.id, accountId: req.params.accountId }, { profilePicture: null })
     return {
