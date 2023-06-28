@@ -41,6 +41,11 @@ export default (apiServer, connectors) => {
     }
   })
 
+  apiServer.get('/v1/accounts/by-url-friendly-name/:urlFriendlyName', async req => {
+    const response = await list(AccountModel, req.params, req.query)
+    return response
+  })
+
   apiServer.get('/v1/accounts/', async req => {
     allowAccessTo(req, secrets, [{ type: 'admin' }])
     const response = await list(AccountModel, req.params, req.query)
