@@ -112,7 +112,15 @@ describe('accounts test', () => {
       .send()
 
     expect(res.body.status).toBe(200)
-    expect(res.body.result.count).toBe(1)
+    expect(res.body.result.name).toBe('accountExample1')
+  })
+
+  test('error get account by urlFriendlyName account not found  /v1/accounts/by-url-friendly-name/:urlFriendlyName', async () => {
+    const res = await request(app)
+      .get('/v1/accounts/by-url-friendly-name/urlFriendlyNameTest')
+      .send()
+
+    expect(res.body.status).toBe(404)
   })
 
   test('get all accounts unAuthorized header   /v1/accounts/', async () => {

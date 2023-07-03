@@ -46,7 +46,10 @@ export default (apiServer, connectors) => {
     if (!response.result.count) {
       throw new NotFoundError('Account Not Found')
     }
-    return response
+    return {
+      status: 200,
+      result: response.result.items[0]
+    }
   })
 
   apiServer.get('/v1/accounts/', async req => {
