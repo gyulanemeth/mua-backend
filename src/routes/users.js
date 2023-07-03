@@ -206,7 +206,7 @@ export default (apiServer) => {
       throw new MethodNotAllowedError('User exist')
     }
     const hash = crypto.createHash('md5').update(req.body.password).digest('hex')
-    const newUser = await createOne(UserModel, req.params, { name: req.body.name, email: req.body.email, password: hash, accountId: req.params.accountId }, {select: { password: 0 } })
+    const newUser = await createOne(UserModel, req.params, { name: req.body.name, email: req.body.email, password: hash, accountId: req.params.accountId })
 
     return newUser
   })
