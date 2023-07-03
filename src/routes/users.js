@@ -30,7 +30,7 @@ const VerifyEmail = fs.readFileSync(path.join(__dirname, '..', 'email-templates'
 export default (apiServer) => {
   apiServer.patch('/v1/accounts/:accountId/users/:id/name', async req => {
     allowAccessTo(req, secrets, [{ type: 'admin' }, { type: 'user', role: 'admin' }, { type: 'user', user: { _id: req.params.id }, account: { _id: req.params.accountId } }])
-    const user = await patchOne(UserModel, { id: req.params.id, accountId: req.params.accountId }, { name: req.body.name })
+    const user = await patchOne(UserModel, { id: req.params.id, accountId: req.params.accountId }, { name: req.body.name }, {select: { password: 0 } })
     return user
   })
 
@@ -45,7 +45,7 @@ export default (apiServer) => {
     if (oldHash !== getUser.result.password) {
       throw new ValidationError("Validation error passwords didn't match ")
     }
-    const user = await patchOne(UserModel, { id: req.params.id, accountId: req.params.accountId }, { password: hash })
+    const user = await patchOne(UserModel, { id: req.params.id, accountId: req.params.accountId }, { password: hash }, {select: { password: 0 } })
     return user
   })
 
@@ -59,7 +59,7 @@ export default (apiServer) => {
         throw new MethodNotAllowedError('Removing the last admin is not allowed')
       }
     }
-    const updatedUser = await patchOne(UserModel, { id: req.params.id, accountId: req.params.accountId }, { role: req.body.role })
+    const updatedUser = await patchOne(UserModel, { id: req.params.id, accountId: req.params.accountId }, { role: req.body.role }, {select: { password: 0 } })
     return updatedUser
   })
 
@@ -115,7 +115,7 @@ export default (apiServer) => {
         throw new MethodNotAllowedError('Removing the last admin is not allowed')
       }
     }
-    user = await deleteOne(UserModel, { id: req.params.id, accountId: req.params.accountId }, req.query)
+    user = await deleteOne(UserModel, { id: req.params.id, accountId: req.params.accountId }, {select: { password: 0 } })
     return user
   })
 
@@ -206,7 +206,7 @@ export default (apiServer) => {
       throw new MethodNotAllowedError('User exist')
     }
     const hash = crypto.createHash('md5').update(req.body.password).digest('hex')
-    const newUser = await createOne(UserModel, req.params, { name: req.body.name, email: req.body.email, password: hash, accountId: req.params.accountId })
+    const newUser = await createOne(UserModel, req.params, { name: req.body.name, email: req.body.email, password: hash, accountId: req.params.accountId }, {select: { password: 0 } })
 
     return newUser
   })
