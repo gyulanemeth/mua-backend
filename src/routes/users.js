@@ -30,7 +30,7 @@ const VerifyEmail = fs.readFileSync(path.join(__dirname, '..', 'email-templates'
 export default (apiServer) => {
   apiServer.patch('/v1/accounts/:accountId/users/:id/name', async req => {
     allowAccessTo(req, secrets, [{ type: 'admin' }, { type: 'user', role: 'admin' }, { type: 'user', user: { _id: req.params.id }, account: { _id: req.params.accountId } }])
-    const user = await patchOne(UserModel, { id: req.params.id, accountId: req.params.accountId }, { name: req.body.name })
+    const user = await patchOne(UserModel, { id: req.params.id, accountId: req.params.accountId }, { name: req.body.name }, { password: 0 } )
     return user
   })
 
@@ -45,7 +45,7 @@ export default (apiServer) => {
     if (oldHash !== getUser.result.password) {
       throw new ValidationError("Validation error passwords didn't match ")
     }
-    const user = await patchOne(UserModel, { id: req.params.id, accountId: req.params.accountId }, { password: hash })
+    const user = await patchOne(UserModel, { id: req.params.id, accountId: req.params.accountId }, { password: hash }, { password: 0 } )
     return user
   })
 
@@ -59,7 +59,7 @@ export default (apiServer) => {
         throw new MethodNotAllowedError('Removing the last admin is not allowed')
       }
     }
-    const updatedUser = await patchOne(UserModel, { id: req.params.id, accountId: req.params.accountId }, { role: req.body.role })
+    const updatedUser = await patchOne(UserModel, { id: req.params.id, accountId: req.params.accountId }, { role: req.body.role }, { password: 0 } )
     return updatedUser
   })
 
@@ -115,7 +115,7 @@ export default (apiServer) => {
         throw new MethodNotAllowedError('Removing the last admin is not allowed')
       }
     }
-    user = await deleteOne(UserModel, { id: req.params.id, accountId: req.params.accountId }, req.query)
+    user = await deleteOne(UserModel, { id: req.params.id, accountId: req.params.accountId }, { password: 0 })
     return user
   })
 
