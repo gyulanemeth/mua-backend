@@ -18,7 +18,6 @@ import aws from '../helpers/awsBucket.js'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const registration = fs.readFileSync(path.join(__dirname, '..', 'email-templates', 'registration.html'), 'utf8')
-const baseUrl = process.env.STATIC_SERVER_URL
 const bucketName = process.env.AWS_BUCKET_NAME
 const folderName = process.env.AWS_FOLDER_NAME
 
@@ -143,12 +142,12 @@ export default (apiServer, connectors) => {
       Key: `${folderName}/accounts/${req.params.id}.${mime.extension(req.file.mimetype)}`
     }
     const result = await s3.upload(uploadParams).promise()
-    await patchOne(AccountModel, { id: req.params.id }, { logo: baseUrl + result.Key })
+    await patchOne(AccountModel, { id: req.params.id }, { logo: result.Key })
     return {
       status: 200,
       result: {
         success: true,
-        logo: baseUrl + result.Key
+        logo: result.Key
       }
     }
   })

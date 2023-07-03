@@ -25,8 +25,8 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url))
 
 const server = new StaticServer({
   rootPath: './tmp/' + process.env.AWS_BUCKET_NAME, // required, the root of the server file tree
-  port: process.env.STATIC_SERVER_PORT, // required, the port to listen
-  name: process.env.STATIC_SERVER_URL
+  port: process.env.TEST_STATIC_SERVER_PORT, // required, the port to listen
+  name: process.env.TEST_STATIC_SERVER_URL
 })
 
 describe('users test', () => {
