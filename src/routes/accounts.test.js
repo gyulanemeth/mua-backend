@@ -679,7 +679,7 @@ describe('accounts test', () => {
       .send()
 
     await server.start()
-    const pic = await fetch(accountData.body.result.logo)
+    const pic = await fetch(process.env.TEST_STATIC_SERVER_URL + accountData.body.result.logo)
     expect(pic.status).toBe(200)
     expect(res.body.status).toBe(200)
   })
@@ -699,13 +699,13 @@ describe('accounts test', () => {
       .attach('logo', path.join(__dirname, '..', 'helpers/testPics', 'test.png'))
 
     await server.start()
-    const picBeforeDelete = await fetch(uploadRes.body.result.logo)
+    const picBeforeDelete = await fetch(process.env.TEST_STATIC_SERVER_URL + uploadRes.body.result.logo)
     expect(picBeforeDelete.status).toBe(200)
 
     const res = await request(app).delete(`/v1/accounts/${account1._id}/logo`)
       .set('authorization', 'Bearer ' + token).send()
 
-    const pic = await fetch(uploadRes.body.result.logo)
+    const pic = await fetch(process.env.TEST_STATIC_SERVER_URL + uploadRes.body.result.logo)
     expect(pic.status).toBe(404)
     expect(res.body.status).toBe(200)
   })
