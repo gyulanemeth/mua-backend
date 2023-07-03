@@ -95,6 +95,34 @@ describe('accounts test', () => {
     expect(res.body.status).toBe(200)
   })
 
+  test('success get account by urlFriendlyName  /v1/accounts/by-url-friendly-name/:urlFriendlyName', async () => {
+    const account1 = new Account({ name: 'accountExample1', urlFriendlyName: 'urlFriendlyNameExample1' })
+    await account1.save()
+
+    const hash1 = crypto.createHash('md5').update('user1Password').digest('hex')
+    const user1 = new User({ email: 'user1@gmail.com', name: 'user1', password: hash1, accountId: account1._id })
+    await user1.save()
+
+    const hash2 = crypto.createHash('md5').update('user2Password').digest('hex')
+    const user2 = new User({ email: 'user2@gmail.com', name: 'user2', password: hash2, accountId: account1._id })
+    await user2.save()
+
+    const res = await request(app)
+      .get('/v1/accounts/by-url-friendly-name/' + account1.urlFriendlyName)
+      .send()
+
+    expect(res.body.status).toBe(200)
+    expect(res.body.result.name).toBe('accountExample1')
+  })
+
+  test('error get account by urlFriendlyName account not found  /v1/accounts/by-url-friendly-name/:urlFriendlyName', async () => {
+    const res = await request(app)
+      .get('/v1/accounts/by-url-friendly-name/urlFriendlyNameTest')
+      .send()
+
+    expect(res.body.status).toBe(404)
+  })
+
   test('get all accounts unAuthorized header   /v1/accounts/', async () => {
     const account1 = new Account({ name: 'accountExample1', urlFriendlyName: 'urlFriendlyNameExample1' })
     await account1.save()

@@ -8,7 +8,7 @@ import handlebars from 'handlebars'
 import mime from 'mime-types'
 
 import allowAccessTo from 'bearer-jwt-auth'
-import { ConflictError, AuthenticationError } from 'standard-api-errors'
+import { ConflictError, AuthenticationError, NotFoundError } from 'standard-api-errors'
 import { list, readOne, deleteOne, deleteMany, patchOne, createOne } from 'mongoose-crudl'
 
 import AccountModel from '../models/Account.js'
@@ -38,6 +38,17 @@ export default (apiServer, connectors) => {
       result: {
         available
       }
+    }
+  })
+
+  apiServer.get('/v1/accounts/by-url-friendly-name/:urlFriendlyName', async req => {
+    const response = await list(AccountModel, req.params, req.query)
+    if (!response.result.count) {
+      throw new NotFoundError('Account Not Found')
+    }
+    return {
+      status: 200,
+      result: response.result.items[0]
     }
   })
 
