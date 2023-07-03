@@ -115,7 +115,7 @@ export default (apiServer) => {
         throw new MethodNotAllowedError('Removing the last admin is not allowed')
       }
     }
-    user = await deleteOne(UserModel, { id: req.params.id, accountId: req.params.accountId }, {select: { password: 0 } })
+    user = await deleteOne(UserModel, { id: req.params.id, accountId: req.params.accountId }, { password: 0 })
     return user
   })
 
