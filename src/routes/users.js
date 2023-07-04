@@ -18,7 +18,6 @@ import sendEmail from 'aws-ses-send-email'
 import aws from '../helpers/awsBucket.js'
 
 const secrets = process.env.SECRETS.split(' ')
-const baseUrl = process.env.STATIC_SERVER_URL
 const bucketName = process.env.AWS_BUCKET_NAME
 const folderName = process.env.AWS_FOLDER_NAME
 
@@ -30,7 +29,7 @@ const VerifyEmail = fs.readFileSync(path.join(__dirname, '..', 'email-templates'
 export default (apiServer) => {
   apiServer.patch('/v1/accounts/:accountId/users/:id/name', async req => {
     allowAccessTo(req, secrets, [{ type: 'admin' }, { type: 'user', role: 'admin' }, { type: 'user', user: { _id: req.params.id }, account: { _id: req.params.accountId } }])
-    const user = await patchOne(UserModel, { id: req.params.id, accountId: req.params.accountId }, { name: req.body.name }, { password: 0 } )
+    const user = await patchOne(UserModel, { id: req.params.id, accountId: req.params.accountId }, { name: req.body.name }, { password: 0 })
     return user
   })
 
@@ -45,7 +44,7 @@ export default (apiServer) => {
     if (oldHash !== getUser.result.password) {
       throw new ValidationError("Validation error passwords didn't match ")
     }
-    const user = await patchOne(UserModel, { id: req.params.id, accountId: req.params.accountId }, { password: hash }, { password: 0 } )
+    const user = await patchOne(UserModel, { id: req.params.id, accountId: req.params.accountId }, { password: hash }, { password: 0 })
     return user
   })
 
@@ -59,7 +58,7 @@ export default (apiServer) => {
         throw new MethodNotAllowedError('Removing the last admin is not allowed')
       }
     }
-    const updatedUser = await patchOne(UserModel, { id: req.params.id, accountId: req.params.accountId }, { role: req.body.role }, { password: 0 } )
+    const updatedUser = await patchOne(UserModel, { id: req.params.id, accountId: req.params.accountId }, { role: req.body.role }, { password: 0 })
     return updatedUser
   })
 
@@ -225,24 +224,23 @@ export default (apiServer) => {
       Key: `${folderName}/users/${req.params.id}.${mime.extension(req.file.mimetype)}`
     }
     const result = await s3.upload(uploadParams).promise()
-    await patchOne(UserModel, { id: req.params.id, accountId: req.params.accountId }, { profilePicture: baseUrl + result.Key })
+    await patchOne(UserModel, { id: req.params.id, accountId: req.params.accountId }, { profilePicturePath: result.Key })
     return {
       status: 200,
       result: {
-        success: true,
-        profilePicture: baseUrl + result.Key
+        profilePicturePath: result.Key
       }
     }
   })
   apiServer.delete('/v1/accounts/:accountId/users/:id/profile-picture', async req => {
     allowAccessTo(req, secrets, [{ type: 'admin' }, { type: 'user', user: { _id: req.params.id }, account: { _id: req.params.accountId } }])
     const userData = await readOne(UserModel, { id: req.params.id, accountId: req.params.accountId }, { select: { password: 0 } })
-    const key = userData.result.profilePicture.substring(userData.result.profilePicture.lastIndexOf('/') + 1)
+    const key = userData.result.profilePicturePath.substring(userData.result.profilePicturePath.lastIndexOf('/') + 1)
     await s3.deleteObject({
       Bucket: bucketName,
       Key: `${folderName}/users/${key}`
     }).promise()
-    await patchOne(UserModel, { id: req.params.id, accountId: req.params.accountId }, { profilePicture: null })
+    await patchOne(UserModel, { id: req.params.id, accountId: req.params.accountId }, { profilePicturePath: null })
     return {
       status: 200,
       result: {

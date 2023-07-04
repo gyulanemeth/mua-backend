@@ -25,8 +25,8 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url))
 
 const server = new StaticServer({
   rootPath: './tmp/' + process.env.AWS_BUCKET_NAME, // required, the root of the server file tree
-  port: process.env.STATIC_SERVER_PORT, // required, the port to listen
-  name: process.env.STATIC_SERVER_URL
+  port: parseInt(process.env.TEST_STATIC_SERVER_URL.split(':')[2]), // required, the port to listen
+  name: process.env.TEST_STATIC_SERVER_URL
 })
 
 describe('users test', () => {
@@ -1060,7 +1060,7 @@ describe('users test', () => {
       .send()
 
     await server.start()
-    const pic = await fetch(userData.body.result.profilePicture)
+    const pic = await fetch(process.env.TEST_STATIC_SERVER_URL + userData.body.result.profilePicturePath)
     expect(pic.status).toBe(200)
     expect(res.body.status).toBe(200)
   })
@@ -1080,13 +1080,13 @@ describe('users test', () => {
       .attach('profilePicture', path.join(__dirname, '..', 'helpers/testPics', 'test.png'))
 
     await server.start()
-    const picBeforeDelete = await fetch(uploadRes.body.result.profilePicture)
+    const picBeforeDelete = await fetch(process.env.TEST_STATIC_SERVER_URL + uploadRes.body.result.profilePicturePath)
     expect(picBeforeDelete.status).toBe(200)
 
     const res = await request(app).delete(`/v1/accounts/${account1._id}/users/${user1._id}/profile-picture`)
       .set('authorization', 'Bearer ' + token).send()
 
-    const pic = await fetch(uploadRes.body.result.profilePicture)
+    const pic = await fetch(process.env.TEST_STATIC_SERVER_URL + uploadRes.body.result.profilePicturePath)
     expect(pic.status).toBe(404)
     expect(res.body.status).toBe(200)
   })
