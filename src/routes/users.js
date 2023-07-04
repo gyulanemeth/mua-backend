@@ -224,24 +224,23 @@ export default (apiServer) => {
       Key: `${folderName}/users/${req.params.id}.${mime.extension(req.file.mimetype)}`
     }
     const result = await s3.upload(uploadParams).promise()
-    await patchOne(UserModel, { id: req.params.id, accountId: req.params.accountId }, { profilePicture: result.Key })
+    await patchOne(UserModel, { id: req.params.id, accountId: req.params.accountId }, { profilePicturePath: result.Key })
     return {
       status: 200,
       result: {
-        success: true,
-        profilePicture: result.Key
+        profilePicturePath: result.Key
       }
     }
   })
   apiServer.delete('/v1/accounts/:accountId/users/:id/profile-picture', async req => {
     allowAccessTo(req, secrets, [{ type: 'admin' }, { type: 'user', user: { _id: req.params.id }, account: { _id: req.params.accountId } }])
     const userData = await readOne(UserModel, { id: req.params.id, accountId: req.params.accountId }, { select: { password: 0 } })
-    const key = userData.result.profilePicture.substring(userData.result.profilePicture.lastIndexOf('/') + 1)
+    const key = userData.result.profilePicturePath.substring(userData.result.profilePicturePath.lastIndexOf('/') + 1)
     await s3.deleteObject({
       Bucket: bucketName,
       Key: `${folderName}/users/${key}`
     }).promise()
-    await patchOne(UserModel, { id: req.params.id, accountId: req.params.accountId }, { profilePicture: null })
+    await patchOne(UserModel, { id: req.params.id, accountId: req.params.accountId }, { profilePicturePath: null })
     return {
       status: 200,
       result: {
