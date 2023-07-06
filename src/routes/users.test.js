@@ -1041,6 +1041,7 @@ describe('users test', () => {
   })
 
   test('success upload profilePicture ', async () => {
+    process.env.CDN_BASE_URL = process.env.TEST_STATIC_SERVER_URL
     const account1 = new Account({ name: 'accountExample1', urlFriendlyName: 'urlFriendlyNameExample1' })
     await account1.save()
 
@@ -1060,12 +1061,14 @@ describe('users test', () => {
       .send()
 
     await server.start()
-    const pic = await fetch(process.env.TEST_STATIC_SERVER_URL + userData.body.result.profilePicturePath)
+    const pic = await fetch(userData.body.result.profilePicturePath)
     expect(pic.status).toBe(200)
     expect(res.body.status).toBe(200)
   })
 
   test('success delete profilePicture ', async () => {
+    process.env.CDN_BASE_URL = process.env.TEST_STATIC_SERVER_URL
+
     const account1 = new Account({ name: 'accountExample1', urlFriendlyName: 'urlFriendlyNameExample1' })
     await account1.save()
 
@@ -1080,13 +1083,13 @@ describe('users test', () => {
       .attach('profilePicture', path.join(__dirname, '..', 'helpers/testPics', 'test.png'))
 
     await server.start()
-    const picBeforeDelete = await fetch(process.env.TEST_STATIC_SERVER_URL + uploadRes.body.result.profilePicturePath)
+    const picBeforeDelete = await fetch(uploadRes.body.result.profilePicturePath)
     expect(picBeforeDelete.status).toBe(200)
 
     const res = await request(app).delete(`/v1/accounts/${account1._id}/users/${user1._id}/profile-picture`)
       .set('authorization', 'Bearer ' + token).send()
 
-    const pic = await fetch(process.env.TEST_STATIC_SERVER_URL + uploadRes.body.result.profilePicturePath)
+    const pic = await fetch(uploadRes.body.result.profilePicturePath)
     expect(pic.status).toBe(404)
     expect(res.body.status).toBe(200)
   })
