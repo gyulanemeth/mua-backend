@@ -142,11 +142,11 @@ export default (apiServer, connectors) => {
       Key: `${folderName}/accounts/${req.params.id}.${mime.extension(req.file.mimetype)}`
     }
     const result = await s3.upload(uploadParams).promise()
-    await patchOne(AccountModel, { id: req.params.id }, { logoPath: process.env.CDN_BASE_URL + result.Key })
+    await patchOne(AccountModel, { id: req.params.id }, { logo: process.env.CDN_BASE_URL + result.Key })
     return {
       status: 200,
       result: {
-        logoPath: process.env.CDN_BASE_URL + result.Key
+        logo: process.env.CDN_BASE_URL + result.Key
       }
     }
   })
@@ -154,13 +154,13 @@ export default (apiServer, connectors) => {
   apiServer.delete('/v1/accounts/:id/logo', async req => {
     allowAccessTo(req, secrets, [{ type: 'admin' }, { type: 'user', role: 'admin' }])
     const accountData = await readOne(AccountModel, { id: req.params.id }, req.query)
-    const key = accountData.result.logoPath.substring(accountData.result.logoPath.lastIndexOf('/') + 1)
+    const key = accountData.result.logo.substring(accountData.result.logo.lastIndexOf('/') + 1)
 
     await s3.deleteObject({
       Bucket: bucketName,
       Key: `${folderName}/accounts/${key}`
     }).promise()
-    await patchOne(AccountModel, { id: req.params.id }, { logoPath: null })
+    await patchOne(AccountModel, { id: req.params.id }, { logo: null })
     return {
       status: 200,
       result: {
