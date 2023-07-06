@@ -660,6 +660,8 @@ describe('accounts test', () => {
   })
 
   test('success upload logo ', async () => {
+    process.env.CDN_BASE_URL = process.env.TEST_STATIC_SERVER_URL
+
     const account1 = new Account({ name: 'accountExample1', urlFriendlyName: 'urlFriendlyNameExample1' })
     await account1.save()
 
@@ -679,12 +681,14 @@ describe('accounts test', () => {
       .send()
 
     await server.start()
-    const pic = await fetch(process.env.TEST_STATIC_SERVER_URL + accountData.body.result.logoPath)
+    const pic = await fetch(accountData.body.result.logoPath)
     expect(pic.status).toBe(200)
     expect(res.body.status).toBe(200)
   })
 
   test('success delete logo ', async () => {
+    process.env.CDN_BASE_URL = process.env.TEST_STATIC_SERVER_URL
+
     const account1 = new Account({ name: 'accountExample1', urlFriendlyName: 'urlFriendlyNameExample1' })
     await account1.save()
 
@@ -699,13 +703,13 @@ describe('accounts test', () => {
       .attach('logo', path.join(__dirname, '..', 'helpers/testPics', 'test.png'))
 
     await server.start()
-    const picBeforeDelete = await fetch(process.env.TEST_STATIC_SERVER_URL + uploadRes.body.result.logoPath)
+    const picBeforeDelete = await fetch(uploadRes.body.result.logoPath)
     expect(picBeforeDelete.status).toBe(200)
 
     const res = await request(app).delete(`/v1/accounts/${account1._id}/logo`)
       .set('authorization', 'Bearer ' + token).send()
 
-    const pic = await fetch(process.env.TEST_STATIC_SERVER_URL + uploadRes.body.result.logoPath)
+    const pic = await fetch(uploadRes.body.result.logoPath)
     expect(pic.status).toBe(404)
     expect(res.body.status).toBe(200)
   })

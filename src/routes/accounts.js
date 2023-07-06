@@ -142,11 +142,11 @@ export default (apiServer, connectors) => {
       Key: `${folderName}/accounts/${req.params.id}.${mime.extension(req.file.mimetype)}`
     }
     const result = await s3.upload(uploadParams).promise()
-    await patchOne(AccountModel, { id: req.params.id }, { logoPath: result.Key })
+    await patchOne(AccountModel, { id: req.params.id }, { logoPath: process.env.CDN_BASE_URL + result.Key })
     return {
       status: 200,
       result: {
-        logoPath: result.Key
+        logoPath: process.env.CDN_BASE_URL + result.Key
       }
     }
   })
