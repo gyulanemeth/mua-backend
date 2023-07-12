@@ -31,7 +31,7 @@
     "aws-ses-send-email": "^0.0.2",
     "bearer-jwt-auth": "^1.0.0",
     "dotenv": "^16.0.1",
-    "express-async-api": "^0.6.0",
+    "express-async-api": "^0.7.0",
     "handlebars": "^4.7.7",
     "jsonwebtoken": "^8.5.1",
     "mime-types": "^2.1.35",
