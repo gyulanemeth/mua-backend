@@ -25,7 +25,7 @@ const s3 = await aws()
 
 const secrets = process.env.SECRETS.split(' ')
 
-export default (apiServer, connectors) => {
+export default (apiServer, connectors, maxFileSize) => {
   apiServer.get('/v1/accounts/check-availability', async req => {
     let available = false
     const response = await list(AccountModel, { urlFriendlyName: req.query.urlFriendlyName })
@@ -134,7 +134,7 @@ export default (apiServer, connectors) => {
     }
   })
 
-  apiServer.postBinary('/v1/accounts/:id/logo', { mimeTypes: ['image/jpeg', 'image/png', 'image/gif'], fieldName: 'logo', maxFileSize: 5242880 }, async req => {
+  apiServer.postBinary('/v1/accounts/:id/logo', { mimeTypes: ['image/jpeg', 'image/png', 'image/gif'], fieldName: 'logo', maxFileSize }, async req => {
     allowAccessTo(req, secrets, [{ type: 'admin' }, { type: 'user', role: 'admin' }])
     const uploadParams = {
       Bucket: bucketName,

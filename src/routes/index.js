@@ -7,8 +7,17 @@ import account from './accounts.js'
 import users from './users.js'
 import config from './config.js'
 
-export default (sendEmail, connectors) => {
+export default (sendEmail, connectors, maxFileSize) => {
   function errorHandler (e) {
+    if (e.code === 'LIMIT_FILE_SIZE') {
+      return {
+        status: 413,
+        error: {
+          name: 'PAYLOAD_TOO_LARGE',
+          message: 'File size limit exceeded. Maximum file size allowed is ' + maxFileSize
+        }
+      }
+    }
     return {
       status: e.status,
       error: {
@@ -19,12 +28,12 @@ export default (sendEmail, connectors) => {
   }
   const apiServer = createApiServer(errorHandler, () => {})
 
-  users(apiServer)
+  users(apiServer, maxFileSize)
   config(apiServer)
   login(apiServer)
   invitation(apiServer, sendEmail)
   forgotPassword(apiServer)
-  account(apiServer, connectors)
+  account(apiServer, connectors, maxFileSize)
 
   return apiServer
 }
