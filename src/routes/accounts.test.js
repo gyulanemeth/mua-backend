@@ -686,6 +686,28 @@ describe('accounts test', () => {
     expect(res.body.status).toBe(200)
   })
 
+  test('upload logo max file size error ', async () => {
+    process.env.CDN_BASE_URL = process.env.TEST_STATIC_SERVER_URL
+
+    const account1 = new Account({ name: 'accountExample1', urlFriendlyName: 'urlFriendlyNameExample1' })
+    await account1.save()
+
+    const hash1 = crypto.createHash('md5').update('user1Password').digest('hex')
+    const user1 = new User({ email: 'user1@gmail.com', name: 'user1', password: hash1, accountId: account1._id })
+    await user1.save()
+
+    const token = jwt.sign({ type: 'user', account: { _id: account1._id }, role: 'admin' }, secrets[0])
+
+    let sizeTestApp = createServer({}, connectors, 1)
+    sizeTestApp = sizeTestApp._expressServer
+
+    const res = await request(sizeTestApp).post(`/v1/accounts/${account1._id}/logo`)
+      .set('authorization', 'Bearer ' + token)
+      .attach('logo', path.join(__dirname, '..', 'helpers/testPics', 'test.png'))
+
+    expect(res.body.status).toBe(413)
+  })
+
   test('success delete logo ', async () => {
     process.env.CDN_BASE_URL = process.env.TEST_STATIC_SERVER_URL
 
