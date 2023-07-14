@@ -698,7 +698,7 @@ describe('accounts test', () => {
 
     const token = jwt.sign({ type: 'user', account: { _id: account1._id }, role: 'admin' }, secrets[0])
 
-    let sizeTestApp = createServer({}, connectors, 1)
+    let sizeTestApp = createServer({}, connectors, 20000)
     sizeTestApp = sizeTestApp._expressServer
 
     const res = await request(sizeTestApp).post(`/v1/accounts/${account1._id}/logo`)
@@ -706,6 +706,7 @@ describe('accounts test', () => {
       .attach('logo', path.join(__dirname, '..', 'helpers/testPics', 'test.png'))
 
     expect(res.body.status).toBe(413)
+    expect(res.body.error.message).toBe('File size limit exceeded. Maximum file size allowed is 0.02mb')
   })
 
   test('success delete logo ', async () => {
