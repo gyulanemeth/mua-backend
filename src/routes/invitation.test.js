@@ -77,6 +77,43 @@ describe('invitation test', () => {
     expect(JSON.stringify(verifiedToken.account._id)).toBe(JSON.stringify(account1._id))
   })
 
+  test('success resend invitation by admin /v1/accounts/:accountId/invitation/resend', async () => {
+    const account1 = new Account({ name: 'accountExample1', urlFriendlyName: 'urlFriendlyNameExample1' })
+    await account1.save()
+
+    const user1 = new User({ email: 'user1@gmail.com', accountId: account1._id })
+    await user1.save()
+
+    const hash2 = crypto.createHash('md5').update('user2Password').digest('hex')
+    const user2 = new User({ email: 'user2@gmail.com', name: 'user2', password: hash2, accountId: account1._id })
+    await user2.save()
+
+    const token = jwt.sign({ type: 'admin' }, secrets[0])
+
+    const res = await request(app)
+      .post('/v1/accounts/' + account1._id + '/invitation/resend').set('authorization', 'Bearer ' + token).send({ email: 'user1@gmail.com' })
+
+    expect(res.body.status).toBe(200)
+    expect(res.body.result.success).toBe(true)
+
+    // testing email sent
+
+    const messageUrl = nodemailer.getTestMessageUrl(res.body.result.info)
+
+    const html = await fetch(messageUrl).then(response => response.text())
+    const regex = /<a[\s]+id=\\"invitationLink\\"[^\n\r]*\?token&#x3D([^"&]+)">/g
+    const found = html.match(regex)[0]
+    const tokenPosition = found.indexOf('token&#x3D')
+    const endTagPosition = found.indexOf('\\">')
+    const htmlToken = found.substring(tokenPosition + 11, endTagPosition)
+    const verifiedToken = jwt.verify(htmlToken, secrets[0])
+
+    expect(htmlToken).toBeDefined()
+    expect(verifiedToken.type).toBe('invitation')
+    expect(verifiedToken.user.email).toBe('user1@gmail.com')
+    expect(JSON.stringify(verifiedToken.account._id)).toBe(JSON.stringify(account1._id))
+  })
+
   test('success send invitation by user role admin  /v1/accounts/:accountId/invitation/send', async () => {
     process.env.ALPHA_MODE = false
 
@@ -133,6 +170,46 @@ describe('invitation test', () => {
 
     const res = await request(app)
       .post('/v1/accounts/' + account1._id + '/invitation/send').set('authorization', 'Bearer ' + token).send({ email: 'user1@gmail.com' })
+
+    expect(res.body.status).toBe(405)
+  })
+
+  test('resend invitation error user alread verified  /v1/accounts/:accountId/invitation/resend', async () => {
+    const account1 = new Account({ name: 'accountExample1', urlFriendlyName: 'urlFriendlyNameExample1' })
+    await account1.save()
+
+    const hash1 = crypto.createHash('md5').update('user1Password').digest('hex')
+    const user1 = new User({ email: 'user1@gmail.com', name: 'user1', password: hash1, accountId: account1._id })
+    await user1.save()
+
+    const hash2 = crypto.createHash('md5').update('user2Password').digest('hex')
+    const user2 = new User({ email: 'user2@gmail.com', name: 'user2', password: hash2, accountId: account1._id })
+    await user2.save()
+
+    const token = jwt.sign({ type: 'admin' }, secrets[0])
+
+    const res = await request(app)
+      .post('/v1/accounts/' + account1._id + '/invitation/resend').set('authorization', 'Bearer ' + token).send({ email: 'user1@gmail.com' })
+
+    expect(res.body.status).toBe(405)
+  })
+
+  test('resend invitation error user not exist  /v1/accounts/:accountId/invitation/resend', async () => {
+    const account1 = new Account({ name: 'accountExample1', urlFriendlyName: 'urlFriendlyNameExample1' })
+    await account1.save()
+
+    const hash1 = crypto.createHash('md5').update('user1Password').digest('hex')
+    const user1 = new User({ email: 'user1@gmail.com', name: 'user1', password: hash1, accountId: account1._id })
+    await user1.save()
+
+    const hash2 = crypto.createHash('md5').update('user2Password').digest('hex')
+    const user2 = new User({ email: 'user2@gmail.com', name: 'user2', password: hash2, accountId: account1._id })
+    await user2.save()
+
+    const token = jwt.sign({ type: 'admin' }, secrets[0])
+
+    const res = await request(app)
+      .post('/v1/accounts/' + account1._id + '/invitation/resend').set('authorization', 'Bearer ' + token).send({ email: 'user3@gmail.com' })
 
     expect(res.body.status).toBe(405)
   })

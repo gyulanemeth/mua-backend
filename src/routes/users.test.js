@@ -69,6 +69,21 @@ describe('users test', () => {
     expect(res.body.status).toBe(200)
   })
 
+  test('success resend finalize user  /v1/accounts/:accoutId/users/:userId/resend-finalize-registration', async () => {
+    const account1 = new Account({ name: 'accountExample1', urlFriendlyName: 'urlFriendlyNameExample1' })
+    await account1.save()
+
+    const hash1 = crypto.createHash('md5').update('user1Password').digest('hex')
+    const user1 = new User({ email: 'user1@gmail.com', name: 'user1', password: hash1, accountId: account1._id })
+    await user1.save()
+
+    const res = await request(app)
+      .post('/v1/accounts/' + account1._id + '/users/' + user1._id + '/resend-finalize-registration')
+      .send()
+
+    expect(res.body.status).toBe(200)
+  })
+
   test('success update user name in account by user with role admin  /v1/accounts/:accountId/users/:id/name', async () => {
     const account1 = new Account({ name: 'accountExample1', urlFriendlyName: 'urlFriendlyNameExample1' })
     await account1.save()
