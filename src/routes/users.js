@@ -25,6 +25,7 @@ const s3 = await aws()
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const VerifyEmail = fs.readFileSync(path.join(__dirname, '..', 'email-templates', 'verifyEmail.html'), 'utf8')
+const registration = fs.readFileSync(path.join(__dirname, '..', 'email-templates', 'registration.html'), 'utf8')
 
 export default (apiServer, maxFileSize) => {
   apiServer.patch('/v1/accounts/:accountId/users/:id/name', async req => {
@@ -246,6 +247,34 @@ export default (apiServer, maxFileSize) => {
       status: 200,
       result: {
         success: true
+      }
+    }
+  })
+
+  apiServer.post('/v1/accounts/:accoutId/users/:userId/resend-finalize-registration', async req => {
+    const getAccount = await readOne(AccountModel, { _id: req.params.accoutId }, req.query)
+    const getUser = await readOne(UserModel, { _id: req.params.userId })
+    const payload = {
+      type: 'registration',
+      user: {
+        _id: getUser.result._id,
+        email: getUser.result.email
+      },
+      account: {
+        _id: getAccount.result._id
+      }
+    }
+    const token = jwt.sign(payload, secrets[0], { expiresIn: '24h' })
+    const template = handlebars.compile(registration)
+    const html = template({ href: `${process.env.APP_URL}finalize-registration?token=${token}` })
+    const mail = await sendEmail({ to: getUser.result.email, subject: 'Registration link ', html })
+
+    return {
+      status: 200,
+      result: {
+        newAccount: getAccount.result,
+        newUser: getUser.result,
+        info: mail.result.info
       }
     }
   })
