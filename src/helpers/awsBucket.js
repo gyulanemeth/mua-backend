@@ -18,7 +18,7 @@ export default async () => {
     if (!process.env.AWS_BUCKET_NAME) {
       throw new InternalServerError('Missing environment variable: AWS_BUCKET_NAME')
     }
-    AWSMock.config.basePath = './tmp/' // Can configure a basePath for your local buckets
+    AWSMock.config.basePath = process.env.AWS_BUCKET_PATH // Can configure a basePath for your local buckets
     s3 = AWSMock.S3({
       params: { Bucket: process.env.AWS_BUCKET_NAME }
     })
