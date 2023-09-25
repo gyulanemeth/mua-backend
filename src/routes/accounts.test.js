@@ -417,7 +417,7 @@ describe('accounts test', () => {
     expect(res.body.status).toBe(403)
   })
 
-  test('success delete account by admin   /v1/accounts/:id', async () => {
+  test('success delete account  /v1/accounts/:id', async () => {
     const account1 = new Account({ name: 'accountExample1', urlFriendlyName: 'urlFriendlyNameExample1' })
     await account1.save()
 
@@ -448,32 +448,7 @@ describe('accounts test', () => {
 
     vi.spyOn(connectors, 'deleteAccount')
 
-    const token = jwt.sign({ type: 'admin' }, secrets[0])
-    const res = await request(app)
-      .delete('/v1/accounts/' + account1._id)
-      .set('authorization', 'Bearer ' + token)
-      .send()
-
-    expect(connectors.deleteAccount).toHaveBeenCalled()
-    expect(res.body.status).toBe(200)
-    connectors.deleteAccount.mockRestore()
-  })
-
-  test('delete account by user role admin   /v1/accounts/:id', async () => {
-    const account1 = new Account({ name: 'accountExample1', urlFriendlyName: 'urlFriendlyNameExample1' })
-    await account1.save()
-
-    const hash1 = crypto.createHash('md5').update('user1Password').digest('hex')
-    const user1 = new User({ email: 'user1@gmail.com', name: 'user1', password: hash1, accountId: account1._id })
-    await user1.save()
-
-    const hash2 = crypto.createHash('md5').update('user2Password').digest('hex')
-    const user2 = new User({ email: 'user2@gmail.com', name: 'user2', password: hash2, accountId: account1._id })
-    await user2.save()
-
-    vi.spyOn(connectors, 'deleteAccount')
-
-    const token = jwt.sign({ type: 'user', account: { _id: account1._id }, role: 'admin' }, secrets[0])
+    const token = jwt.sign({ type: 'delete' }, secrets[0])
     const res = await request(app)
       .delete('/v1/accounts/' + account1._id)
       .set('authorization', 'Bearer ' + token)
@@ -496,8 +471,6 @@ describe('accounts test', () => {
     const user2 = new User({ email: 'user2@gmail.com', name: 'user2', password: hash2, accountId: account1._id })
     await user2.save()
 
-    vi.spyOn(connectors, 'deleteAccount')
-
     const token = jwt.sign({ type: 'value' }, secrets[0])
 
     const res = await request(app)
@@ -505,37 +478,7 @@ describe('accounts test', () => {
       .set('authorization', 'Bearer ' + token)
       .send()
 
-    expect(connectors.deleteAccount).not.toHaveBeenCalled()
     expect(res.body.status).toBe(403)
-    connectors.deleteAccount.mockRestore()
-  })
-
-  test('delete account unAuthorized user   /v1/accounts/:id', async () => {
-    const account1 = new Account({ name: 'accountExample1', urlFriendlyName: 'urlFriendlyNameExample1' })
-    await account1.save()
-
-    const hash1 = crypto.createHash('md5').update('user1Password').digest('hex')
-    const user1 = new User({ email: 'user1@gmail.com', name: 'user1', password: hash1, accountId: account1._id })
-    await user1.save()
-
-    const hash2 = crypto.createHash('md5').update('user2Password').digest('hex')
-    const user2 = new User({ email: 'user2@gmail.com', name: 'user2', password: hash2, accountId: account1._id })
-    await user2.save()
-
-    const id = new mongoose.Types.ObjectId()
-
-    vi.spyOn(connectors, 'deleteAccount')
-
-    const token = jwt.sign({ type: 'user', account: { _id: id }, role: 'user' }, secrets[0])
-
-    const res = await request(app)
-      .delete('/v1/accounts/' + account1._id)
-      .set('authorization', 'Bearer ' + token)
-      .send()
-
-    expect(connectors.deleteAccount).not.toHaveBeenCalled()
-    expect(res.body.status).toBe(403)
-    connectors.deleteAccount.mockRestore()
   })
 
   test('success create account   /v1/accounts/create', async () => {

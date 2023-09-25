@@ -82,7 +82,7 @@ export default (apiServer, connectors, maxFileSize) => {
   })
 
   apiServer.delete('/v1/accounts/:id', async req => {
-    allowAccessTo(req, secrets, [{ type: 'admin' }, { type: 'user', role: 'admin' }])
+    allowAccessTo(req, secrets, [{ type: 'delete' }])
     connectors.deleteAccount({ id: req.params.id })
     deleteMany(UserModel, { accountId: req.params.id })
     const deletedAccount = await deleteOne(AccountModel, { id: req.params.id })
