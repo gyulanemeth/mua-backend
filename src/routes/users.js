@@ -132,7 +132,7 @@ export default (apiServer, maxFileSize) => {
       account: tokenData.account,
       role: tokenData.role
     }
-    const token = jwt.sign(payload, secrets[0], { expiresIn: '24h' })
+    const token = jwt.sign(payload, secrets[0], { expiresIn: '5m' })
     return {
       status: 200,
       result: {
