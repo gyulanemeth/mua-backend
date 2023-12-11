@@ -41,7 +41,7 @@
     "nodemailer": "^6.7.5",
     "standard-api-errors": "^1.0.0",
     "standard-json-api-connectors": "^0.1.2",
-    "static-server": "^2.2.1",
+    "static-server": "^3.0.0",
     "textversionjs": "^1.1.3"
   },
   "devDependencies": {
