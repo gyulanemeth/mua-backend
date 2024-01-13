@@ -14,6 +14,8 @@ import aws from '../helpers/awsBucket.js'
 const secrets = process.env.SECRETS.split(' ')
 const bucketName = process.env.AWS_BUCKET_NAME
 const folderName = process.env.AWS_FOLDER_NAME
+const verifyEmailTamplate = process.env.BLUEFOX_VERIFY_EMAIL_TEMPLATE
+const finalizeRegistrationTemplate = process.env.BLUEFOX_FINALIZE_REGISTRATION_TEMPLATE
 
 const s3 = await aws()
 
@@ -94,7 +96,7 @@ export default (apiServer, maxFileSize) => {
       }
     }
     const token = jwt.sign(payload, secrets[0], { expiresIn: '24h' })
-    const mail = await sendUserEmail(req.body.newEmail, `${process.env.APP_URL}verify-email?token=${token}`, 'https://api.staging.bluefox.email/v1/accounts/64ca178285926a72bcaba430/projects/65a20f44d75cd7fdb49bb7b9/transactional-emails/65a2314ed75cd7fdb49bbf73/send')
+    const mail = await sendUserEmail(req.body.newEmail, `${process.env.APP_URL}verify-email?token=${token}`, verifyEmailTamplate)
     return {
       status: 200,
       result: {
@@ -274,7 +276,7 @@ export default (apiServer, maxFileSize) => {
       }
     }
     const token = jwt.sign(payload, secrets[0], { expiresIn: '24h' })
-    const mail = await sendUserEmail(getUser.result.email, `${process.env.APP_URL}finalize-registration?token=${token}`, 'https://api.staging.bluefox.email/v1/accounts/64ca178285926a72bcaba430/projects/65a20f44d75cd7fdb49bb7b9/transactional-emails/65a2319bd75cd7fdb49bbffd/send')
+    const mail = await sendUserEmail(getUser.result.email, `${process.env.APP_URL}finalize-registration?token=${token}`, finalizeRegistrationTemplate)
 
     return {
       status: 200,

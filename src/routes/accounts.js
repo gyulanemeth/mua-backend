@@ -17,10 +17,11 @@ const folderName = process.env.AWS_FOLDER_NAME
 const s3 = await aws()
 
 const secrets = process.env.SECRETS.split(' ')
+const finalizeRegistration = process.env.BLUEFOX_FINALIZE_REGISTRATION_TEMPLATE
 
 export default (apiServer, connectors, maxFileSize) => {
   const sendRegistration = async (email, token) => {
-    const url = 'https://api.staging.bluefox.email/v1/accounts/64ca178285926a72bcaba430/projects/65a20f44d75cd7fdb49bb7b9/transactional-emails/65a2319bd75cd7fdb49bbffd/send'
+    const url = finalizeRegistration
     const response = await fetch(url, {
       method: 'POST',
       headers: {

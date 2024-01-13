@@ -10,10 +10,11 @@ import UserModel from '../models/User.js'
 import AccountModel from '../models/Account.js'
 
 const secrets = process.env.SECRETS.split(' ')
+const forgotPasswordTemplate = process.env.BLUEFOX_FORGOT_PASSWORD_TEMPLATE
 
 export default (apiServer) => {
   const sendForgotPassword = async (email, token) => {
-    const url = 'https://api.staging.bluefox.email/v1/accounts/64ca178285926a72bcaba430/projects/65a20f44d75cd7fdb49bb7b9/transactional-emails/65a231ffd75cd7fdb49bc019/send'
+    const url = forgotPasswordTemplate
     const response = await fetch(url, {
       method: 'POST',
       headers: {

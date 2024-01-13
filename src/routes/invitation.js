@@ -9,10 +9,11 @@ import AccountModel from '../models/Account.js'
 import UserModel from '../models/User.js'
 
 const secrets = process.env.SECRETS.split(' ')
+const invitationTemplate = process.env.BLUEFOX_INVITATION_TEMPLATE
 
 export default (apiServer) => {
   const sendInvitation = async (email, token) => {
-    const url = 'https://api.staging.bluefox.email/v1/accounts/64ca178285926a72bcaba430/projects/65a20f44d75cd7fdb49bb7b9/transactional-emails/65a231dbd75cd7fdb49bc00f/send'
+    const url = invitationTemplate
     const response = await fetch(url, {
       method: 'POST',
       headers: {
