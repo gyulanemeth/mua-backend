@@ -28,7 +28,6 @@
   "dependencies": {
     "@aws-sdk/client-ses": "^3.131.0",
     "aws-sdk": "^2.1216.0",
-    "aws-ses-send-email": "^0.0.2",
     "bearer-jwt-auth": "^1.0.1",
     "dotenv": "^16.0.1",
     "express-async-api": "^0.7.0",
@@ -38,7 +37,6 @@
     "mock-aws-s3": "^4.0.2",
     "mongoose": "^6.3.5",
     "mongoose-crudl": "^1.1.0",
-    "nodemailer": "^6.7.5",
     "standard-api-errors": "^1.0.0",
     "standard-json-api-connectors": "^0.1.2",
     "static-server": "^3.0.0",

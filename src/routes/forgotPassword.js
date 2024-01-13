@@ -1,10 +1,6 @@
 import crypto from 'crypto'
-import path from 'path'
-import fs from 'fs'
-import { fileURLToPath } from 'url'
 
 import jwt from 'jsonwebtoken'
-import handlebars from 'handlebars'
 
 import { list, patchOne, readOne } from 'mongoose-crudl'
 import allowAccessTo from 'bearer-jwt-auth'
@@ -12,14 +8,32 @@ import { ValidationError, AuthenticationError } from 'standard-api-errors'
 
 import UserModel from '../models/User.js'
 import AccountModel from '../models/Account.js'
-import sendEmail from 'aws-ses-send-email'
-
-const __dirname = path.dirname(fileURLToPath(import.meta.url))
-const forgotPassword = fs.readFileSync(path.join(__dirname, '..', 'email-templates', 'forgot-password.html'), 'utf8')
 
 const secrets = process.env.SECRETS.split(' ')
 
 export default (apiServer) => {
+  const sendForgotPassword = async (email, token) => {
+    const url = 'https://api.staging.bluefox.email/v1/accounts/64ca178285926a72bcaba430/projects/65a20f44d75cd7fdb49bb7b9/transactional-emails/65a231ffd75cd7fdb49bc019/send'
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        email,
+        data: { href: `${process.env.APP_URL}forgot-password/reset?token=${token}` }
+      })
+    })
+    const res = await response.json()
+    if (res.status !== 200) {
+      const error = new Error(res.error.message)
+      error.status = res.status
+      error.name = res.error.name
+      throw error
+    }
+    return res
+  }
+
   apiServer.post('/v1/accounts/:id/forgot-password/send', async req => {
     const response = await list(UserModel, { email: req.body.email, accountId: req.params.id }, { select: { password: 0 } })
     if (response.result.count === 0) {
@@ -39,10 +53,7 @@ export default (apiServer) => {
     }
 
     const token = jwt.sign(payload, secrets[0], { expiresIn: '24h' })
-    const template = handlebars.compile(forgotPassword)
-    const html = template({ href: `${process.env.APP_URL}forgot-password/reset?token=${token}` })
-    const mail = await sendEmail({ to: response.result.items[0].email, subject: 'forget password link', html })
-
+    const mail = await sendForgotPassword(response.result.items[0].email, token)
     return {
       status: 200,
       result: {

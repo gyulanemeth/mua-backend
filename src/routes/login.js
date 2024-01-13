@@ -1,24 +1,38 @@
 import crypto from 'crypto'
-import path from 'path'
-import fs from 'fs'
-import { fileURLToPath } from 'url'
 
 import { list, readOne } from 'mongoose-crudl'
 import jwt from 'jsonwebtoken'
-import handlebars from 'handlebars'
 import allowAccessTo from 'bearer-jwt-auth'
 import { AuthenticationError } from 'standard-api-errors'
 
 import AccountModel from '../models/Account.js'
 import UserModel from '../models/User.js'
-import sendEmail from 'aws-ses-send-email'
-
-const __dirname = path.dirname(fileURLToPath(import.meta.url))
-const Login = fs.readFileSync(path.join(__dirname, '..', 'email-templates', 'login.html'), 'utf8')
 
 const secrets = process.env.SECRETS.split(' ')
 
 export default (apiServer) => {
+  const sendLogin = async (email, token) => {
+    const url = 'https://api.staging.bluefox.email/v1/accounts/64ca178285926a72bcaba430/projects/65a20f44d75cd7fdb49bb7b9/transactional-emails/65a231b9d75cd7fdb49bc007/send'
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        email,
+        data: { href: `${process.env.APP_URL}login-select?token=${token}` }
+      })
+    })
+    const res = await response.json()
+    if (res.status !== 200) {
+      const error = new Error(res.error.message)
+      error.status = res.status
+      error.name = res.error.name
+      throw error
+    }
+    return res
+  }
+
   apiServer.post('/v1/accounts/:id/login', async req => {
     const data = allowAccessTo(req, secrets, [{ type: 'login' }])
     req.body.password = crypto.createHash('md5').update(req.body.password).digest('hex')
@@ -97,9 +111,7 @@ export default (apiServer) => {
        getAccounts.result.items
     }
     const token = jwt.sign(payload, secrets[0], { expiresIn: '24h' })
-    const template = handlebars.compile(Login)
-    const html = template({ href: `${process.env.APP_URL}login-select?token=${token}` })
-    const info = await sendEmail({ to: req.body.email, subject: 'Login link ', html })
+    const info = await sendLogin(req.body.email, token)
     return {
       status: 201,
       result: {

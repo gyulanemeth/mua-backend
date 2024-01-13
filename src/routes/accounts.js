@@ -1,10 +1,6 @@
 import crypto from 'crypto'
-import path from 'path'
-import fs from 'fs'
-import { fileURLToPath } from 'url'
 
 import jwt from 'jsonwebtoken'
-import handlebars from 'handlebars'
 import mime from 'mime-types'
 
 import allowAccessTo from 'bearer-jwt-auth'
@@ -13,11 +9,8 @@ import { list, readOne, deleteOne, deleteMany, patchOne, createOne } from 'mongo
 
 import AccountModel from '../models/Account.js'
 import UserModel from '../models/User.js'
-import sendEmail from 'aws-ses-send-email'
 import aws from '../helpers/awsBucket.js'
 
-const __dirname = path.dirname(fileURLToPath(import.meta.url))
-const registration = fs.readFileSync(path.join(__dirname, '..', 'email-templates', 'registration.html'), 'utf8')
 const bucketName = process.env.AWS_BUCKET_NAME
 const folderName = process.env.AWS_FOLDER_NAME
 
@@ -26,6 +19,28 @@ const s3 = await aws()
 const secrets = process.env.SECRETS.split(' ')
 
 export default (apiServer, connectors, maxFileSize) => {
+  const sendRegistration = async (email, token) => {
+    const url = 'https://api.staging.bluefox.email/v1/accounts/64ca178285926a72bcaba430/projects/65a20f44d75cd7fdb49bb7b9/transactional-emails/65a2319bd75cd7fdb49bbffd/send'
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        email,
+        data: { href: `${process.env.APP_URL}finalize-registration?token=${token}` }
+      })
+    })
+    const res = await response.json()
+    if (res.status !== 200) {
+      const error = new Error(res.error.message)
+      error.status = res.status
+      error.name = res.error.name
+      throw error
+    }
+    return res
+  }
+
   apiServer.get('/v1/accounts/check-availability', async req => {
     let available = false
     const response = await list(AccountModel, { urlFriendlyName: req.query.urlFriendlyName })
@@ -120,10 +135,7 @@ export default (apiServer, connectors, maxFileSize) => {
       }
     }
     const token = jwt.sign(payload, secrets[0], { expiresIn: '24h' })
-    const template = handlebars.compile(registration)
-    const html = template({ href: `${process.env.APP_URL}finalize-registration?token=${token}` })
-    const mail = await sendEmail({ to: newUser.result.email, subject: 'Registration link ', html })
-
+    const mail = await sendRegistration(newUser.result.email, token)
     return {
       status: 200,
       result: {

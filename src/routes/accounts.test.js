@@ -3,7 +3,6 @@ import crypto from 'crypto'
 import jwt from 'jsonwebtoken'
 import mongoose from 'mongoose'
 import request from 'supertest'
-import nodemailer from 'nodemailer'
 
 import { vi } from 'vitest'
 
@@ -56,7 +55,7 @@ describe('accounts test', () => {
     await mongooseMemoryServer.start()
     await mongooseMemoryServer.connect('test-db')
 
-    app = createServer({}, connectors)
+    app = createServer(connectors)
     app = app._expressServer
   })
 
@@ -484,6 +483,13 @@ describe('accounts test', () => {
   test('success create account   /v1/accounts/create', async () => {
     process.env.ALPHA_MODE = false
 
+    const fetchSpy = vi.spyOn(global, 'fetch')
+    fetchSpy.mockResolvedValue({
+      ok: true,
+      headers: { get: () => 'application/json' },
+      json: () => Promise.resolve({ result: { success: true }, status: 200 })
+    })
+
     const res = await request(app)
       .post('/v1/accounts/create')
       .send({
@@ -492,26 +498,18 @@ describe('accounts test', () => {
       })
 
     expect(res.body.status).toBe(200)
-
-    // testing email sent
-
-    const messageUrl = nodemailer.getTestMessageUrl(res.body.result.info)
-
-    const html = await fetch(messageUrl).then(response => response.text())
-    const regex = /<a[\s]+id=\\"registrationLink\\"[^\n\r]*\?token&#x3D([^"&]+)">/g
-    const found = html.match(regex)[0]
-    const tokenPosition = found.indexOf('token&#x3D')
-    const endTagPosition = found.indexOf('\\">')
-    const htmlToken = found.substring(tokenPosition + 11, endTagPosition)
-    const verifiedToken = jwt.verify(htmlToken, secrets[0])
-
-    expect(htmlToken).toBeDefined()
-    expect(verifiedToken.type).toBe('registration')
-    expect(verifiedToken.user.email).toBe('user1@gmail.com')
+    await fetchSpy.mockRestore()
   })
 
   test('success create account alpha   /v1/accounts/create', async () => {
     process.env.ALPHA_MODE = true
+
+    const fetchSpy = vi.spyOn(global, 'fetch')
+    fetchSpy.mockResolvedValue({
+      ok: true,
+      headers: { get: () => 'application/json' },
+      json: () => Promise.resolve({ result: { success: true }, status: 200 })
+    })
 
     // in alpah version just system admin can create account
     const token = jwt.sign({ type: 'admin' }, secrets[0])
@@ -525,22 +523,30 @@ describe('accounts test', () => {
       })
 
     expect(res.body.status).toBe(200)
+    await fetchSpy.mockRestore()
+  })
 
-    // testing email sent
+  test('error fetch', async () => {
+    const fetchSpy = vi.spyOn(global, 'fetch')
+    fetchSpy.mockResolvedValue({
+      ok: true,
+      headers: { get: () => 'application/json' },
+      json: () => Promise.resolve({ error: { name: 'error', message: 'error test' }, status: 400 })
+    })
 
-    const messageUrl = nodemailer.getTestMessageUrl(res.body.result.info)
+    // in alpah version just system admin can create account
+    const token = jwt.sign({ type: 'admin' }, secrets[0])
 
-    const html = await fetch(messageUrl).then(response => response.text())
-    const regex = /<a[\s]+id=\\"registrationLink\\"[^\n\r]*\?token&#x3D([^"&]+)">/g
-    const found = html.match(regex)[0]
-    const tokenPosition = found.indexOf('token&#x3D')
-    const endTagPosition = found.indexOf('\\">')
-    const htmlToken = found.substring(tokenPosition + 11, endTagPosition)
-    const verifiedToken = jwt.verify(htmlToken, secrets[0])
+    const res = await request(app)
+      .post('/v1/accounts/create')
+      .set('authorization', 'Bearer ' + token)
+      .send({
+        user: { name: 'user1', email: 'user1@gmail.com', password: 'userPassword' },
+        account: { name: 'account1', urlFriendlyName: 'account1UrlFriendlyName' }
+      })
 
-    expect(htmlToken).toBeDefined()
-    expect(verifiedToken.type).toBe('registration')
-    expect(verifiedToken.user.email).toBe('user1@gmail.com')
+    expect(res.body.status).toBe(400)
+    await fetchSpy.mockRestore()
   })
 
   test('error create account alpha non-admin   /v1/accounts/create', async () => {
@@ -641,7 +647,7 @@ describe('accounts test', () => {
 
     const token = jwt.sign({ type: 'user', account: { _id: account1._id }, role: 'admin' }, secrets[0])
 
-    let sizeTestApp = createServer({}, connectors, 20000)
+    let sizeTestApp = createServer(connectors, 20000)
     sizeTestApp = sizeTestApp._expressServer
 
     const res = await request(sizeTestApp).post(`/v1/accounts/${account1._id}/logo`)

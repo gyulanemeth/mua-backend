@@ -3,6 +3,7 @@ import crypto from 'crypto'
 import jwt from 'jsonwebtoken'
 import mongoose from 'mongoose'
 import request from 'supertest'
+import { vi } from 'vitest'
 
 import createMongooseMemoryServer from 'mongoose-memory'
 
@@ -205,6 +206,13 @@ describe('login test ', () => {
   })
 
   test('login get accounts with valid email ', async () => {
+    const fetchSpy = vi.spyOn(global, 'fetch')
+    fetchSpy.mockResolvedValue({
+      ok: true,
+      headers: { get: () => 'application/json' },
+      json: () => Promise.resolve({ result: { success: true }, status: 200 })
+    })
+
     const account1 = new Account({ name: 'accountExample1', urlFriendlyName: 'urlFriendlyNameExample1' })
     await account1.save()
 
@@ -221,6 +229,34 @@ describe('login test ', () => {
       .send({ email: user1.email })
 
     expect(res.body.status).toBe(201)
+    await fetchSpy.mockRestore()
+  })
+
+  test('error fetch', async () => {
+    const fetchSpy = vi.spyOn(global, 'fetch')
+    fetchSpy.mockResolvedValue({
+      ok: true,
+      headers: { get: () => 'application/json' },
+      json: () => Promise.resolve({ error: { name: 'error', message: 'error test' }, status: 400 })
+    })
+
+    const account1 = new Account({ name: 'accountExample1', urlFriendlyName: 'urlFriendlyNameExample1' })
+    await account1.save()
+
+    const hash1 = crypto.createHash('md5').update('user1Password').digest('hex')
+    const user1 = new User({ email: 'user1@gmail.com', name: 'user1', password: hash1, accountId: account1._id })
+    await user1.save()
+
+    const hash2 = crypto.createHash('md5').update('user2Password').digest('hex')
+    const user2 = new User({ email: 'user2@gmail.com', name: 'user2', password: hash2, accountId: account1._id })
+    await user2.save()
+
+    const res = await request(app)
+      .post('/v1/accounts/login')
+      .send({ email: user1.email })
+
+    expect(res.body.status).toBe(400)
+    await fetchSpy.mockRestore()
   })
 
   test('login get accounts with unvalid email ', async () => {

@@ -3,10 +3,8 @@ import crypto from 'crypto'
 import jwt from 'jsonwebtoken'
 import mongoose from 'mongoose'
 import request from 'supertest'
-import nodemailer from 'nodemailer'
 
 import createMongooseMemoryServer from 'mongoose-memory'
-import sendEmail from 'aws-ses-send-email'
 import { vi } from 'vitest'
 
 import createServer from './index.js'
@@ -25,7 +23,7 @@ describe('invitation test', () => {
     await mongooseMemoryServer.start()
     await mongooseMemoryServer.connect('test-db')
 
-    app = createServer(sendEmail)
+    app = createServer()
     app = app._expressServer
   })
 
@@ -40,6 +38,13 @@ describe('invitation test', () => {
   })
 
   test('success send invitation by admin /v1/accounts/:accountId/invitation/send', async () => {
+    const fetchSpy = vi.spyOn(global, 'fetch')
+    fetchSpy.mockResolvedValue({
+      ok: true,
+      headers: { get: () => 'application/json' },
+      json: () => Promise.resolve({ result: { success: true }, status: 200 })
+    })
+
     const account1 = new Account({ name: 'accountExample1', urlFriendlyName: 'urlFriendlyNameExample1' })
     await account1.save()
 
@@ -58,26 +63,45 @@ describe('invitation test', () => {
 
     expect(res.body.status).toBe(201)
     expect(res.body.result.success).toBe(true)
+    await fetchSpy.mockRestore()
+  })
 
-    // testing email sent
+  test('error fetch', async () => {
+    const fetchSpy = vi.spyOn(global, 'fetch')
+    fetchSpy.mockResolvedValue({
+      ok: true,
+      headers: { get: () => 'application/json' },
+      json: () => Promise.resolve({ error: { name: 'error', message: 'error test' }, status: 400 })
+    })
 
-    const messageUrl = nodemailer.getTestMessageUrl(res.body.result.info)
+    const account1 = new Account({ name: 'accountExample1', urlFriendlyName: 'urlFriendlyNameExample1' })
+    await account1.save()
 
-    const html = await fetch(messageUrl).then(response => response.text())
-    const regex = /<a[\s]+id=\\"invitationLink\\"[^\n\r]*\?token&#x3D([^"&]+)">/g
-    const found = html.match(regex)[0]
-    const tokenPosition = found.indexOf('token&#x3D')
-    const endTagPosition = found.indexOf('\\">')
-    const htmlToken = found.substring(tokenPosition + 11, endTagPosition)
-    const verifiedToken = jwt.verify(htmlToken, secrets[0])
+    const hash1 = crypto.createHash('md5').update('user1Password').digest('hex')
+    const user1 = new User({ email: 'user1@gmail.com', name: 'user1', password: hash1, accountId: account1._id })
+    await user1.save()
 
-    expect(htmlToken).toBeDefined()
-    expect(verifiedToken.type).toBe('invitation')
-    expect(verifiedToken.user.email).toBe('user3@gmail.com')
-    expect(JSON.stringify(verifiedToken.account._id)).toBe(JSON.stringify(account1._id))
+    const hash2 = crypto.createHash('md5').update('user2Password').digest('hex')
+    const user2 = new User({ email: 'user2@gmail.com', name: 'user2', password: hash2, accountId: account1._id })
+    await user2.save()
+
+    const token = jwt.sign({ type: 'admin' }, secrets[0])
+
+    const res = await request(app)
+      .post('/v1/accounts/' + account1._id + '/invitation/send').set('authorization', 'Bearer ' + token).send({ email: 'user3@gmail.com' })
+
+    expect(res.body.status).toBe(400)
+    await fetchSpy.mockRestore()
   })
 
   test('success resend invitation by admin /v1/accounts/:accountId/invitation/resend', async () => {
+    const fetchSpy = vi.spyOn(global, 'fetch')
+    fetchSpy.mockResolvedValue({
+      ok: true,
+      headers: { get: () => 'application/json' },
+      json: () => Promise.resolve({ result: { success: true }, status: 200 })
+    })
+
     const account1 = new Account({ name: 'accountExample1', urlFriendlyName: 'urlFriendlyNameExample1' })
     await account1.save()
 
@@ -95,27 +119,18 @@ describe('invitation test', () => {
 
     expect(res.body.status).toBe(200)
     expect(res.body.result.success).toBe(true)
-
-    // testing email sent
-
-    const messageUrl = nodemailer.getTestMessageUrl(res.body.result.info)
-
-    const html = await fetch(messageUrl).then(response => response.text())
-    const regex = /<a[\s]+id=\\"invitationLink\\"[^\n\r]*\?token&#x3D([^"&]+)">/g
-    const found = html.match(regex)[0]
-    const tokenPosition = found.indexOf('token&#x3D')
-    const endTagPosition = found.indexOf('\\">')
-    const htmlToken = found.substring(tokenPosition + 11, endTagPosition)
-    const verifiedToken = jwt.verify(htmlToken, secrets[0])
-
-    expect(htmlToken).toBeDefined()
-    expect(verifiedToken.type).toBe('invitation')
-    expect(verifiedToken.user.email).toBe('user1@gmail.com')
-    expect(JSON.stringify(verifiedToken.account._id)).toBe(JSON.stringify(account1._id))
+    await fetchSpy.mockRestore()
   })
 
   test('success send invitation by user role admin  /v1/accounts/:accountId/invitation/send', async () => {
     process.env.ALPHA_MODE = false
+
+    const fetchSpy = vi.spyOn(global, 'fetch')
+    fetchSpy.mockResolvedValue({
+      ok: true,
+      headers: { get: () => 'application/json' },
+      json: () => Promise.resolve({ result: { success: true }, status: 200 })
+    })
 
     const account1 = new Account({ name: 'accountExample1', urlFriendlyName: 'urlFriendlyNameExample1' })
     await account1.save()
@@ -135,23 +150,7 @@ describe('invitation test', () => {
 
     expect(res.body.status).toBe(201)
     expect(res.body.result.success).toBe(true)
-
-    // testing email sent
-
-    const messageUrl = nodemailer.getTestMessageUrl(res.body.result.info)
-
-    const html = await fetch(messageUrl).then(response => response.text())
-    const regex = /<a[\s]+id=\\"invitationLink\\"[^\n\r]*\?token&#x3D([^"&]+)">/g
-    const found = html.match(regex)[0]
-    const tokenPosition = found.indexOf('token&#x3D')
-    const endTagPosition = found.indexOf('\\">')
-    const htmlToken = found.substring(tokenPosition + 11, endTagPosition)
-    const verifiedToken = jwt.verify(htmlToken, secrets[0])
-
-    expect(htmlToken).toBeDefined()
-    expect(verifiedToken.type).toBe('invitation')
-    expect(verifiedToken.user.email).toBe('user3@gmail.com')
-    expect(JSON.stringify(verifiedToken.account._id)).toBe(JSON.stringify(account1._id))
+    await fetchSpy.mockRestore()
   })
 
   test('send invitation error user exist  /v1/accounts/:accountId/invitation/send', async () => {
@@ -227,17 +226,16 @@ describe('invitation test', () => {
     await user2.save()
 
     const token = jwt.sign({ type: 'admin' }, secrets[0])
-
-    const mockSendEmail = vi.fn(() => {
-      throw new Error('test mock send email error')
-    })
-    app = createServer(mockSendEmail)
+    const fetchSpy = vi.spyOn(global, 'fetch')
+    fetchSpy.mockRejectedValue(new Error('test mock send email error'))
+    app = createServer()
     app = app._expressServer
 
     const res = await request(app)
       .post('/v1/accounts/' + account1._id + '/invitation/send').set('authorization', 'Bearer ' + token).send({ email: 'user3@gmail.com' })
 
     expect(res.body.error.message).toEqual('test mock send email error')
+    await fetchSpy.mockRestore()
   })
 
   test('send invitation error unAuthorized header  /v1/accounts/:accountId/invitation/send', async () => {
