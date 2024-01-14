@@ -3,7 +3,7 @@ import crypto from 'crypto'
 import jwt from 'jsonwebtoken'
 import mongoose from 'mongoose'
 import request from 'supertest'
-import nodemailer from 'nodemailer'
+import { vi } from 'vitest'
 import StaticServer from 'static-server'
 
 import createMongooseMemoryServer from 'mongoose-memory'
@@ -70,6 +70,13 @@ describe('users test', () => {
   })
 
   test('success resend finalize user  /v1/accounts/:accoutId/users/:userId/resend-finalize-registration', async () => {
+    const fetchSpy = vi.spyOn(global, 'fetch')
+    fetchSpy.mockResolvedValue({
+      ok: true,
+      headers: { get: () => 'application/json' },
+      json: () => Promise.resolve({ result: { success: true }, status: 200 })
+    })
+
     const account1 = new Account({ name: 'accountExample1', urlFriendlyName: 'urlFriendlyNameExample1' })
     await account1.save()
 
@@ -82,6 +89,30 @@ describe('users test', () => {
       .send()
 
     expect(res.body.status).toBe(200)
+    await fetchSpy.mockRestore()
+  })
+
+  test('error fetch', async () => {
+    const fetchSpy = vi.spyOn(global, 'fetch')
+    fetchSpy.mockResolvedValue({
+      ok: true,
+      headers: { get: () => 'application/json' },
+      json: () => Promise.resolve({ error: { name: 'error', message: 'error test' }, status: 400 })
+    })
+
+    const account1 = new Account({ name: 'accountExample1', urlFriendlyName: 'urlFriendlyNameExample1' })
+    await account1.save()
+
+    const hash1 = crypto.createHash('md5').update('user1Password').digest('hex')
+    const user1 = new User({ email: 'user1@gmail.com', name: 'user1', password: hash1, accountId: account1._id })
+    await user1.save()
+
+    const res = await request(app)
+      .post('/v1/accounts/' + account1._id + '/users/' + user1._id + '/resend-finalize-registration')
+      .send()
+
+    expect(res.body.status).toBe(400)
+    await fetchSpy.mockRestore()
   })
 
   test('success update user name in account by user with role admin  /v1/accounts/:accountId/users/:id/name', async () => {
@@ -896,6 +927,13 @@ describe('users test', () => {
   })
 
   test('success patch email req send  /v1/accounts/:accountId/users/:id/email', async () => {
+    const fetchSpy = vi.spyOn(global, 'fetch')
+    fetchSpy.mockResolvedValue({
+      ok: true,
+      headers: { get: () => 'application/json' },
+      json: () => Promise.resolve({ result: { success: true }, status: 200 })
+    })
+
     const account1 = new Account({ name: 'accountExample1', urlFriendlyName: 'urlFriendlyNameExample1' })
     await account1.save()
 
@@ -914,20 +952,7 @@ describe('users test', () => {
 
     expect(res.body.status).toBe(200)
     expect(res.body.result.success).toBe(true)
-
-    const messageUrl = nodemailer.getTestMessageUrl(res.body.result.info)
-
-    const html = await fetch(messageUrl).then(response => response.text())
-    const regex = /<a[\s]+id=\\"verifyEmailLink\\"[^\n\r]*\?token&#x3D([^"&]+)">/g
-    const found = html.match(regex)[0]
-    const tokenPosition = found.indexOf('token&#x3D')
-    const endTagPosition = found.indexOf('\\">')
-    const htmlToken = found.substring(tokenPosition + 11, endTagPosition)
-    const verifiedToken = jwt.verify(htmlToken, secrets[0])
-
-    expect(htmlToken).toBeDefined()
-    expect(verifiedToken.type).toBe('verfiy-email')
-    expect(verifiedToken.newEmail).toBe('userUpdate@gmail.com')
+    await fetchSpy.mockRestore()
   })
 
   test('patch email req send error email exist /v1/accounts/:accountId/users/:id/email', async () => {
@@ -1092,7 +1117,7 @@ describe('users test', () => {
 
     const token = jwt.sign({ type: 'user', user: { _id: user1._id }, account: { _id: account1._id } }, secrets[0])
 
-    let sizeTestApp = createServer({}, null, 20000)
+    let sizeTestApp = createServer(null, 20000)
     sizeTestApp = sizeTestApp._expressServer
 
     const res = await request(sizeTestApp).post(`/v1/accounts/${account1._id}/users/${user1._id}/profile-picture`)

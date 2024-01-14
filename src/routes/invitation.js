@@ -1,10 +1,5 @@
 import crypto from 'crypto'
-import path from 'path'
-import fs from 'fs'
-import { fileURLToPath } from 'url'
-
 import jwt from 'jsonwebtoken'
-import handlebars from 'handlebars'
 
 import { list, readOne, patchOne, createOne, deleteOne } from 'mongoose-crudl'
 import { MethodNotAllowedError, ValidationError } from 'standard-api-errors'
@@ -13,12 +8,32 @@ import allowAccessTo from 'bearer-jwt-auth'
 import AccountModel from '../models/Account.js'
 import UserModel from '../models/User.js'
 
-const __dirname = path.dirname(fileURLToPath(import.meta.url))
-const Invitation = fs.readFileSync(path.join(__dirname, '..', 'email-templates', 'invitation.html'), 'utf8')
-
 const secrets = process.env.SECRETS.split(' ')
+const invitationTemplate = process.env.BLUEFOX_INVITATION_TEMPLATE
 
-export default (apiServer, sendEmail) => {
+export default (apiServer) => {
+  const sendInvitation = async (email, token) => {
+    const url = invitationTemplate
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        email,
+        data: { href: `${process.env.APP_URL}invitation/accept?token=${token}` }
+      })
+    })
+    const res = await response.json()
+    if (res.status !== 200) {
+      const error = new Error(res.error.message)
+      error.status = res.status
+      error.name = res.error.name
+      throw error
+    }
+    return res
+  }
+
   apiServer.post('/v1/accounts/:id/invitation/send', async req => {
     allowAccessTo(req, secrets, [{ type: 'admin' }, { type: 'user', role: 'admin' }])
     const checkAccount = await readOne(AccountModel, { id: req.params.id }, req.query)
@@ -40,11 +55,9 @@ export default (apiServer, sendEmail) => {
       }
     }
     const token = jwt.sign(payload, secrets[0], { expiresIn: '24h' })
-    const template = handlebars.compile(Invitation)
-    const html = template({ href: `${process.env.APP_URL}invitation/accept?token=${token}` })
     let mail
     try {
-      mail = await sendEmail({ to: newUser.result.email, subject: 'invitation link ', html })
+      mail = await sendInvitation(newUser.result.email, token)
     } catch (e) {
       await deleteOne(UserModel, { id: newUser.result._id, accountId: checkAccount.result._id })
       throw e
@@ -84,10 +97,7 @@ export default (apiServer, sendEmail) => {
       }
     }
     const token = jwt.sign(payload, secrets[0], { expiresIn: '24h' })
-    const template = handlebars.compile(Invitation)
-    const html = template({ href: `${process.env.APP_URL}invitation/accept?token=${token}` })
-    const mail = await sendEmail({ to: getUser.result.items[0].email, subject: 'invitation link ', html })
-
+    const mail = await sendInvitation(getUser.result.items[0].email, token)
     return {
       status: 200,
       result: {

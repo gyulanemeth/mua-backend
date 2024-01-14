@@ -1,9 +1,4 @@
-import fs from 'fs'
-import path from 'path'
-import { fileURLToPath } from 'url'
-
 import crypto from 'crypto'
-import handlebars from 'handlebars'
 
 import jwt from 'jsonwebtoken'
 import allowAccessTo from 'bearer-jwt-auth'
@@ -14,20 +9,39 @@ import { MethodNotAllowedError, ValidationError, AuthenticationError } from 'sta
 
 import AccountModel from '../models/Account.js'
 import UserModel from '../models/User.js'
-import sendEmail from 'aws-ses-send-email'
 import aws from '../helpers/awsBucket.js'
 
 const secrets = process.env.SECRETS.split(' ')
 const bucketName = process.env.AWS_BUCKET_NAME
 const folderName = process.env.AWS_FOLDER_NAME
+const verifyEmailTamplate = process.env.BLUEFOX_VERIFY_EMAIL_TEMPLATE
+const finalizeRegistrationTemplate = process.env.BLUEFOX_FINALIZE_REGISTRATION_TEMPLATE
 
 const s3 = await aws()
 
-const __dirname = path.dirname(fileURLToPath(import.meta.url))
-const VerifyEmail = fs.readFileSync(path.join(__dirname, '..', 'email-templates', 'verifyEmail.html'), 'utf8')
-const registration = fs.readFileSync(path.join(__dirname, '..', 'email-templates', 'registration.html'), 'utf8')
-
 export default (apiServer, maxFileSize) => {
+  const sendUserEmail = async (email, href, templateUrl) => {
+    const url = templateUrl
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        email,
+        data: { href }
+      })
+    })
+    const res = await response.json()
+    if (res.status !== 200) {
+      const error = new Error(res.error.message)
+      error.status = res.status
+      error.name = res.error.name
+      throw error
+    }
+    return res
+  }
+
   apiServer.patch('/v1/accounts/:accountId/users/:id/name', async req => {
     allowAccessTo(req, secrets, [{ type: 'admin' }, { type: 'user', role: 'admin' }, { type: 'user', user: { _id: req.params.id }, account: { _id: req.params.accountId } }])
     const user = await patchOne(UserModel, { id: req.params.id, accountId: req.params.accountId }, { name: req.body.name }, { password: 0 })
@@ -82,10 +96,7 @@ export default (apiServer, maxFileSize) => {
       }
     }
     const token = jwt.sign(payload, secrets[0], { expiresIn: '24h' })
-    const template = handlebars.compile(VerifyEmail)
-    const html = template({ href: `${process.env.APP_URL}verify-email?token=${token}` })
-    const mail = await sendEmail({ to: req.body.newEmail, subject: 'verify email link ', html })
-
+    const mail = await sendUserEmail(req.body.newEmail, `${process.env.APP_URL}verify-email?token=${token}`, verifyEmailTamplate)
     return {
       status: 200,
       result: {
@@ -265,9 +276,7 @@ export default (apiServer, maxFileSize) => {
       }
     }
     const token = jwt.sign(payload, secrets[0], { expiresIn: '24h' })
-    const template = handlebars.compile(registration)
-    const html = template({ href: `${process.env.APP_URL}finalize-registration?token=${token}` })
-    const mail = await sendEmail({ to: getUser.result.email, subject: 'Registration link ', html })
+    const mail = await sendUserEmail(getUser.result.email, `${process.env.APP_URL}finalize-registration?token=${token}`, finalizeRegistrationTemplate)
 
     return {
       status: 200,
