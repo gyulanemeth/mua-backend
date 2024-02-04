@@ -18,7 +18,8 @@ export default (apiServer) => {
     const response = await fetch(url, {
       method: 'POST',
       headers: {
-        'Content-Type': 'application/json'
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer '+ process.env.BLUEFOX_API_KEY
       },
       body: JSON.stringify({
         email,
