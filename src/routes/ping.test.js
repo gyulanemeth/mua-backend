@@ -1,5 +1,5 @@
+import { describe, test, expect, beforeAll, afterEach, afterAll } from 'vitest'
 import request from 'supertest'
-import { expect } from 'vitest'
 import mongoose from 'mongoose'
 import createServer from './index.js'
 
@@ -53,4 +53,3 @@ describe('ping routes', () => {
     await mongooseMemoryServer.connect('test-db')
   })
 })
-
