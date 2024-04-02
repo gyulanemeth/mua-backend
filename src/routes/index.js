@@ -6,6 +6,7 @@ import forgotPassword from './forgotPassword.js'
 import account from './accounts.js'
 import users from './users.js'
 import config from './config.js'
+import ping from './ping.js'
 
 export default (connectors, maxFileSize) => {
   function errorHandler (e) {
@@ -34,6 +35,7 @@ export default (connectors, maxFileSize) => {
   invitation(apiServer)
   forgotPassword(apiServer)
   account(apiServer, connectors, maxFileSize)
+  ping(apiServer)
 
   return apiServer
 }
