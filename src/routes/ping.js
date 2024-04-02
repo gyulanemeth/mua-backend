@@ -15,7 +15,7 @@ export default apiServer => {
         result: 'pong'
       }
     }
-    
+
     return {
       status: 500,
       error: 'MongoDB connection is not ready'

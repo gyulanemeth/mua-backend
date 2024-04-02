@@ -1,11 +1,10 @@
+import { describe, test, expect, beforeAll, afterEach, afterAll, vi } from 'vitest'
 import crypto from 'crypto'
-
 import jwt from 'jsonwebtoken'
 import mongoose from 'mongoose'
 import request from 'supertest'
 
 import createMongooseMemoryServer from 'mongoose-memory'
-import { vi } from 'vitest'
 
 import createServer from './index.js'
 import Account from '../models/Account.js'

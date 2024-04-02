@@ -7,7 +7,7 @@
   "scripts": {
     "lint": "npx standard",
     "lint-fix": "npx standard --fix",
-    "test": "npm run lint; npx vitest run --coverage -- --check-coverage --lines 100 --functions 100 --branches 100 --statements 100",
+    "test": "npm run lint && npx vitest run --coverage -- --check-coverage --lines 100 --functions 100 --branches 100 --statements 100",
     "serve": "cd src; node --require dotenv/config index.js dotenv_config_path=../.env",
     "serve:dev": "cd src; nodemon --require dotenv/config index.js dotenv_config_path=../.env",
     "serve:static": "cd src/tmp/bluefox && static-server -p 10007"
@@ -20,11 +20,6 @@
     "url": "https://github.com/gyulanemeth/mua-accounts-api/issues"
   },
   "homepage": "https://github.com/gyulanemeth/mua-accounts-api#readme",
-  "standard": {
-    "env": [
-      "jest"
-    ]
-  },
   "dependencies": {
     "@aws-sdk/client-ses": "^3.131.0",
     "aws-sdk": "^2.1216.0",
