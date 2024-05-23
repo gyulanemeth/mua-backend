@@ -5,13 +5,17 @@ import jwt from 'jsonwebtoken'
 import allowAccessTo from 'bearer-jwt-auth'
 import { AuthenticationError } from 'standard-api-errors'
 
-import AccountModel from '../models/Account.js'
-import UserModel from '../models/User.js'
-
 const secrets = process.env.SECRETS.split(' ')
-const loginSelectTemplate = process.env.BLUEFOX_LOGIN_SELECT_TEMPLATE
+const loginSelectTemplate = process.env.ACCOUNT_BLUEFOX_LOGIN_SELECT_TEMPLATE
 
-export default (apiServer) => {
+export default ({
+  apiServer, UserModel, AccountModel, hooks =
+  {
+    login: { post: (params) => { } },
+    loginUrlFriendlyName: { post: (params) => { } },
+    getLoginAccounts: { post: (params) => { } }
+  }
+}) => {
   const sendLogin = async (email, token) => {
     const url = loginSelectTemplate
     const response = await fetch(url, {
@@ -22,7 +26,7 @@ export default (apiServer) => {
       },
       body: JSON.stringify({
         email,
-        data: { href: `${process.env.APP_URL}login-select?token=${token}` }
+        data: { href: `${process.env.ACCOUNT_APP_URL}login-select?token=${token}` }
       })
     })
     const res = await response.json()
@@ -55,7 +59,11 @@ export default (apiServer) => {
       }
     }
     const token = jwt.sign(payload, secrets[0], { expiresIn: '24h' })
-    return {
+    let postRes
+    if (hooks.login?.post) {
+      postRes = await hooks.login.post(req.params, req.body, token)
+    }
+    return postRes || {
       status: 200,
       result: {
         loginToken: token
@@ -87,7 +95,11 @@ export default (apiServer) => {
       }
     }
     const token = jwt.sign(payload, secrets[0], { expiresIn: '24h' })
-    return {
+    let postRes
+    if (hooks.loginUrlFriendlyName?.post) {
+      postRes = await hooks.loginUrlFriendlyName.post(req.params, req.body, token)
+    }
+    return postRes || {
       status: 200,
       result: {
         loginToken: token
@@ -114,7 +126,11 @@ export default (apiServer) => {
     }
     const token = jwt.sign(payload, secrets[0], { expiresIn: '24h' })
     const info = await sendLogin(req.body.email, token)
-    return {
+    let postRes
+    if (hooks.getLoginAccounts?.post) {
+      postRes = await hooks.getLoginAccounts.post(req.params, req.body, info)
+    }
+    return postRes || {
       status: 201,
       result: {
         success: true,

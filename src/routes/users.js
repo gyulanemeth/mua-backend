@@ -7,19 +7,37 @@ import mime from 'mime-types'
 import { list, readOne, deleteOne, patchOne, createOne } from 'mongoose-crudl'
 import { MethodNotAllowedError, ValidationError, AuthenticationError } from 'standard-api-errors'
 
-import AccountModel from '../models/Account.js'
-import UserModel from '../models/User.js'
 import aws from '../helpers/awsBucket.js'
 
 const secrets = process.env.SECRETS.split(' ')
 const bucketName = process.env.AWS_BUCKET_NAME
 const folderName = process.env.AWS_FOLDER_NAME
-const verifyEmailTamplate = process.env.BLUEFOX_VERIFY_EMAIL_TEMPLATE
-const finalizeRegistrationTemplate = process.env.BLUEFOX_FINALIZE_REGISTRATION_TEMPLATE
+const verifyEmailTamplate = process.env.ACCOUNT_BLUEFOX_VERIFY_EMAIL_TEMPLATE
+const finalizeRegistrationTemplate = process.env.ACCOUNT_BLUEFOX_FINALIZE_REGISTRATION_TEMPLATE
+const maxFileSize = process.env.MAX_FILE_SIZE
 
 const s3 = await aws()
 
-export default (apiServer, maxFileSize) => {
+export default ({
+  apiServer, UserModel, AccountModel, hooks =
+  {
+    updateName: { post: (params) => { } },
+    updatePassword: { post: (params) => { } },
+    updateRole: { post: (params) => { } },
+    updateEmail: { post: (params) => { } },
+    confirmEmail: { post: (params) => { } },
+    deleteUser: { post: (params) => { } },
+    permissionFor: { post: (params) => { } },
+    accessToken: { post: (params) => { } },
+    finalizeRegistration: { post: (params) => { } },
+    listUsers: { post: (params) => { } },
+    readOneUser: { post: (params) => { } },
+    createUser: { post: (params) => { } },
+    resendFinalizeRegistration: { post: (params) => { } },
+    addProfilePicture: { post: (params) => { } },
+    deleteProfilePicture: { post: (params) => { } }
+  }
+}) => {
   const sendUserEmail = async (email, href, templateUrl) => {
     const url = templateUrl
     const response = await fetch(url, {
@@ -46,7 +64,11 @@ export default (apiServer, maxFileSize) => {
   apiServer.patch('/v1/accounts/:accountId/users/:id/name', async req => {
     allowAccessTo(req, secrets, [{ type: 'admin' }, { type: 'user', role: 'admin' }, { type: 'user', user: { _id: req.params.id }, account: { _id: req.params.accountId } }])
     const user = await patchOne(UserModel, { id: req.params.id, accountId: req.params.accountId }, { name: req.body.name }, { password: 0 })
-    return user
+    let postRes
+    if (hooks.updateName?.post) {
+      postRes = await hooks.updateName.post(req.params, req.body, user.result)
+    }
+    return postRes || user
   })
 
   apiServer.patch('/v1/accounts/:accountId/users/:id/password', async req => {
@@ -61,7 +83,11 @@ export default (apiServer, maxFileSize) => {
       throw new ValidationError("Validation error passwords didn't match ")
     }
     const user = await patchOne(UserModel, { id: req.params.id, accountId: req.params.accountId }, { password: hash }, { password: 0 })
-    return user
+    let postRes
+    if (hooks.updatePassword?.post) {
+      postRes = await hooks.updatePassword.post(req.params, req.body, user.result)
+    }
+    return postRes || user
   })
 
   apiServer.patch('/v1/accounts/:accountId/users/:id/role', async req => {
@@ -75,7 +101,11 @@ export default (apiServer, maxFileSize) => {
       }
     }
     const updatedUser = await patchOne(UserModel, { id: req.params.id, accountId: req.params.accountId }, { role: req.body.role }, { password: 0 })
-    return updatedUser
+    let postRes
+    if (hooks.updateRole?.post) {
+      postRes = await hooks.updateRole.post(req.params, req.body, updatedUser.result)
+    }
+    return postRes || updatedUser
   })
 
   apiServer.patch('/v1/accounts/:accountId/users/:id/email', async req => {
@@ -97,8 +127,12 @@ export default (apiServer, maxFileSize) => {
       }
     }
     const token = jwt.sign(payload, secrets[0], { expiresIn: '24h' })
-    const mail = await sendUserEmail(req.body.newEmail, `${process.env.APP_URL}verify-email?token=${token}`, verifyEmailTamplate)
-    return {
+    const mail = await sendUserEmail(req.body.newEmail, `${process.env.ACCOUNT_APP_URL}verify-email?token=${token}`, verifyEmailTamplate)
+    let postRes
+    if (hooks.updateEmail?.post) {
+      postRes = await hooks.updateEmail.post(req.params, req.body, mail)
+    }
+    return postRes || {
       status: 200,
       result: {
         success: true,
@@ -109,8 +143,12 @@ export default (apiServer, maxFileSize) => {
 
   apiServer.patch('/v1/accounts/:accountId/users/:id/email-confirm', async req => {
     const data = await allowAccessTo(req, secrets, [{ type: 'verfiy-email', user: { _id: req.params.id }, account: { _id: req.params.accountId } }])
-    await patchOne(UserModel, { id: req.params.id }, { email: data.newEmail })
-    return {
+    const response = await patchOne(UserModel, { id: req.params.id }, { email: data.newEmail })
+    let postRes
+    if (hooks.confirmEmail?.post) {
+      postRes = await hooks.confirmEmail.post(req.params, req.body, response.result)
+    }
+    return postRes || {
       status: 200,
       result: {
         success: true
@@ -128,7 +166,11 @@ export default (apiServer, maxFileSize) => {
       }
     }
     user = await deleteOne(UserModel, { id: req.params.id, accountId: req.params.accountId }, { password: 0 })
-    return user
+    let postRes
+    if (hooks.deleteUser?.post) {
+      postRes = await hooks.deleteUser.post(req.params, req.body, user.result)
+    }
+    return postRes || user
   })
 
   apiServer.post('/v1/accounts/permission/:permissionFor', async req => {
@@ -145,7 +187,11 @@ export default (apiServer, maxFileSize) => {
       role: tokenData.role
     }
     const token = jwt.sign(payload, secrets[0], { expiresIn: '5m' })
-    return {
+    let postRes
+    if (hooks.permissionFor?.post) {
+      postRes = await hooks.permissionFor.post(req.params, req.body, token)
+    }
+    return postRes || {
       status: 200,
       result: {
         permissionToken: token
@@ -172,7 +218,11 @@ export default (apiServer, maxFileSize) => {
     }
     const token = jwt.sign(payload, secrets[0], { expiresIn: '24h' })
 
-    return {
+    let postRes
+    if (hooks.accessToken?.post) {
+      postRes = await hooks.accessToken.post(req.params, req.body, token)
+    }
+    return postRes || {
       status: 200,
       result: {
         accessToken: token
@@ -194,7 +244,11 @@ export default (apiServer, maxFileSize) => {
       }
     }
     const token = jwt.sign(payload, secrets[0], { expiresIn: '24h' })
-    return {
+    let postRes
+    if (hooks.finalizeRegistration?.post) {
+      postRes = await hooks.finalizeRegistration.post(req.params, req.body, token)
+    }
+    return postRes || {
       status: 200,
       result: {
         loginToken: token
@@ -206,7 +260,11 @@ export default (apiServer, maxFileSize) => {
     allowAccessTo(req, secrets, [{ type: 'admin' }, { type: 'user' }])
     await readOne(AccountModel, { id: req.params.accountId }, req.query)
     const userList = await list(UserModel, { accountId: req.params.accountId }, { ...req.query, select: { password: 0 } })
-    return userList
+    let postRes
+    if (hooks.listUsers?.post) {
+      postRes = await hooks.listUsers.post(req.params, req.body, userList.result)
+    }
+    return postRes || userList
   })
 
   apiServer.post('/v1/accounts/:accountId/users', async req => {
@@ -220,13 +278,21 @@ export default (apiServer, maxFileSize) => {
     const hash = crypto.createHash('md5').update(req.body.password).digest('hex')
     const newUser = await createOne(UserModel, req.params, { name: req.body.name, email: req.body.email, password: hash, accountId: req.params.accountId })
 
-    return newUser
+    let postRes
+    if (hooks.createUser?.post) {
+      postRes = await hooks.createUser.post(req.params, req.body, newUser.result)
+    }
+    return postRes || newUser
   })
 
   apiServer.get('/v1/accounts/:accountId/users/:id', async req => {
     allowAccessTo(req, secrets, [{ type: 'admin' }, { type: 'user', user: { _id: req.params.id }, account: { _id: req.params.accountId } }])
     const user = await readOne(UserModel, { id: req.params.id, accountId: req.params.accountId }, { select: { password: 0 } })
-    return user
+    let postRes
+    if (hooks.readOneUser?.post) {
+      postRes = await hooks.readOneUser.post(req.params, req.body, user.result)
+    }
+    return postRes || user
   })
 
   apiServer.postBinary('/v1/accounts/:accountId/users/:id/profile-picture', { mimeTypes: ['image/jpeg', 'image/png', 'image/gif'], fieldName: 'profilePicture', maxFileSize }, async req => {
@@ -238,8 +304,12 @@ export default (apiServer, maxFileSize) => {
     }
 
     const result = await s3.upload(uploadParams).promise()
-    await patchOne(UserModel, { id: req.params.id, accountId: req.params.accountId }, { profilePicture: process.env.CDN_BASE_URL + result.Key })
-    return {
+    const response = await patchOne(UserModel, { id: req.params.id, accountId: req.params.accountId }, { profilePicture: process.env.CDN_BASE_URL + result.Key })
+    let postRes
+    if (hooks.addProfilePicture?.post) {
+      postRes = await hooks.addProfilePicture.post(req.params, req.body, response.result)
+    }
+    return postRes || {
       status: 200,
       result: {
         profilePicture: process.env.CDN_BASE_URL + result.Key
@@ -254,8 +324,12 @@ export default (apiServer, maxFileSize) => {
       Bucket: bucketName,
       Key: `${folderName}/users/${key}`
     }).promise()
-    await patchOne(UserModel, { id: req.params.id, accountId: req.params.accountId }, { profilePicture: null })
-    return {
+    const response = await patchOne(UserModel, { id: req.params.id, accountId: req.params.accountId }, { profilePicture: null })
+    let postRes
+    if (hooks.deleteProfilePicture?.post) {
+      postRes = await hooks.deleteProfilePicture.post(req.params, req.body, response.result)
+    }
+    return postRes || {
       status: 200,
       result: {
         success: true
@@ -277,9 +351,12 @@ export default (apiServer, maxFileSize) => {
       }
     }
     const token = jwt.sign(payload, secrets[0], { expiresIn: '24h' })
-    const mail = await sendUserEmail(getUser.result.email, `${process.env.APP_URL}finalize-registration?token=${token}`, finalizeRegistrationTemplate)
-
-    return {
+    const mail = await sendUserEmail(getUser.result.email, `${process.env.ACCOUNT_APP_URL}finalize-registration?token=${token}`, finalizeRegistrationTemplate)
+    let postRes
+    if (hooks.resendFinalizeRegistration?.post) {
+      postRes = await hooks.resendFinalizeRegistration.post(req.params, req.body, mail)
+    }
+    return postRes || {
       status: 200,
       result: {
         newAccount: getAccount.result,

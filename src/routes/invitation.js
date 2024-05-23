@@ -5,13 +5,17 @@ import { list, readOne, patchOne, createOne, deleteOne } from 'mongoose-crudl'
 import { MethodNotAllowedError, ValidationError } from 'standard-api-errors'
 import allowAccessTo from 'bearer-jwt-auth'
 
-import AccountModel from '../models/Account.js'
-import UserModel from '../models/User.js'
-
 const secrets = process.env.SECRETS.split(' ')
-const invitationTemplate = process.env.BLUEFOX_INVITATION_TEMPLATE
+const invitationTemplate = process.env.ACCOUNT_BLUEFOX_INVITATION_TEMPLATE
 
-export default (apiServer) => {
+export default ({
+  apiServer, UserModel, AccountModel, hooks =
+  {
+    invitationSend: { post: (params) => { } },
+    invitationResend: { post: (params) => { } },
+    invitationAccept: { post: (params) => { } }
+  }
+}) => {
   const sendInvitation = async (email, token) => {
     const url = invitationTemplate
     const response = await fetch(url, {
@@ -22,7 +26,7 @@ export default (apiServer) => {
       },
       body: JSON.stringify({
         email,
-        data: { href: `${process.env.APP_URL}invitation/accept?token=${token}` }
+        data: { href: `${process.env.ACCOUNT_APP_URL}invitation/accept?token=${token}` }
       })
     })
     const res = await response.json()
@@ -63,8 +67,11 @@ export default (apiServer) => {
       await deleteOne(UserModel, { id: newUser.result._id, accountId: checkAccount.result._id })
       throw e
     }
-
-    return {
+    let postRes
+    if (hooks.invitationSend?.post) {
+      postRes = await hooks.invitationSend.post(req.params, req.body, mail)
+    }
+    return postRes || {
       status: 201,
       result: {
         success: true,
@@ -99,7 +106,11 @@ export default (apiServer) => {
     }
     const token = jwt.sign(payload, secrets[0], { expiresIn: '24h' })
     const mail = await sendInvitation(getUser.result.items[0].email, token)
-    return {
+    let postRes
+    if (hooks.invitationResend?.post) {
+      postRes = await hooks.invitationResend.post(req.params, req.body, mail)
+    }
+    return postRes || {
       status: 200,
       result: {
         success: true,
@@ -132,7 +143,11 @@ export default (apiServer) => {
       }
     }
     const token = jwt.sign(payload, secrets[0], { expiresIn: '24h' })
-    return {
+    let postRes
+    if (hooks.invitationAccept?.post) {
+      postRes = await hooks.invitationAccept.post(req.params, req.body, token)
+    }
+    return postRes || {
       status: 200,
       result: {
         loginToken: token

@@ -4,7 +4,7 @@ import { createDeleteConnector } from 'standard-json-api-connectors'
 import { ValidationError } from 'standard-api-errors'
 
 const secrets = process.env.SECRETS.split(' ')
-const apiUrl = process.env.API_URL
+const apiUrl = process.env.ACCOUNT_API_URL
 
 export default () => {
   const generateAdditionalHeaders = (params) => {

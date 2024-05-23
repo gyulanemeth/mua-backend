@@ -1,12 +1,15 @@
-import mongoose from 'mongoose'
+import login from './routes/login.js'
+import invitation from './routes/invitation.js'
+import forgotPassword from './routes/forgotPassword.js'
+import account from './routes/accounts.js'
+import users from './routes/users.js'
+import config from './routes/config.js'
 
-import routes from './routes/index.js'
-import connectors from './connectors/index.js'
-
-const api = routes(connectors(), process.env.MAX_FILE_SIZE)
-
-await mongoose.connect(process.env.MONGO_URL).catch(e => console.error(e))
-
-api.listen(process.env.PORT, () => {
-  console.log(`MUA Accounts API is listening on ${process.env.PORT}`)
-})
+export {
+  users,
+  config,
+  login,
+  invitation,
+  forgotPassword,
+  account
+}
