@@ -40,7 +40,7 @@ export default ({
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        Authorization: 'Bearer ' + process.env.BLUEFOX_API_KEY
+        Authorization: 'Bearer ' + process.env.ACCOUNT_BLUEFOX_API_KEY
       },
       body: JSON.stringify({
         email,
@@ -142,7 +142,6 @@ export default ({
 
   apiServer.delete('/v1/accounts/:id', async req => {
     allowAccessTo(req, secrets, [{ type: 'delete' }])
-    // connectors.deleteAccount({ id: req.params.id })
     deleteMany(UserModel, { accountId: req.params.id })
     const deletedAccount = await deleteOne(AccountModel, { id: req.params.id })
     let postRes
