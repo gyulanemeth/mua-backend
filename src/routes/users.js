@@ -14,7 +14,6 @@ const bucketName = process.env.AWS_BUCKET_NAME
 const folderName = process.env.AWS_FOLDER_NAME
 const verifyEmailTamplate = process.env.ACCOUNT_BLUEFOX_VERIFY_EMAIL_TEMPLATE
 const finalizeRegistrationTemplate = process.env.ACCOUNT_BLUEFOX_FINALIZE_REGISTRATION_TEMPLATE
-const maxFileSize = process.env.MAX_FILE_SIZE
 
 const s3 = await aws()
 
@@ -295,7 +294,7 @@ export default ({
     return postRes || user
   })
 
-  apiServer.postBinary('/v1/accounts/:accountId/users/:id/profile-picture', { mimeTypes: ['image/jpeg', 'image/png', 'image/gif'], fieldName: 'profilePicture', maxFileSize }, async req => {
+  apiServer.postBinary('/v1/accounts/:accountId/users/:id/profile-picture', { mimeTypes: ['image/jpeg', 'image/png', 'image/gif'], fieldName: 'profilePicture', maxFileSize: process.env.MAX_FILE_SIZE }, async req => {
     allowAccessTo(req, secrets, [{ type: 'admin' }, { type: 'user', user: { _id: req.params.id }, account: { _id: req.params.accountId } }])
     const uploadParams = {
       Bucket: bucketName,

@@ -11,7 +11,6 @@ import aws from '../helpers/awsBucket.js'
 
 const bucketName = process.env.AWS_BUCKET_NAME
 const folderName = process.env.AWS_FOLDER_NAME
-const maxFileSize = process.env.MAX_FILE_SIZE
 
 const s3 = await aws()
 
@@ -197,7 +196,7 @@ export default ({
     }
   })
 
-  apiServer.postBinary('/v1/accounts/:id/logo', { mimeTypes: ['image/jpeg', 'image/png', 'image/gif'], fieldName: 'logo', maxFileSize }, async req => {
+  apiServer.postBinary('/v1/accounts/:id/logo', { mimeTypes: ['image/jpeg', 'image/png', 'image/gif'], fieldName: 'logo', maxFileSize: process.env.MAX_FILE_SIZE }, async req => {
     allowAccessTo(req, secrets, [{ type: 'admin' }, { type: 'user', role: 'admin' }])
     const uploadParams = {
       Bucket: bucketName,

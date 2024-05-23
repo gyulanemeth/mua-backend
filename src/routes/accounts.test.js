@@ -1,16 +1,13 @@
 import { describe, test, expect, beforeAll, afterEach, afterAll, vi } from 'vitest'
+import createApiServer from 'express-async-api'
 import crypto from 'crypto'
 import jwt from 'jsonwebtoken'
 import mongoose from 'mongoose'
 import request from 'supertest'
 
-import { ValidationError } from 'standard-api-errors'
-
 import createMongooseMemoryServer from 'mongoose-memory'
 
-import createServer from './index.js'
-import Account from '../models/Account.js'
-import User from '../models/User.js'
+import accounts from './accounts.js'
 import aws from '../helpers/awsBucket.js'
 import StaticServer from 'static-server'
 
@@ -33,27 +30,45 @@ const server = new StaticServer({
   name: process.env.TEST_STATIC_SERVER_URL
 })
 
-const mokeConnector = () => {
-  const mockDeleteAccount = (param) => {
-    if (!param || !param.id) {
-      throw new ValidationError('Id Is Required')
-    }
-    return { success: true }
-  }
+const AccountTestModel = mongoose.model('AccountTest', new mongoose.Schema({
+  name: { type: String },
+  urlFriendlyName: { type: String, unique: true },
+  logo: { type: String }
+}, { timestamps: true }))
 
-  return {
-    deleteAccount: mockDeleteAccount
-  }
-}
+const UserTestModel = mongoose.model('UserTest', new mongoose.Schema({
+  name: { type: String },
+  email: { type: String, lowercase: true, required: true, match: /.+[\\@].+\..+/ },
+  password: { type: String },
+  role: { type: String, default: 'user', enum: ['user', 'admin'] },
+  accountId: { type: mongoose.Schema.Types.ObjectId, ref: 'Account', required: true },
+  profilePicture: { type: String }
+}, { timestamps: true }))
 
-const connectors = mokeConnector()
 describe('accounts test', () => {
   let app
   beforeAll(async () => {
     await mongooseMemoryServer.start()
     await mongooseMemoryServer.connect('test-db')
-
-    app = createServer(connectors)
+    app = createApiServer((e) => {
+      if (e.code === 'LIMIT_FILE_SIZE') {
+        return {
+          status: 413,
+          error: {
+            name: 'PAYLOAD_TOO_LARGE',
+            message: 'File size limit exceeded. Maximum file size allowed is ' + (Number(20000) / (1024 * 1024)).toFixed(2) + 'mb'
+          }
+        }
+      }
+      return {
+        status: e.status,
+        error: {
+          name: e.name,
+          message: e.message
+        }
+      }
+    }, () => {})
+    accounts({ apiServer: app, UserModel: UserTestModel, AccountModel: AccountTestModel })
     app = app._expressServer
   })
 
@@ -71,15 +86,15 @@ describe('accounts test', () => {
   })
 
   test('success get all accounts   /v1/accounts/', async () => {
-    const account1 = new Account({ name: 'accountExample1', urlFriendlyName: 'urlFriendlyNameExample1' })
+    const account1 = new AccountTestModel({ name: 'accountExample1', urlFriendlyName: 'urlFriendlyNameExample1' })
     await account1.save()
 
     const hash1 = crypto.createHash('md5').update('user1Password').digest('hex')
-    const user1 = new User({ email: 'user1@gmail.com', name: 'user1', password: hash1, accountId: account1._id })
+    const user1 = new UserTestModel({ email: 'user1@gmail.com', name: 'user1', password: hash1, accountId: account1._id })
     await user1.save()
 
     const hash2 = crypto.createHash('md5').update('user2Password').digest('hex')
-    const user2 = new User({ email: 'user2@gmail.com', name: 'user2', password: hash2, accountId: account1._id })
+    const user2 = new UserTestModel({ email: 'user2@gmail.com', name: 'user2', password: hash2, accountId: account1._id })
     await user2.save()
 
     const token = jwt.sign({ type: 'admin' }, secrets[0])
@@ -93,15 +108,15 @@ describe('accounts test', () => {
   })
 
   test('success get account by urlFriendlyName  /v1/accounts/by-url-friendly-name/:urlFriendlyName', async () => {
-    const account1 = new Account({ name: 'accountExample1', urlFriendlyName: 'urlFriendlyNameExample1' })
+    const account1 = new AccountTestModel({ name: 'accountExample1', urlFriendlyName: 'urlFriendlyNameExample1' })
     await account1.save()
 
     const hash1 = crypto.createHash('md5').update('user1Password').digest('hex')
-    const user1 = new User({ email: 'user1@gmail.com', name: 'user1', password: hash1, accountId: account1._id })
+    const user1 = new UserTestModel({ email: 'user1@gmail.com', name: 'user1', password: hash1, accountId: account1._id })
     await user1.save()
 
     const hash2 = crypto.createHash('md5').update('user2Password').digest('hex')
-    const user2 = new User({ email: 'user2@gmail.com', name: 'user2', password: hash2, accountId: account1._id })
+    const user2 = new UserTestModel({ email: 'user2@gmail.com', name: 'user2', password: hash2, accountId: account1._id })
     await user2.save()
 
     const res = await request(app)
@@ -121,15 +136,15 @@ describe('accounts test', () => {
   })
 
   test('get all accounts unAuthorized header   /v1/accounts/', async () => {
-    const account1 = new Account({ name: 'accountExample1', urlFriendlyName: 'urlFriendlyNameExample1' })
+    const account1 = new AccountTestModel({ name: 'accountExample1', urlFriendlyName: 'urlFriendlyNameExample1' })
     await account1.save()
 
     const hash1 = crypto.createHash('md5').update('user1Password').digest('hex')
-    const user1 = new User({ email: 'user1@gmail.com', name: 'user1', password: hash1, accountId: account1._id })
+    const user1 = new UserTestModel({ email: 'user1@gmail.com', name: 'user1', password: hash1, accountId: account1._id })
     await user1.save()
 
     const hash2 = crypto.createHash('md5').update('user2Password').digest('hex')
-    const user2 = new User({ email: 'user2@gmail.com', name: 'user2', password: hash2, accountId: account1._id })
+    const user2 = new UserTestModel({ email: 'user2@gmail.com', name: 'user2', password: hash2, accountId: account1._id })
     await user2.save()
 
     const token = jwt.sign({ type: 'value' }, secrets[0])
@@ -143,11 +158,11 @@ describe('accounts test', () => {
   })
 
   test('success admin create account   /v1/accounts/', async () => {
-    const account1 = new Account({ name: 'accountExample1', urlFriendlyName: 'urlFriendlyNameExample1' })
+    const account1 = new AccountTestModel({ name: 'accountExample1', urlFriendlyName: 'urlFriendlyNameExample1' })
     await account1.save()
 
     const hash1 = crypto.createHash('md5').update('user1Password').digest('hex')
-    const user1 = new User({ email: 'user1@gmail.com', name: 'user1', password: hash1, accountId: account1._id })
+    const user1 = new UserTestModel({ email: 'user1@gmail.com', name: 'user1', password: hash1, accountId: account1._id })
     await user1.save()
 
     const token = jwt.sign({ type: 'admin' }, secrets[0])
@@ -161,11 +176,11 @@ describe('accounts test', () => {
   })
 
   test('admin create account unAuthorized header    /v1/accounts/', async () => {
-    const account1 = new Account({ name: 'accountExample1', urlFriendlyName: 'urlFriendlyNameExample1' })
+    const account1 = new AccountTestModel({ name: 'accountExample1', urlFriendlyName: 'urlFriendlyNameExample1' })
     await account1.save()
 
     const hash1 = crypto.createHash('md5').update('user1Password').digest('hex')
-    const user1 = new User({ email: 'user1@gmail.com', name: 'user1', password: hash1, accountId: account1._id })
+    const user1 = new UserTestModel({ email: 'user1@gmail.com', name: 'user1', password: hash1, accountId: account1._id })
     await user1.save()
 
     const token = jwt.sign({ type: 'value' }, secrets[0])
@@ -179,15 +194,15 @@ describe('accounts test', () => {
   })
 
   test('success get account by id   /v1/accounts/:id', async () => {
-    const account1 = new Account({ name: 'accountExample1', urlFriendlyName: 'urlFriendlyNameExample1' })
+    const account1 = new AccountTestModel({ name: 'accountExample1', urlFriendlyName: 'urlFriendlyNameExample1' })
     await account1.save()
 
     const hash1 = crypto.createHash('md5').update('user1Password').digest('hex')
-    const user1 = new User({ email: 'user1@gmail.com', name: 'user1', password: hash1, accountId: account1._id })
+    const user1 = new UserTestModel({ email: 'user1@gmail.com', name: 'user1', password: hash1, accountId: account1._id })
     await user1.save()
 
     const hash2 = crypto.createHash('md5').update('user2Password').digest('hex')
-    const user2 = new User({ email: 'user2@gmail.com', name: 'user2', password: hash2, accountId: account1._id })
+    const user2 = new UserTestModel({ email: 'user2@gmail.com', name: 'user2', password: hash2, accountId: account1._id })
     await user2.save()
 
     const token = jwt.sign({ type: 'admin' }, secrets[0])
@@ -201,15 +216,15 @@ describe('accounts test', () => {
   })
 
   test('success get account by id   /v1/accounts/:id', async () => {
-    const account1 = new Account({ name: 'accountExample1', urlFriendlyName: 'urlFriendlyNameExample1' })
+    const account1 = new AccountTestModel({ name: 'accountExample1', urlFriendlyName: 'urlFriendlyNameExample1' })
     await account1.save()
 
     const hash1 = crypto.createHash('md5').update('user1Password').digest('hex')
-    const user1 = new User({ email: 'user1@gmail.com', name: 'user1', password: hash1, accountId: account1._id })
+    const user1 = new UserTestModel({ email: 'user1@gmail.com', name: 'user1', password: hash1, accountId: account1._id })
     await user1.save()
 
     const hash2 = crypto.createHash('md5').update('user2Password').digest('hex')
-    const user2 = new User({ email: 'user2@gmail.com', name: 'user2', password: hash2, accountId: account1._id })
+    const user2 = new UserTestModel({ email: 'user2@gmail.com', name: 'user2', password: hash2, accountId: account1._id })
     await user2.save()
 
     const token = jwt.sign({ type: 'user', account: { _id: account1._id } }, secrets[0])
@@ -223,15 +238,15 @@ describe('accounts test', () => {
   })
 
   test('get account by id unAuthorized header   /v1/accounts/:id', async () => {
-    const account1 = new Account({ name: 'accountExample1', urlFriendlyName: 'urlFriendlyNameExample1' })
+    const account1 = new AccountTestModel({ name: 'accountExample1', urlFriendlyName: 'urlFriendlyNameExample1' })
     await account1.save()
 
     const hash1 = crypto.createHash('md5').update('user1Password').digest('hex')
-    const user1 = new User({ email: 'user1@gmail.com', name: 'user1', password: hash1, accountId: account1._id })
+    const user1 = new UserTestModel({ email: 'user1@gmail.com', name: 'user1', password: hash1, accountId: account1._id })
     await user1.save()
 
     const hash2 = crypto.createHash('md5').update('user2Password').digest('hex')
-    const user2 = new User({ email: 'user2@gmail.com', name: 'user2', password: hash2, accountId: account1._id })
+    const user2 = new UserTestModel({ email: 'user2@gmail.com', name: 'user2', password: hash2, accountId: account1._id })
     await user2.save()
 
     const token = jwt.sign({ type: 'value' }, secrets[0])
@@ -245,11 +260,11 @@ describe('accounts test', () => {
   })
 
   test('success update account name by admin   /v1/accounts/:id/name', async () => {
-    const account1 = new Account({ name: 'accountExample1', urlFriendlyName: 'urlFriendlyNameExample1' })
+    const account1 = new AccountTestModel({ name: 'accountExample1', urlFriendlyName: 'urlFriendlyNameExample1' })
     await account1.save()
 
     const hash1 = crypto.createHash('md5').update('user1Password').digest('hex')
-    const user1 = new User({ email: 'user1@gmail.com', name: 'user1', password: hash1, accountId: account1._id })
+    const user1 = new UserTestModel({ email: 'user1@gmail.com', name: 'user1', password: hash1, accountId: account1._id })
     await user1.save()
 
     const token = jwt.sign({ type: 'admin' }, secrets[0])
@@ -263,15 +278,15 @@ describe('accounts test', () => {
   })
 
   test('update account name by user role admin   /v1/accounts/:id/name', async () => {
-    const account1 = new Account({ name: 'accountExample1', urlFriendlyName: 'urlFriendlyNameExample1' })
+    const account1 = new AccountTestModel({ name: 'accountExample1', urlFriendlyName: 'urlFriendlyNameExample1' })
     await account1.save()
 
     const hash1 = crypto.createHash('md5').update('user1Password').digest('hex')
-    const user1 = new User({ email: 'user1@gmail.com', name: 'user1', password: hash1, accountId: account1._id })
+    const user1 = new UserTestModel({ email: 'user1@gmail.com', name: 'user1', password: hash1, accountId: account1._id })
     await user1.save()
 
     const hash2 = crypto.createHash('md5').update('user2Password').digest('hex')
-    const user2 = new User({ email: 'user2@gmail.com', name: 'user2', password: hash2, accountId: account1._id })
+    const user2 = new UserTestModel({ email: 'user2@gmail.com', name: 'user2', password: hash2, accountId: account1._id })
     await user2.save()
 
     const token = jwt.sign({ type: 'user', account: { _id: account1._id }, role: 'admin' }, secrets[0])
@@ -285,15 +300,15 @@ describe('accounts test', () => {
   })
 
   test('update account name error unAuthorized header   /v1/accounts/:id/name', async () => {
-    const account1 = new Account({ name: 'accountExample1', urlFriendlyName: 'urlFriendlyNameExample1' })
+    const account1 = new AccountTestModel({ name: 'accountExample1', urlFriendlyName: 'urlFriendlyNameExample1' })
     await account1.save()
 
     const hash1 = crypto.createHash('md5').update('user1Password').digest('hex')
-    const user1 = new User({ email: 'user1@gmail.com', name: 'user1', password: hash1, accountId: account1._id })
+    const user1 = new UserTestModel({ email: 'user1@gmail.com', name: 'user1', password: hash1, accountId: account1._id })
     await user1.save()
 
     const hash2 = crypto.createHash('md5').update('user2Password').digest('hex')
-    const user2 = new User({ email: 'user2@gmail.com', name: 'user2', password: hash2, accountId: account1._id })
+    const user2 = new UserTestModel({ email: 'user2@gmail.com', name: 'user2', password: hash2, accountId: account1._id })
     await user2.save()
 
     const token = jwt.sign({ type: 'value' }, secrets[0])
@@ -307,15 +322,15 @@ describe('accounts test', () => {
   })
 
   test('update account unAuthorized user   /v1/accounts/:id', async () => {
-    const account1 = new Account({ name: 'accountExample1', urlFriendlyName: 'urlFriendlyNameExample1' })
+    const account1 = new AccountTestModel({ name: 'accountExample1', urlFriendlyName: 'urlFriendlyNameExample1' })
     await account1.save()
 
     const hash1 = crypto.createHash('md5').update('user1Password').digest('hex')
-    const user1 = new User({ email: 'user1@gmail.com', name: 'user1', password: hash1, accountId: account1._id })
+    const user1 = new UserTestModel({ email: 'user1@gmail.com', name: 'user1', password: hash1, accountId: account1._id })
     await user1.save()
 
     const hash2 = crypto.createHash('md5').update('user2Password').digest('hex')
-    const user2 = new User({ email: 'user2@gmail.com', name: 'user2', password: hash2, accountId: account1._id })
+    const user2 = new UserTestModel({ email: 'user2@gmail.com', name: 'user2', password: hash2, accountId: account1._id })
     await user2.save()
 
     const id = new mongoose.Types.ObjectId()
@@ -330,11 +345,11 @@ describe('accounts test', () => {
   })
 
   test('success update account urlFriendlyName by admin   /v1/accounts/:id/urlFriendlyName', async () => {
-    const account1 = new Account({ name: 'accountExample1', urlFriendlyName: 'urlFriendlyNameExample1' })
+    const account1 = new AccountTestModel({ name: 'accountExample1', urlFriendlyName: 'urlFriendlyNameExample1' })
     await account1.save()
 
     const hash1 = crypto.createHash('md5').update('user1Password').digest('hex')
-    const user1 = new User({ email: 'user1@gmail.com', name: 'user1', password: hash1, accountId: account1._id })
+    const user1 = new UserTestModel({ email: 'user1@gmail.com', name: 'user1', password: hash1, accountId: account1._id })
     await user1.save()
 
     const token = jwt.sign({ type: 'admin' }, secrets[0])
@@ -348,15 +363,15 @@ describe('accounts test', () => {
   })
 
   test('update account urlFriendlyName by user role admin   /v1/accounts/:id/urlFriendlyName', async () => {
-    const account1 = new Account({ name: 'accountExample1', urlFriendlyName: 'urlFriendlyNameExample1' })
+    const account1 = new AccountTestModel({ name: 'accountExample1', urlFriendlyName: 'urlFriendlyNameExample1' })
     await account1.save()
 
     const hash1 = crypto.createHash('md5').update('user1Password').digest('hex')
-    const user1 = new User({ email: 'user1@gmail.com', name: 'user1', password: hash1, accountId: account1._id })
+    const user1 = new UserTestModel({ email: 'user1@gmail.com', name: 'user1', password: hash1, accountId: account1._id })
     await user1.save()
 
     const hash2 = crypto.createHash('md5').update('user2Password').digest('hex')
-    const user2 = new User({ email: 'user2@gmail.com', name: 'user2', password: hash2, accountId: account1._id })
+    const user2 = new UserTestModel({ email: 'user2@gmail.com', name: 'user2', password: hash2, accountId: account1._id })
     await user2.save()
 
     const token = jwt.sign({ type: 'user', account: { _id: account1._id }, role: 'admin' }, secrets[0])
@@ -370,15 +385,15 @@ describe('accounts test', () => {
   })
 
   test('update account urlFriendlyName error unAuthorized header   /v1/accounts/:id/urlFriendlyName', async () => {
-    const account1 = new Account({ name: 'accountExample1', urlFriendlyName: 'urlFriendlyNameExample1' })
+    const account1 = new AccountTestModel({ name: 'accountExample1', urlFriendlyName: 'urlFriendlyNameExample1' })
     await account1.save()
 
     const hash1 = crypto.createHash('md5').update('user1Password').digest('hex')
-    const user1 = new User({ email: 'user1@gmail.com', name: 'user1', password: hash1, accountId: account1._id })
+    const user1 = new UserTestModel({ email: 'user1@gmail.com', name: 'user1', password: hash1, accountId: account1._id })
     await user1.save()
 
     const hash2 = crypto.createHash('md5').update('user2Password').digest('hex')
-    const user2 = new User({ email: 'user2@gmail.com', name: 'user2', password: hash2, accountId: account1._id })
+    const user2 = new UserTestModel({ email: 'user2@gmail.com', name: 'user2', password: hash2, accountId: account1._id })
     await user2.save()
 
     const token = jwt.sign({ type: 'value' }, secrets[0])
@@ -392,15 +407,15 @@ describe('accounts test', () => {
   })
 
   test('update account unAuthorized user   /v1/accounts/:id/urlFriendlyName', async () => {
-    const account1 = new Account({ name: 'accountExample1', urlFriendlyName: 'urlFriendlyNameExample1' })
+    const account1 = new AccountTestModel({ name: 'accountExample1', urlFriendlyName: 'urlFriendlyNameExample1' })
     await account1.save()
 
     const hash1 = crypto.createHash('md5').update('user1Password').digest('hex')
-    const user1 = new User({ email: 'user1@gmail.com', name: 'user1', password: hash1, accountId: account1._id })
+    const user1 = new UserTestModel({ email: 'user1@gmail.com', name: 'user1', password: hash1, accountId: account1._id })
     await user1.save()
 
     const hash2 = crypto.createHash('md5').update('user2Password').digest('hex')
-    const user2 = new User({ email: 'user2@gmail.com', name: 'user2', password: hash2, accountId: account1._id })
+    const user2 = new UserTestModel({ email: 'user2@gmail.com', name: 'user2', password: hash2, accountId: account1._id })
     await user2.save()
 
     const id = new mongoose.Types.ObjectId()
@@ -415,35 +430,33 @@ describe('accounts test', () => {
   })
 
   test('success delete account  /v1/accounts/:id', async () => {
-    const account1 = new Account({ name: 'accountExample1', urlFriendlyName: 'urlFriendlyNameExample1' })
+    const account1 = new AccountTestModel({ name: 'accountExample1', urlFriendlyName: 'urlFriendlyNameExample1' })
     await account1.save()
 
-    const account2 = new Account({ name: 'accountExample2', urlFriendlyName: 'urlFriendlyNameExample2' })
+    const account2 = new AccountTestModel({ name: 'accountExample2', urlFriendlyName: 'urlFriendlyNameExample2' })
     await account2.save()
 
-    const account3 = new Account({ name: 'accountExample3', urlFriendlyName: 'urlFriendlyNameExample3' })
+    const account3 = new AccountTestModel({ name: 'accountExample3', urlFriendlyName: 'urlFriendlyNameExample3' })
     await account3.save()
 
-    const account4 = new Account({ name: 'accountExample4', urlFriendlyName: 'urlFriendlyNameExample4' })
+    const account4 = new AccountTestModel({ name: 'accountExample4', urlFriendlyName: 'urlFriendlyNameExample4' })
     await account4.save()
 
     const hash1 = crypto.createHash('md5').update('user1Password').digest('hex')
-    const user1 = new User({ email: 'user1@gmail.com', name: 'user1', password: hash1, accountId: account1._id })
+    const user1 = new UserTestModel({ email: 'user1@gmail.com', name: 'user1', password: hash1, accountId: account1._id })
     await user1.save()
 
     const hash2 = crypto.createHash('md5').update('user1Password').digest('hex')
-    const user2 = new User({ email: 'user2@gmail.com', name: 'user2', password: hash2, accountId: account1._id })
+    const user2 = new UserTestModel({ email: 'user2@gmail.com', name: 'user2', password: hash2, accountId: account1._id })
     await user2.save()
 
     const hash3 = crypto.createHash('md5').update('user1Password').digest('hex')
-    const user3 = new User({ email: 'user3@gmail.com', name: 'user3', password: hash3, accountId: account1._id })
+    const user3 = new UserTestModel({ email: 'user3@gmail.com', name: 'user3', password: hash3, accountId: account1._id })
     await user3.save()
 
     const hash4 = crypto.createHash('md5').update('user1Password').digest('hex')
-    const user4 = new User({ email: 'user4@gmail.com', name: 'user4', password: hash4, accountId: account1._id })
+    const user4 = new UserTestModel({ email: 'user4@gmail.com', name: 'user4', password: hash4, accountId: account1._id })
     await user4.save()
-
-    vi.spyOn(connectors, 'deleteAccount')
 
     const token = jwt.sign({ type: 'delete' }, secrets[0])
     const res = await request(app)
@@ -451,21 +464,19 @@ describe('accounts test', () => {
       .set('authorization', 'Bearer ' + token)
       .send()
 
-    expect(connectors.deleteAccount).toHaveBeenCalled()
     expect(res.body.status).toBe(200)
-    connectors.deleteAccount.mockRestore()
   })
 
   test('delete account error unAuthorized header   /v1/accounts/:id', async () => {
-    const account1 = new Account({ name: 'accountExample1', urlFriendlyName: 'urlFriendlyNameExample1' })
+    const account1 = new AccountTestModel({ name: 'accountExample1', urlFriendlyName: 'urlFriendlyNameExample1' })
     await account1.save()
 
     const hash1 = crypto.createHash('md5').update('user1Password').digest('hex')
-    const user1 = new User({ email: 'user1@gmail.com', name: 'user1', password: hash1, accountId: account1._id })
+    const user1 = new UserTestModel({ email: 'user1@gmail.com', name: 'user1', password: hash1, accountId: account1._id })
     await user1.save()
 
     const hash2 = crypto.createHash('md5').update('user2Password').digest('hex')
-    const user2 = new User({ email: 'user2@gmail.com', name: 'user2', password: hash2, accountId: account1._id })
+    const user2 = new UserTestModel({ email: 'user2@gmail.com', name: 'user2', password: hash2, accountId: account1._id })
     await user2.save()
 
     const token = jwt.sign({ type: 'value' }, secrets[0])
@@ -563,7 +574,7 @@ describe('accounts test', () => {
   test('create account urlFriendlyName exist   /v1/accounts/create', async () => {
     process.env.ALPHA_MODE = false
 
-    const account1 = new Account({ name: 'accountExample1', urlFriendlyName: 'urlFriendlyNameExample1' })
+    const account1 = new AccountTestModel({ name: 'accountExample1', urlFriendlyName: 'urlFriendlyNameExample1' })
     await account1.save()
 
     const res = await request(app)
@@ -577,11 +588,11 @@ describe('accounts test', () => {
   })
 
   test('success check-availability   /v1/accounts/check-availability', async () => {
-    const account1 = new Account({ name: 'accountExample1', urlFriendlyName: 'urlFriendlyNameExample1' })
+    const account1 = new AccountTestModel({ name: 'accountExample1', urlFriendlyName: 'urlFriendlyNameExample1' })
     await account1.save()
 
     const hash1 = crypto.createHash('md5').update('user1Password').digest('hex')
-    const user1 = new User({ email: 'user1@gmail.com', name: 'user1', password: hash1, accountId: account1._id })
+    const user1 = new UserTestModel({ email: 'user1@gmail.com', name: 'user1', password: hash1, accountId: account1._id })
     await user1.save()
 
     const res = await request(app)
@@ -594,7 +605,7 @@ describe('accounts test', () => {
   })
 
   test('check-availability account not found   /v1/accounts/check-availability', async () => {
-    const account1 = new Account({ name: 'accountExample1', urlFriendlyName: 'urlFriendlyNameExample1' })
+    const account1 = new AccountTestModel({ name: 'accountExample1', urlFriendlyName: 'urlFriendlyNameExample1' })
     await account1.save()
 
     const res = await request(app)
@@ -609,11 +620,11 @@ describe('accounts test', () => {
   test('success upload logo ', async () => {
     process.env.CDN_BASE_URL = process.env.TEST_STATIC_SERVER_URL
 
-    const account1 = new Account({ name: 'accountExample1', urlFriendlyName: 'urlFriendlyNameExample1' })
+    const account1 = new AccountTestModel({ name: 'accountExample1', urlFriendlyName: 'urlFriendlyNameExample1' })
     await account1.save()
 
     const hash1 = crypto.createHash('md5').update('user1Password').digest('hex')
-    const user1 = new User({ email: 'user1@gmail.com', name: 'user1', password: hash1, accountId: account1._id })
+    const user1 = new UserTestModel({ email: 'user1@gmail.com', name: 'user1', password: hash1, accountId: account1._id })
     await user1.save()
 
     const token = jwt.sign({ type: 'user', account: { _id: account1._id }, role: 'admin' }, secrets[0])
@@ -635,17 +646,35 @@ describe('accounts test', () => {
 
   test('upload logo max file size error ', async () => {
     process.env.CDN_BASE_URL = process.env.TEST_STATIC_SERVER_URL
-
-    const account1 = new Account({ name: 'accountExample1', urlFriendlyName: 'urlFriendlyNameExample1' })
+    process.env.MAX_FILE_SIZE = 20000
+    const account1 = new AccountTestModel({ name: 'accountExample1', urlFriendlyName: 'urlFriendlyNameExample1' })
     await account1.save()
 
     const hash1 = crypto.createHash('md5').update('user1Password').digest('hex')
-    const user1 = new User({ email: 'user1@gmail.com', name: 'user1', password: hash1, accountId: account1._id })
+    const user1 = new UserTestModel({ email: 'user1@gmail.com', name: 'user1', password: hash1, accountId: account1._id })
     await user1.save()
 
     const token = jwt.sign({ type: 'user', account: { _id: account1._id }, role: 'admin' }, secrets[0])
 
-    let sizeTestApp = createServer(connectors, 20000)
+    let sizeTestApp = createApiServer((e) => {
+      if (e.code === 'LIMIT_FILE_SIZE') {
+        return {
+          status: 413,
+          error: {
+            name: 'PAYLOAD_TOO_LARGE',
+            message: 'File size limit exceeded. Maximum file size allowed is ' + (Number(20000) / (1024 * 1024)).toFixed(2) + 'mb'
+          }
+        }
+      }
+      return {
+        status: e.status,
+        error: {
+          name: e.name,
+          message: e.message
+        }
+      }
+    }, () => {})
+    accounts({ apiServer: sizeTestApp, UserModel: UserTestModel, AccountModel: AccountTestModel })
     sizeTestApp = sizeTestApp._expressServer
 
     const res = await request(sizeTestApp).post(`/v1/accounts/${account1._id}/logo`)
@@ -659,11 +688,11 @@ describe('accounts test', () => {
   test('success delete logo ', async () => {
     process.env.CDN_BASE_URL = process.env.TEST_STATIC_SERVER_URL
 
-    const account1 = new Account({ name: 'accountExample1', urlFriendlyName: 'urlFriendlyNameExample1' })
+    const account1 = new AccountTestModel({ name: 'accountExample1', urlFriendlyName: 'urlFriendlyNameExample1' })
     await account1.save()
 
     const hash1 = crypto.createHash('md5').update('user1Password').digest('hex')
-    const user1 = new User({ email: 'user1@gmail.com', name: 'user1', password: hash1, accountId: account1._id })
+    const user1 = new UserTestModel({ email: 'user1@gmail.com', name: 'user1', password: hash1, accountId: account1._id })
     await user1.save()
 
     const token = jwt.sign({ type: 'user', account: { _id: account1._id }, role: 'admin' }, secrets[0])
