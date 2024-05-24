@@ -29,6 +29,7 @@ const UserTestModel = mongoose.model('UserTest', new mongoose.Schema({
 describe('invitation test', () => {
   let app
   let originalEnv
+  let secrets
   beforeAll(async () => {
     await mongooseMemoryServer.start()
     await mongooseMemoryServer.connect('test-db')
@@ -52,6 +53,7 @@ describe('invitation test', () => {
     process.env.ALPHA_MODE = 'false'
     process.env.MAX_FILE_SIZE = '5242880'
     originalEnv = process.env
+    secrets = process.env.SECRETS.split(' ')
     app = createApiServer((e) => {
       if (e.code === 'LIMIT_FILE_SIZE') {
         return {
@@ -103,7 +105,7 @@ describe('invitation test', () => {
     const user2 = new UserTestModel({ email: 'user2@gmail.com', name: 'user2', password: hash2, accountId: account1._id })
     await user2.save()
 
-    const token = jwt.sign({ type: 'admin' }, process.env.SECRETS.split(' ')[0])
+    const token = jwt.sign({ type: 'admin' }, secrets[0])
 
     const res = await request(app)
       .post('/v1/accounts/' + account1._id + '/invitation/send').set('authorization', 'Bearer ' + token).send({ email: 'user3@gmail.com' })
@@ -132,7 +134,7 @@ describe('invitation test', () => {
     const user2 = new UserTestModel({ email: 'user2@gmail.com', name: 'user2', password: hash2, accountId: account1._id })
     await user2.save()
 
-    const token = jwt.sign({ type: 'admin' }, process.env.SECRETS.split(' ')[0])
+    const token = jwt.sign({ type: 'admin' }, secrets[0])
 
     const res = await request(app)
       .post('/v1/accounts/' + account1._id + '/invitation/send').set('authorization', 'Bearer ' + token).send({ email: 'user3@gmail.com' })
@@ -159,7 +161,7 @@ describe('invitation test', () => {
     const user2 = new UserTestModel({ email: 'user2@gmail.com', name: 'user2', password: hash2, accountId: account1._id })
     await user2.save()
 
-    const token = jwt.sign({ type: 'admin' }, process.env.SECRETS.split(' ')[0])
+    const token = jwt.sign({ type: 'admin' }, secrets[0])
 
     const res = await request(app)
       .post('/v1/accounts/' + account1._id + '/invitation/resend').set('authorization', 'Bearer ' + token).send({ email: 'user1@gmail.com' })
@@ -190,7 +192,7 @@ describe('invitation test', () => {
     const user2 = new UserTestModel({ email: 'user2@gmail.com', name: 'user2', password: hash2, accountId: account1._id })
     await user2.save()
 
-    const token = jwt.sign({ type: 'user', role: 'admin' }, process.env.SECRETS.split(' ')[0])
+    const token = jwt.sign({ type: 'user', role: 'admin' }, secrets[0])
 
     const res = await request(app)
       .post('/v1/accounts/' + account1._id + '/invitation/send').set('authorization', 'Bearer ' + token).send({ email: 'user3@gmail.com' })
@@ -212,7 +214,7 @@ describe('invitation test', () => {
     const user2 = new UserTestModel({ email: 'user2@gmail.com', name: 'user2', password: hash2, accountId: account1._id })
     await user2.save()
 
-    const token = jwt.sign({ type: 'admin' }, process.env.SECRETS.split(' ')[0])
+    const token = jwt.sign({ type: 'admin' }, secrets[0])
 
     const res = await request(app)
       .post('/v1/accounts/' + account1._id + '/invitation/send').set('authorization', 'Bearer ' + token).send({ email: 'user1@gmail.com' })
@@ -232,7 +234,7 @@ describe('invitation test', () => {
     const user2 = new UserTestModel({ email: 'user2@gmail.com', name: 'user2', password: hash2, accountId: account1._id })
     await user2.save()
 
-    const token = jwt.sign({ type: 'admin' }, process.env.SECRETS.split(' ')[0])
+    const token = jwt.sign({ type: 'admin' }, secrets[0])
 
     const res = await request(app)
       .post('/v1/accounts/' + account1._id + '/invitation/resend').set('authorization', 'Bearer ' + token).send({ email: 'user1@gmail.com' })
@@ -252,7 +254,7 @@ describe('invitation test', () => {
     const user2 = new UserTestModel({ email: 'user2@gmail.com', name: 'user2', password: hash2, accountId: account1._id })
     await user2.save()
 
-    const token = jwt.sign({ type: 'admin' }, process.env.SECRETS.split(' ')[0])
+    const token = jwt.sign({ type: 'admin' }, secrets[0])
 
     const res = await request(app)
       .post('/v1/accounts/' + account1._id + '/invitation/resend').set('authorization', 'Bearer ' + token).send({ email: 'user3@gmail.com' })
@@ -272,7 +274,7 @@ describe('invitation test', () => {
     const user2 = new UserTestModel({ email: 'user2@gmail.com', name: 'user2', password: hash2, accountId: account1._id })
     await user2.save()
 
-    const token = jwt.sign({ type: 'admin' }, process.env.SECRETS.split(' ')[0])
+    const token = jwt.sign({ type: 'admin' }, secrets[0])
     const fetchSpy = vi.spyOn(global, 'fetch')
     fetchSpy.mockRejectedValue(new Error('test mock send email error'))
     app = createApiServer((e) => {
@@ -315,7 +317,7 @@ describe('invitation test', () => {
     const user2 = new UserTestModel({ email: 'user2@gmail.com', name: 'user2', password: hash2, accountId: account1._id })
     await user2.save()
 
-    const token = jwt.sign({ type: 'value' }, process.env.SECRETS.split(' ')[0])
+    const token = jwt.sign({ type: 'value' }, secrets[0])
 
     const res = await request(app)
       .post('/v1/accounts/' + account1._id + '/invitation/send').set('authorization', 'Bearer ' + token).send({ email: 'user3@gmail.com' })
@@ -335,7 +337,7 @@ describe('invitation test', () => {
     const user2 = new UserTestModel({ email: 'user2@gmail.com', accountId: account1._id })
     await user2.save()
 
-    const token = jwt.sign({ type: 'invitation', account: { _id: account1._id }, user: { _id: user2._id, email: user2.email } }, process.env.SECRETS.split(' ')[0])
+    const token = jwt.sign({ type: 'invitation', account: { _id: account1._id }, user: { _id: user2._id, email: user2.email } }, secrets[0])
 
     const res = await request(app)
       .post('/v1/accounts/' + account1._id + '/invitation/accept')
@@ -356,7 +358,7 @@ describe('invitation test', () => {
     const user2 = new UserTestModel({ email: 'user2@gmail.com', name: 'user2', password: hash2, accountId: account1._id })
     await user2.save()
 
-    const token = jwt.sign({ type: 'invitation', account: { _id: account1._id }, user: { _id: user2._id, email: user2.email } }, process.env.SECRETS.split(' ')[0])
+    const token = jwt.sign({ type: 'invitation', account: { _id: account1._id }, user: { _id: user2._id, email: user2.email } }, secrets[0])
 
     const res = await request(app)
       .post('/v1/accounts/' + account1._id + '/invitation/accept')
@@ -377,7 +379,7 @@ describe('invitation test', () => {
     const user2 = new UserTestModel({ email: 'user2@gmail.com', name: 'user2', accountId: account1._id })
     await user2.save()
 
-    const token = jwt.sign({ type: 'value', user: { _id: user2._id, email: user2.email } }, process.env.SECRETS.split(' ')[0])
+    const token = jwt.sign({ type: 'value', user: { _id: user2._id, email: user2.email } }, secrets[0])
 
     const res = await request(app)
       .post('/v1/accounts/' + account1._id + '/invitation/accept')
@@ -397,7 +399,7 @@ describe('invitation test', () => {
     const user2 = new UserTestModel({ email: 'user2@gmail.com', name: 'user2', accountId: account1._id })
     await user2.save()
 
-    const token = jwt.sign({ type: 'invitation', account: { _id: account1._id }, user: { _id: user1._id, email: user1.email } }, process.env.SECRETS.split(' ')[0])
+    const token = jwt.sign({ type: 'invitation', account: { _id: account1._id }, user: { _id: user1._id, email: user1.email } }, secrets[0])
     const id = new mongoose.Types.ObjectId()
 
     const res = await request(app)
@@ -417,7 +419,7 @@ describe('invitation test', () => {
 
     const user2 = new UserTestModel({ email: 'user2@gmail.com', name: 'user2', accountId: account1._id })
     await user2.save()
-    const token = jwt.sign({ type: 'invitation', account: { _id: account1._id }, user: { _id: user2._id, email: user2.email } }, process.env.SECRETS.split(' ')[0])
+    const token = jwt.sign({ type: 'invitation', account: { _id: account1._id }, user: { _id: user2._id, email: user2.email } }, secrets[0])
 
     const res = await request(app)
       .post('/v1/accounts/' + account1._id + '/invitation/accept')
@@ -437,7 +439,7 @@ describe('invitation test', () => {
     const user2 = new UserTestModel({ email: 'user2@gmail.com', name: 'user2', accountId: account1._id })
     await user2.save()
 
-    const token = jwt.sign({ type: 'invitation', account: { _id: account1._id }, user: { _id: user2._id, email: 'user4@gmail.com' } }, process.env.SECRETS.split(' ')[0])
+    const token = jwt.sign({ type: 'invitation', account: { _id: account1._id }, user: { _id: user2._id, email: 'user4@gmail.com' } }, secrets[0])
 
     const res = await request(app)
       .post('/v1/accounts/' + account1._id + '/invitation/accept')

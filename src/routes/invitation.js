@@ -8,6 +8,7 @@ import allowAccessTo from 'bearer-jwt-auth'
 export default ({
   apiServer, UserModel, AccountModel
 }) => {
+  const secrets = process.env.SECRETS.split(' ')
   const sendInvitation = async (email, token) => {
     const url = process.env.ACCOUNT_BLUEFOX_INVITATION_TEMPLATE
     const response = await fetch(url, {
@@ -32,7 +33,7 @@ export default ({
   }
 
   apiServer.post('/v1/accounts/:id/invitation/send', async req => {
-    allowAccessTo(req, process.env.SECRETS.split(' '), [{ type: 'admin' }, { type: 'user', role: 'admin' }])
+    allowAccessTo(req, secrets, [{ type: 'admin' }, { type: 'user', role: 'admin' }])
     const checkAccount = await readOne(AccountModel, { id: req.params.id }, req.query)
 
     const checkUser = await list(UserModel, { email: req.body.email, accountId: req.params.id }, req.query)
@@ -51,7 +52,7 @@ export default ({
         urlFriendlyName: checkAccount.result.urlFriendlyName
       }
     }
-    const token = jwt.sign(payload, process.env.SECRETS.split(' ')[0], { expiresIn: '24h' })
+    const token = jwt.sign(payload, secrets[0], { expiresIn: '24h' })
     let mail
     try {
       mail = await sendInvitation(newUser.result.email, token)
@@ -69,7 +70,7 @@ export default ({
   })
 
   apiServer.post('/v1/accounts/:id/invitation/resend', async req => {
-    allowAccessTo(req, process.env.SECRETS.split(' '), [{ type: 'admin' }, { type: 'user', role: 'admin' }])
+    allowAccessTo(req, secrets, [{ type: 'admin' }, { type: 'user', role: 'admin' }])
     const getAccount = await readOne(AccountModel, { id: req.params.id }, req.query)
 
     const getUser = await list(UserModel, { email: req.body.email, accountId: req.params.id }, req.query)
@@ -92,7 +93,7 @@ export default ({
         urlFriendlyName: getAccount.result.urlFriendlyName
       }
     }
-    const token = jwt.sign(payload, process.env.SECRETS.split(' ')[0], { expiresIn: '24h' })
+    const token = jwt.sign(payload, secrets[0], { expiresIn: '24h' })
     const mail = await sendInvitation(getUser.result.items[0].email, token)
     return {
       status: 200,
@@ -104,7 +105,7 @@ export default ({
   })
 
   apiServer.post('/v1/accounts/:id/invitation/accept', async req => {
-    const data = allowAccessTo(req, process.env.SECRETS.split(' '), [{ type: 'invitation', account: { _id: req.params.id } }])
+    const data = allowAccessTo(req, secrets, [{ type: 'invitation', account: { _id: req.params.id } }])
 
     const user = await readOne(UserModel, { id: data.user._id, email: data.user.email, accountId: req.params.id }, req.query)
 
@@ -126,7 +127,7 @@ export default ({
         _id: updatedUser.result.accountId
       }
     }
-    const token = jwt.sign(payload, process.env.SECRETS.split(' ')[0], { expiresIn: '24h' })
+    const token = jwt.sign(payload, secrets[0], { expiresIn: '24h' })
     return {
       status: 200,
       result: {

@@ -28,6 +28,7 @@ const UserTestModel = mongoose.model('UserTest', new mongoose.Schema({
 
 describe('login test ', () => {
   let app
+  let secrets
   beforeAll(async () => {
     await mongooseMemoryServer.start()
     await mongooseMemoryServer.connect('test-db')
@@ -50,6 +51,7 @@ describe('login test ', () => {
     process.env.AWS_SECRET_ACCESS_KEY = '<your_aws_secret_access_key>'
     process.env.ALPHA_MODE = 'false'
     process.env.MAX_FILE_SIZE = '5242880'
+    secrets = process.env.SECRETS.split(' ')
     app = createApiServer((e) => {
       if (e.code === 'LIMIT_FILE_SIZE') {
         return {
@@ -93,7 +95,7 @@ describe('login test ', () => {
     const user2 = new UserTestModel({ email: 'user2@gmail.com', name: 'user2', password: hash2, accountId: account1._id })
     await user2.save()
 
-    const token = jwt.sign({ type: 'login', user: { email: user1.email } }, process.env.SECRETS.split(' ')[0])
+    const token = jwt.sign({ type: 'login', user: { email: user1.email } }, secrets[0])
 
     const res = await request(app)
       .post('/v1/accounts/' + account1._id + '/login')
@@ -115,7 +117,7 @@ describe('login test ', () => {
     const user2 = new UserTestModel({ email: 'user2@gmail.com', name: 'user2', password: hash2, accountId: account1._id })
     await user2.save()
 
-    const token = jwt.sign({ type: 'login', user: { email: user1.email }, account: { urlFriendlyName: 'urlFriendlyName1' } }, process.env.SECRETS.split(' ')[0])
+    const token = jwt.sign({ type: 'login', user: { email: user1.email }, account: { urlFriendlyName: 'urlFriendlyName1' } }, secrets[0])
 
     const res = await request(app)
       .post('/v1/accounts/' + account1.urlFriendlyName + '/login/url-friendly-name')
@@ -137,7 +139,7 @@ describe('login test ', () => {
     const user2 = new UserTestModel({ email: 'user2@gmail.com', name: 'user2', password: hash2, accountId: account1._id })
     await user2.save()
 
-    const token = jwt.sign({ type: 'login', user: { email: user1.email }, account: { urlFriendlyName: 'urlFriendlyName1' } }, process.env.SECRETS.split(' ')[0])
+    const token = jwt.sign({ type: 'login', user: { email: user1.email }, account: { urlFriendlyName: 'urlFriendlyName1' } }, secrets[0])
 
     const res = await request(app)
       .post('/v1/accounts/' + account1.urlFriendlyName + '/login/url-friendly-name')
@@ -159,7 +161,7 @@ describe('login test ', () => {
     const user2 = new UserTestModel({ email: 'user2@gmail.com', name: 'user2', password: hash2, accountId: account1._id })
     await user2.save()
 
-    const token = jwt.sign({ type: 'login', user: { email: user1.email }, account: { urlFriendlyName: 'urlFriendlyName1' } }, process.env.SECRETS.split(' ')[0])
+    const token = jwt.sign({ type: 'login', user: { email: user1.email }, account: { urlFriendlyName: 'urlFriendlyName1' } }, secrets[0])
 
     const res = await request(app)
       .post('/v1/accounts/' + account1.urlFriendlyName + '/login/url-friendly-name')
@@ -177,7 +179,7 @@ describe('login test ', () => {
     const user1 = new UserTestModel({ email: 'user1@gmail.com', name: 'user1', password: hash1, accountId: account1._id })
     await user1.save()
 
-    const token = jwt.sign({ type: 'login', user: { email: user1.email } }, process.env.SECRETS.split(' ')[0])
+    const token = jwt.sign({ type: 'login', user: { email: user1.email } }, secrets[0])
 
     const res = await request(app)
       .post('/v1/accounts/' + account1._id + '/login')
@@ -199,7 +201,7 @@ describe('login test ', () => {
     const user2 = new UserTestModel({ email: 'user2@gmail.com', name: 'user2', password: hash2, accountId: account1._id })
     await user2.save()
 
-    const token = jwt.sign({ type: 'user', user: { email: user1.email } }, process.env.SECRETS.split(' ')[0])
+    const token = jwt.sign({ type: 'user', user: { email: user1.email } }, secrets[0])
 
     const res = await request(app)
       .post('/v1/accounts/' + account1._id + '/login')
@@ -242,7 +244,7 @@ describe('login test ', () => {
     const user2 = new UserTestModel({ email: 'user2@gmail.com', name: 'user2', password: hash2, accountId: account1._id })
     await user2.save()
 
-    const token = jwt.sign({ type: 'login;', user: { email: user1.email } }, process.env.SECRETS.split(' ')[0])
+    const token = jwt.sign({ type: 'login;', user: { email: user1.email } }, secrets[0])
 
     const res = await request(app)
       .post('/v1/accounts/' + account2._id + '/login')

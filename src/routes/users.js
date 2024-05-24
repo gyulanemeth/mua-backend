@@ -12,6 +12,7 @@ import aws from '../helpers/awsBucket.js'
 export default async ({
   apiServer, UserModel, AccountModel
 }) => {
+  const secrets = process.env.SECRETS.split(' ')
   const s3 = await aws()
   const sendUserEmail = async (email, href, templateUrl) => {
     const url = templateUrl
@@ -37,13 +38,13 @@ export default async ({
   }
 
   apiServer.patch('/v1/accounts/:accountId/users/:id/name', async req => {
-    allowAccessTo(req, process.env.SECRETS.split(' '), [{ type: 'admin' }, { type: 'user', role: 'admin' }, { type: 'user', user: { _id: req.params.id }, account: { _id: req.params.accountId } }])
+    allowAccessTo(req, secrets, [{ type: 'admin' }, { type: 'user', role: 'admin' }, { type: 'user', user: { _id: req.params.id }, account: { _id: req.params.accountId } }])
     const user = await patchOne(UserModel, { id: req.params.id, accountId: req.params.accountId }, { name: req.body.name }, { password: 0 })
     return user
   })
 
   apiServer.patch('/v1/accounts/:accountId/users/:id/password', async req => {
-    allowAccessTo(req, process.env.SECRETS.split(' '), [{ type: 'admin' }, { type: 'user', role: 'admin' }, { type: 'user', user: { _id: req.params.id }, account: { _id: req.params.accountId } }])
+    allowAccessTo(req, secrets, [{ type: 'admin' }, { type: 'user', role: 'admin' }, { type: 'user', user: { _id: req.params.id }, account: { _id: req.params.accountId } }])
     if (req.body.newPassword !== req.body.newPasswordAgain) {
       throw new ValidationError("Validation error passwords didn't match ")
     }
@@ -58,7 +59,7 @@ export default async ({
   })
 
   apiServer.patch('/v1/accounts/:accountId/users/:id/role', async req => {
-    allowAccessTo(req, process.env.SECRETS.split(' '), [{ type: 'admin' }, { type: 'user', role: 'admin' }])
+    allowAccessTo(req, secrets, [{ type: 'admin' }, { type: 'user', role: 'admin' }])
 
     const user = await readOne(UserModel, { id: req.params.id, accountId: req.params.accountId }, { select: { password: 0 } })
     if (user.result.role === 'admin') {
@@ -72,7 +73,7 @@ export default async ({
   })
 
   apiServer.patch('/v1/accounts/:accountId/users/:id/email', async req => {
-    allowAccessTo(req, process.env.SECRETS.split(' '), [{ type: 'admin' }, { type: 'user', user: { _id: req.params.id }, account: { _id: req.params.accountId } }])
+    allowAccessTo(req, secrets, [{ type: 'admin' }, { type: 'user', user: { _id: req.params.id }, account: { _id: req.params.accountId } }])
     if (req.body.newEmail !== req.body.newEmailAgain) {
       throw new ValidationError('Validation error email didn\'t match.')
     }
@@ -89,7 +90,7 @@ export default async ({
         _id: req.params.accountId
       }
     }
-    const token = jwt.sign(payload, process.env.SECRETS.split(' ')[0], { expiresIn: '24h' })
+    const token = jwt.sign(payload, secrets[0], { expiresIn: '24h' })
     const mail = await sendUserEmail(req.body.newEmail, `${process.env.ACCOUNT_APP_URL}verify-email?token=${token}`, process.env.ACCOUNT_BLUEFOX_VERIFY_EMAIL_TEMPLATE)
     return {
       status: 200,
@@ -101,7 +102,7 @@ export default async ({
   })
 
   apiServer.patch('/v1/accounts/:accountId/users/:id/email-confirm', async req => {
-    const data = await allowAccessTo(req, process.env.SECRETS.split(' '), [{ type: 'verfiy-email', user: { _id: req.params.id }, account: { _id: req.params.accountId } }])
+    const data = await allowAccessTo(req, secrets, [{ type: 'verfiy-email', user: { _id: req.params.id }, account: { _id: req.params.accountId } }])
     await patchOne(UserModel, { id: req.params.id }, { email: data.newEmail })
     return {
       status: 200,
@@ -112,7 +113,7 @@ export default async ({
   })
 
   apiServer.delete('/v1/accounts/:accountId/users/:id', async req => {
-    allowAccessTo(req, process.env.SECRETS.split(' '), [{ type: 'delete' }])
+    allowAccessTo(req, secrets, [{ type: 'delete' }])
     let user = await readOne(UserModel, { id: req.params.id, accountId: req.params.accountId })
     if (user.result.role === 'admin') {
       const admin = await list(UserModel, { role: 'admin' }, { select: { password: 0 } })
@@ -125,7 +126,7 @@ export default async ({
   })
 
   apiServer.post('/v1/accounts/permission/:permissionFor', async req => {
-    const tokenData = allowAccessTo(req, process.env.SECRETS.split(' '), [{ type: 'user' }])
+    const tokenData = allowAccessTo(req, secrets, [{ type: 'user' }])
     const hash = crypto.createHash('md5').update(req.body.password).digest('hex')
     const findUser = await list(UserModel, { email: tokenData.user.email, password: hash })
     if (findUser.result.count === 0) {
@@ -137,7 +138,7 @@ export default async ({
       account: tokenData.account,
       role: tokenData.role
     }
-    const token = jwt.sign(payload, process.env.SECRETS.split(' ')[0], { expiresIn: '5m' })
+    const token = jwt.sign(payload, secrets[0], { expiresIn: '5m' })
     return {
       status: 200,
       result: {
@@ -147,7 +148,7 @@ export default async ({
   })
 
   apiServer.get('/v1/accounts/:accountId/users/:id/access-token', async req => {
-    allowAccessTo(req, process.env.SECRETS.split(' '), [{ type: 'admin' }, { type: 'login', user: { _id: req.params.id }, account: { _id: req.params.accountId } }, { type: 'user', user: { _id: req.params.id }, account: { _id: req.params.accountId } }])
+    allowAccessTo(req, secrets, [{ type: 'admin' }, { type: 'login', user: { _id: req.params.id }, account: { _id: req.params.accountId } }, { type: 'user', user: { _id: req.params.id }, account: { _id: req.params.accountId } }])
     const findUser = await readOne(UserModel, { _id: req.params.id, accountId: req.params.accountId }, { select: { password: 0 } })
     const getAccount = await readOne(AccountModel, { _id: req.params.accountId }, req.query)
 
@@ -163,7 +164,7 @@ export default async ({
       },
       role: findUser.result.role
     }
-    const token = jwt.sign(payload, process.env.SECRETS.split(' ')[0], { expiresIn: '24h' })
+    const token = jwt.sign(payload, secrets[0], { expiresIn: '24h' })
 
     return {
       status: 200,
@@ -174,7 +175,7 @@ export default async ({
   })
 
   apiServer.post('/v1/accounts/:accountId/users/:id/finalize-registration', async req => {
-    const data = allowAccessTo(req, process.env.SECRETS.split(' '), [{ type: 'registration', user: { _id: req.params.id }, account: { _id: req.params.accountId } }])
+    const data = allowAccessTo(req, secrets, [{ type: 'registration', user: { _id: req.params.id }, account: { _id: req.params.accountId } }])
     const user = await patchOne(UserModel, { id: data.user._id, accountId: req.params.accountId }, { role: 'admin' })
     const payload = {
       type: 'login',
@@ -186,7 +187,7 @@ export default async ({
         _id: user.result.accountId
       }
     }
-    const token = jwt.sign(payload, process.env.SECRETS.split(' ')[0], { expiresIn: '24h' })
+    const token = jwt.sign(payload, secrets[0], { expiresIn: '24h' })
     return {
       status: 200,
       result: {
@@ -196,14 +197,14 @@ export default async ({
   })
 
   apiServer.get('/v1/accounts/:accountId/users', async req => {
-    allowAccessTo(req, process.env.SECRETS.split(' '), [{ type: 'admin' }, { type: 'user' }])
+    allowAccessTo(req, secrets, [{ type: 'admin' }, { type: 'user' }])
     await readOne(AccountModel, { id: req.params.accountId }, req.query)
     const userList = await list(UserModel, { accountId: req.params.accountId }, { ...req.query, select: { password: 0 } })
     return userList
   })
 
   apiServer.post('/v1/accounts/:accountId/users', async req => {
-    allowAccessTo(req, process.env.SECRETS.split(' '), [{ type: 'admin' }, { type: 'user' }])
+    allowAccessTo(req, secrets, [{ type: 'admin' }, { type: 'user' }])
     await readOne(AccountModel, { id: req.params.accountId }, req.query)
 
     const checkUser = await list(UserModel, { email: req.body.email, accountId: req.params.accountId }, { select: { password: 0 } })
@@ -217,13 +218,13 @@ export default async ({
   })
 
   apiServer.get('/v1/accounts/:accountId/users/:id', async req => {
-    allowAccessTo(req, process.env.SECRETS.split(' '), [{ type: 'admin' }, { type: 'user', user: { _id: req.params.id }, account: { _id: req.params.accountId } }])
+    allowAccessTo(req, secrets, [{ type: 'admin' }, { type: 'user', user: { _id: req.params.id }, account: { _id: req.params.accountId } }])
     const user = await readOne(UserModel, { id: req.params.id, accountId: req.params.accountId }, { select: { password: 0 } })
     return user
   })
 
   apiServer.postBinary('/v1/accounts/:accountId/users/:id/profile-picture', { mimeTypes: ['image/jpeg', 'image/png', 'image/gif'], fieldName: 'profilePicture', maxFileSize: process.env.MAX_FILE_SIZE }, async req => {
-    allowAccessTo(req, process.env.SECRETS.split(' '), [{ type: 'admin' }, { type: 'user', user: { _id: req.params.id }, account: { _id: req.params.accountId } }])
+    allowAccessTo(req, secrets, [{ type: 'admin' }, { type: 'user', user: { _id: req.params.id }, account: { _id: req.params.accountId } }])
     const uploadParams = {
       Bucket: process.env.AWS_BUCKET_NAME,
       Body: req.file.buffer,
@@ -240,7 +241,7 @@ export default async ({
     }
   })
   apiServer.delete('/v1/accounts/:accountId/users/:id/profile-picture', async req => {
-    allowAccessTo(req, process.env.SECRETS.split(' '), [{ type: 'admin' }, { type: 'user', user: { _id: req.params.id }, account: { _id: req.params.accountId } }])
+    allowAccessTo(req, secrets, [{ type: 'admin' }, { type: 'user', user: { _id: req.params.id }, account: { _id: req.params.accountId } }])
     const userData = await readOne(UserModel, { id: req.params.id, accountId: req.params.accountId }, { select: { password: 0 } })
     const key = userData.result.profilePicture.substring(userData.result.profilePicture.lastIndexOf('/') + 1)
     await s3.deleteObject({
@@ -269,7 +270,7 @@ export default async ({
         _id: getAccount.result._id
       }
     }
-    const token = jwt.sign(payload, process.env.SECRETS.split(' ')[0], { expiresIn: '24h' })
+    const token = jwt.sign(payload, secrets[0], { expiresIn: '24h' })
     const mail = await sendUserEmail(getUser.result.email, `${process.env.ACCOUNT_APP_URL}finalize-registration?token=${token}`, process.env.ACCOUNT_BLUEFOX_FINALIZE_REGISTRATION_TEMPLATE)
     return {
       status: 200,

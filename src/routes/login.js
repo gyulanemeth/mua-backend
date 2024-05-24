@@ -8,6 +8,7 @@ import { AuthenticationError } from 'standard-api-errors'
 export default ({
   apiServer, UserModel, AccountModel
 }) => {
+  const secrets = process.env.SECRETS.split(' ')
   const sendLogin = async (email, token) => {
     const url = process.env.ACCOUNT_BLUEFOX_LOGIN_SELECT_TEMPLATE
     const response = await fetch(url, {
@@ -32,7 +33,7 @@ export default ({
   }
 
   apiServer.post('/v1/accounts/:id/login', async req => {
-    const data = allowAccessTo(req, process.env.SECRETS.split(' '), [{ type: 'login' }])
+    const data = allowAccessTo(req, secrets, [{ type: 'login' }])
     req.body.password = crypto.createHash('md5').update(req.body.password).digest('hex')
     const findUser = await list(UserModel, { email: data.user.email, accountId: req.params.id, password: req.body.password }, req.query)
     if (findUser.result.count === 0) {
@@ -50,7 +51,7 @@ export default ({
         _id: getAccount.result._id
       }
     }
-    const token = jwt.sign(payload, process.env.SECRETS.split(' ')[0], { expiresIn: '24h' })
+    const token = jwt.sign(payload, secrets[0], { expiresIn: '24h' })
     return {
       status: 200,
       result: {
@@ -82,7 +83,7 @@ export default ({
         _id: getAccount.result.items[0]._id
       }
     }
-    const token = jwt.sign(payload, process.env.SECRETS.split(' ')[0], { expiresIn: '24h' })
+    const token = jwt.sign(payload, secrets[0], { expiresIn: '24h' })
     return {
       status: 200,
       result: {
@@ -108,7 +109,7 @@ export default ({
       accounts:
        getAccounts.result.items
     }
-    const token = jwt.sign(payload, process.env.SECRETS.split(' ')[0], { expiresIn: '24h' })
+    const token = jwt.sign(payload, secrets[0], { expiresIn: '24h' })
     const info = await sendLogin(req.body.email, token)
     return {
       status: 201,

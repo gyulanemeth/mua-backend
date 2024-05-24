@@ -28,7 +28,7 @@ const UserTestModel = mongoose.model('UserTest', new mongoose.Schema({
 
 describe('forgot-password test', () => {
   let app
-
+  let secrets
   beforeAll(async () => {
     await mongooseMemoryServer.start()
     await mongooseMemoryServer.connect('test-db')
@@ -51,6 +51,7 @@ describe('forgot-password test', () => {
     process.env.AWS_SECRET_ACCESS_KEY = '<your_aws_secret_access_key>'
     process.env.ALPHA_MODE = 'false'
     process.env.MAX_FILE_SIZE = '5242880'
+    secrets = process.env.SECRETS.split(' ')
     app = createApiServer((e) => {
       if (e.code === 'LIMIT_FILE_SIZE') {
         return {
@@ -101,7 +102,7 @@ describe('forgot-password test', () => {
     const user2 = new UserTestModel({ email: 'user2@gmail.com', name: 'user2', password: hash2, accountId: account1._id })
     await user2.save()
 
-    const token = jwt.sign({ type: 'admin' }, process.env.SECRETS.split(' ')[0])
+    const token = jwt.sign({ type: 'admin' }, secrets[0])
 
     const res = await request(app)
       .post('/v1/accounts/' + account1._id + '/forgot-password/send')
@@ -131,7 +132,7 @@ describe('forgot-password test', () => {
     const user2 = new UserTestModel({ email: 'user2@gmail.com', name: 'user2', password: hash2, accountId: account1._id })
     await user2.save()
 
-    const token = jwt.sign({ type: 'admin' }, process.env.SECRETS.split(' ')[0])
+    const token = jwt.sign({ type: 'admin' }, secrets[0])
 
     const res = await request(app)
       .post('/v1/accounts/' + account1._id + '/forgot-password/send')
@@ -152,7 +153,7 @@ describe('forgot-password test', () => {
     const user2 = new UserTestModel({ email: 'user2@gmail.com', name: 'user2', password: hash2, accountId: account1._id })
     await user2.save()
 
-    const token = jwt.sign({ type: 'admin' }, process.env.SECRETS.split(' ')[0])
+    const token = jwt.sign({ type: 'admin' }, secrets[0])
 
     const res = await request(app)
       .post('/v1/accounts/' + account1._id + '/forgot-password/send')
@@ -194,7 +195,7 @@ describe('forgot-password test', () => {
     const user2 = new UserTestModel({ email: 'user2@gmail.com', name: 'user2', password: hash2, accountId: account1._id })
     await user2.save()
 
-    const token = jwt.sign({ type: 'forgot-password', user: { _id: user2._id, email: user2.email } }, process.env.SECRETS.split(' ')[0])
+    const token = jwt.sign({ type: 'forgot-password', user: { _id: user2._id, email: user2.email } }, secrets[0])
 
     const res = await request(app)
       .post('/v1/accounts/' + account1._id + '/forgot-password/reset')
@@ -215,7 +216,7 @@ describe('forgot-password test', () => {
     const user2 = new UserTestModel({ email: 'user2@gmail.com', name: 'user2', password: hash2, accountId: account1._id })
     await user2.save()
 
-    const token = jwt.sign({ type: 'forgot-password', user: { _id: user2._id, email: user2.email } }, process.env.SECRETS.split(' ')[0])
+    const token = jwt.sign({ type: 'forgot-password', user: { _id: user2._id, email: user2.email } }, secrets[0])
 
     const res = await request(app)
       .post('/v1/accounts/' + account1._id + '/forgot-password/reset')
@@ -236,7 +237,7 @@ describe('forgot-password test', () => {
     const user2 = new UserTestModel({ email: 'user2@gmail.com', name: 'user2', password: hash2, accountId: account1._id })
     await user2.save()
 
-    const token = jwt.sign({ type: 'value', user: { _id: user2._id, email: user2.email } }, process.env.SECRETS.split(' ')[0])
+    const token = jwt.sign({ type: 'value', user: { _id: user2._id, email: user2.email } }, secrets[0])
 
     const res = await request(app)
       .post('/v1/accounts/' + account1._id + '/forgot-password/reset')
@@ -257,7 +258,7 @@ describe('forgot-password test', () => {
     const user2 = new UserTestModel({ email: 'user2@gmail.com', name: 'user2', password: hash2, accountId: account1._id })
     await user2.save()
 
-    const token = jwt.sign({ type: 'forgot-password', user: { _id: user1._id, email: 'user4@gmail.com' } }, process.env.SECRETS.split(' ')[0])
+    const token = jwt.sign({ type: 'forgot-password', user: { _id: user1._id, email: 'user4@gmail.com' } }, secrets[0])
     const res = await request(app)
       .post('/v1/accounts/' + account1._id + '/forgot-password/reset')
       .set('authorization', 'Bearer ' + token)

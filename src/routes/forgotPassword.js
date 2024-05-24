@@ -7,6 +7,7 @@ import allowAccessTo from 'bearer-jwt-auth'
 import { ValidationError, AuthenticationError } from 'standard-api-errors'
 
 export default ({ apiServer, UserModel, AccountModel }) => {
+  const secrets = process.env.SECRETS.split(' ')
   const sendForgotPassword = async (email, token) => {
     const url = process.env.ACCOUNT_BLUEFOX_FORGOT_PASSWORD_TEMPLATE
     const response = await fetch(url, {
@@ -48,7 +49,7 @@ export default ({ apiServer, UserModel, AccountModel }) => {
       }
     }
 
-    const token = jwt.sign(payload, process.env.SECRETS.split(' ')[0], { expiresIn: '24h' })
+    const token = jwt.sign(payload, secrets[0], { expiresIn: '24h' })
     const mail = await sendForgotPassword(response.result.items[0].email, token)
     return {
       status: 200,
@@ -60,7 +61,7 @@ export default ({ apiServer, UserModel, AccountModel }) => {
   })
 
   apiServer.post('/v1/accounts/:id/forgot-password/reset', async req => {
-    const data = allowAccessTo(req, process.env.SECRETS.split(' '), [{ type: 'forgot-password' }])
+    const data = allowAccessTo(req, secrets, [{ type: 'forgot-password' }])
     const response = await list(UserModel, { email: data.user.email, accountId: req.params.id }, { select: { password: 0 } })
     if (response.result.count === 0) {
       throw new AuthenticationError('Email Authentication Error ')
@@ -80,7 +81,7 @@ export default ({ apiServer, UserModel, AccountModel }) => {
         _id: response.result.items[0].accountId
       }
     }
-    const token = jwt.sign(payload, process.env.SECRETS.split(' ')[0], { expiresIn: '24h' })
+    const token = jwt.sign(payload, secrets[0], { expiresIn: '24h' })
     return {
       status: 200,
       result: {

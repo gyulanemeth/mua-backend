@@ -15,6 +15,7 @@ export default async ({
     deleteAccount: { post: (params) => { } }
   }
 }) => {
+  const secrets = process.env.SECRETS.split(' ')
   const s3 = await aws()
   const sendRegistration = async (email, token) => {
     const url = process.env.ACCOUNT_BLUEFOX_FINALIZE_REGISTRATION_TEMPLATE
@@ -65,37 +66,37 @@ export default async ({
   })
 
   apiServer.get('/v1/accounts/', async req => {
-    allowAccessTo(req, process.env.SECRETS.split(' '), [{ type: 'admin' }])
+    allowAccessTo(req, secrets, [{ type: 'admin' }])
     const response = await list(AccountModel, req.params, req.query)
     return response
   })
 
   apiServer.post('/v1/accounts/', async req => {
-    allowAccessTo(req, process.env.SECRETS.split(' '), [{ type: 'admin' }])
+    allowAccessTo(req, secrets, [{ type: 'admin' }])
     const response = await createOne(AccountModel, req.params, req.body)
     return response
   })
 
   apiServer.get('/v1/accounts/:id', async req => { /// update user should be associated to account
-    allowAccessTo(req, process.env.SECRETS.split(' '), [{ type: 'admin' }, { type: 'user', account: { _id: req.params.id } }])
+    allowAccessTo(req, secrets, [{ type: 'admin' }, { type: 'user', account: { _id: req.params.id } }])
     const response = await readOne(AccountModel, { id: req.params.id }, req.query)
     return response
   })
 
   apiServer.patch('/v1/accounts/:id/name', async req => {
-    allowAccessTo(req, process.env.SECRETS.split(' '), [{ type: 'admin' }, { type: 'user', role: 'admin' }])
+    allowAccessTo(req, secrets, [{ type: 'admin' }, { type: 'user', role: 'admin' }])
     const response = await patchOne(AccountModel, { id: req.params.id }, { name: req.body.name })
     return response
   })
 
   apiServer.patch('/v1/accounts/:id/urlFriendlyName', async req => {
-    allowAccessTo(req, process.env.SECRETS.split(' '), [{ type: 'admin' }, { type: 'user', role: 'admin' }])
+    allowAccessTo(req, secrets, [{ type: 'admin' }, { type: 'user', role: 'admin' }])
     const response = await patchOne(AccountModel, { id: req.params.id }, { urlFriendlyName: req.body.urlFriendlyName })
     return response
   })
 
   apiServer.delete('/v1/accounts/:id', async req => {
-    allowAccessTo(req, process.env.SECRETS.split(' '), [{ type: 'delete' }])
+    allowAccessTo(req, secrets, [{ type: 'delete' }])
     deleteMany(UserModel, { accountId: req.params.id })
     const deletedAccount = await deleteOne(AccountModel, { id: req.params.id })
     let postRes
@@ -113,7 +114,7 @@ export default async ({
   apiServer.post('/v1/accounts/create', async req => {
     if (process.env.ALPHA_MODE === 'true') {
       try {
-        allowAccessTo(req, process.env.SECRETS.split(' '), [{ type: 'admin' }])
+        allowAccessTo(req, secrets, [{ type: 'admin' }])
       } catch (error) {
         throw new AuthenticationError('NOT ALLOWED IN ALPHA MODE')
       }
@@ -135,7 +136,7 @@ export default async ({
         _id: newAccount.result._id
       }
     }
-    const token = jwt.sign(payload, process.env.SECRETS.split(' ')[0], { expiresIn: '24h' })
+    const token = jwt.sign(payload, secrets[0], { expiresIn: '24h' })
     const mail = await sendRegistration(newUser.result.email, token)
     return {
       status: 200,
@@ -148,7 +149,7 @@ export default async ({
   })
 
   apiServer.postBinary('/v1/accounts/:id/logo', { mimeTypes: ['image/jpeg', 'image/png', 'image/gif'], fieldName: 'logo', maxFileSize: process.env.MAX_FILE_SIZE }, async req => {
-    allowAccessTo(req, process.env.SECRETS.split(' '), [{ type: 'admin' }, { type: 'user', role: 'admin' }])
+    allowAccessTo(req, secrets, [{ type: 'admin' }, { type: 'user', role: 'admin' }])
     const uploadParams = {
       Bucket: process.env.AWS_BUCKET_NAME,
       Body: req.file.buffer,
@@ -165,7 +166,7 @@ export default async ({
   })
 
   apiServer.delete('/v1/accounts/:id/logo', async req => {
-    allowAccessTo(req, process.env.SECRETS.split(' '), [{ type: 'admin' }, { type: 'user', role: 'admin' }])
+    allowAccessTo(req, secrets, [{ type: 'admin' }, { type: 'user', role: 'admin' }])
     const accountData = await readOne(AccountModel, { id: req.params.id }, req.query)
     const key = accountData.result.logo.substring(accountData.result.logo.lastIndexOf('/') + 1)
 
