@@ -11,8 +11,6 @@ import forgotPassword from './forgotPassword.js'
 
 const mongooseMemoryServer = createMongooseMemoryServer(mongoose)
 
-const secrets = process.env.SECRETS.split(' ')
-
 const AccountTestModel = mongoose.model('AccountTest', new mongoose.Schema({
   name: { type: String },
   urlFriendlyName: { type: String, unique: true },
@@ -34,6 +32,25 @@ describe('forgot-password test', () => {
   beforeAll(async () => {
     await mongooseMemoryServer.start()
     await mongooseMemoryServer.connect('test-db')
+    process.env.NODE_ENV = 'development'
+    process.env.SECRETS = 'verylongsecret1 verylongsecret2'
+    process.env.ACCOUNT_APP_URL = 'http://accounts.emailfox.link/'
+    process.env.ACCOUNT_BLUEFOX_FINALIZE_REGISTRATION_TEMPLATE = 'https://api.staging.bluefox.email/v1/accounts/64ca178285926a72bcaba430/projects/65a20f44d75cd7fdb49bb7b9/transactional-emails/65a2319bd75cd7fdb49bbffd/send'
+    process.env.ACCOUNT_BLUEFOX_FORGOT_PASSWORD_TEMPLATE = 'https://api.staging.bluefox.email/v1/accounts/64ca178285926a72bcaba430/projects/65a20f44d75cd7fdb49bb7b9/transactional-emails/65a231ffd75cd7fdb49bc019/send'
+    process.env.ACCOUNT_BLUEFOX_INVITATION_TEMPLATE = 'https://api.staging.bluefox.email/v1/accounts/64ca178285926a72bcaba430/projects/65a20f44d75cd7fdb49bb7b9/transactional-emails/65a231dbd75cd7fdb49bc00f/send'
+    process.env.ACCOUNT_BLUEFOX_LOGIN_SELECT_TEMPLATE = 'https://api.staging.bluefox.email/v1/accounts/64ca178285926a72bcaba430/projects/65a20f44d75cd7fdb49bb7b9/transactional-emails/65a231b9d75cd7fdb49bc007/send'
+    process.env.ACCOUNT_BLUEFOX_VERIFY_EMAIL_TEMPLATE = 'https://api.staging.bluefox.email/v1/accounts/64ca178285926a72bcaba430/projects/65a20f44d75cd7fdb49bb7b9/transactional-emails/65a2314ed75cd7fdb49bbf73/send'
+    process.env.BLUEFOX_API_KEY = '<your_bluefox_api_key>'
+    process.env.TEST_STATIC_SERVER_URL = 'http://localhost:10007/'
+    process.env.CDN_BASE_URL = 'http://localhost:10007/'
+    process.env.AWS_BUCKET_PATH = './tmp/'
+    process.env.AWS_BUCKET_NAME = 'bluefox'
+    process.env.AWS_FOLDER_NAME = 'mua-accounts'
+    process.env.AWS_REGION = '<your_aws_region>'
+    process.env.AWS_ACCESS_KEY_ID = '<your_aws_access_key_id>'
+    process.env.AWS_SECRET_ACCESS_KEY = '<your_aws_secret_access_key>'
+    process.env.ALPHA_MODE = 'false'
+    process.env.MAX_FILE_SIZE = '5242880'
     app = createApiServer((e) => {
       if (e.code === 'LIMIT_FILE_SIZE') {
         return {
@@ -84,7 +101,7 @@ describe('forgot-password test', () => {
     const user2 = new UserTestModel({ email: 'user2@gmail.com', name: 'user2', password: hash2, accountId: account1._id })
     await user2.save()
 
-    const token = jwt.sign({ type: 'admin' }, secrets[0])
+    const token = jwt.sign({ type: 'admin' }, process.env.SECRETS.split(' ')[0])
 
     const res = await request(app)
       .post('/v1/accounts/' + account1._id + '/forgot-password/send')
@@ -114,7 +131,7 @@ describe('forgot-password test', () => {
     const user2 = new UserTestModel({ email: 'user2@gmail.com', name: 'user2', password: hash2, accountId: account1._id })
     await user2.save()
 
-    const token = jwt.sign({ type: 'admin' }, secrets[0])
+    const token = jwt.sign({ type: 'admin' }, process.env.SECRETS.split(' ')[0])
 
     const res = await request(app)
       .post('/v1/accounts/' + account1._id + '/forgot-password/send')
@@ -135,7 +152,7 @@ describe('forgot-password test', () => {
     const user2 = new UserTestModel({ email: 'user2@gmail.com', name: 'user2', password: hash2, accountId: account1._id })
     await user2.save()
 
-    const token = jwt.sign({ type: 'admin' }, secrets[0])
+    const token = jwt.sign({ type: 'admin' }, process.env.SECRETS.split(' ')[0])
 
     const res = await request(app)
       .post('/v1/accounts/' + account1._id + '/forgot-password/send')
@@ -177,7 +194,7 @@ describe('forgot-password test', () => {
     const user2 = new UserTestModel({ email: 'user2@gmail.com', name: 'user2', password: hash2, accountId: account1._id })
     await user2.save()
 
-    const token = jwt.sign({ type: 'forgot-password', user: { _id: user2._id, email: user2.email } }, secrets[0])
+    const token = jwt.sign({ type: 'forgot-password', user: { _id: user2._id, email: user2.email } }, process.env.SECRETS.split(' ')[0])
 
     const res = await request(app)
       .post('/v1/accounts/' + account1._id + '/forgot-password/reset')
@@ -198,7 +215,7 @@ describe('forgot-password test', () => {
     const user2 = new UserTestModel({ email: 'user2@gmail.com', name: 'user2', password: hash2, accountId: account1._id })
     await user2.save()
 
-    const token = jwt.sign({ type: 'forgot-password', user: { _id: user2._id, email: user2.email } }, secrets[0])
+    const token = jwt.sign({ type: 'forgot-password', user: { _id: user2._id, email: user2.email } }, process.env.SECRETS.split(' ')[0])
 
     const res = await request(app)
       .post('/v1/accounts/' + account1._id + '/forgot-password/reset')
@@ -219,7 +236,7 @@ describe('forgot-password test', () => {
     const user2 = new UserTestModel({ email: 'user2@gmail.com', name: 'user2', password: hash2, accountId: account1._id })
     await user2.save()
 
-    const token = jwt.sign({ type: 'value', user: { _id: user2._id, email: user2.email } }, secrets[0])
+    const token = jwt.sign({ type: 'value', user: { _id: user2._id, email: user2.email } }, process.env.SECRETS.split(' ')[0])
 
     const res = await request(app)
       .post('/v1/accounts/' + account1._id + '/forgot-password/reset')
@@ -240,7 +257,7 @@ describe('forgot-password test', () => {
     const user2 = new UserTestModel({ email: 'user2@gmail.com', name: 'user2', password: hash2, accountId: account1._id })
     await user2.save()
 
-    const token = jwt.sign({ type: 'forgot-password', user: { _id: user1._id, email: 'user4@gmail.com' } }, secrets[0])
+    const token = jwt.sign({ type: 'forgot-password', user: { _id: user1._id, email: 'user4@gmail.com' } }, process.env.SECRETS.split(' ')[0])
     const res = await request(app)
       .post('/v1/accounts/' + account1._id + '/forgot-password/reset')
       .set('authorization', 'Bearer ' + token)

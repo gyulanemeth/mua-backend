@@ -5,9 +5,6 @@ import jwt from 'jsonwebtoken'
 import allowAccessTo from 'bearer-jwt-auth'
 import { AuthenticationError } from 'standard-api-errors'
 
-const secrets = process.env.SECRETS.split(' ')
-const loginSelectTemplate = process.env.ACCOUNT_BLUEFOX_LOGIN_SELECT_TEMPLATE
-
 export default ({
   apiServer, UserModel, AccountModel, hooks =
   {
@@ -17,7 +14,7 @@ export default ({
   }
 }) => {
   const sendLogin = async (email, token) => {
-    const url = loginSelectTemplate
+    const url = process.env.ACCOUNT_BLUEFOX_LOGIN_SELECT_TEMPLATE
     const response = await fetch(url, {
       method: 'POST',
       headers: {
@@ -40,7 +37,7 @@ export default ({
   }
 
   apiServer.post('/v1/accounts/:id/login', async req => {
-    const data = allowAccessTo(req, secrets, [{ type: 'login' }])
+    const data = allowAccessTo(req, process.env.SECRETS.split(' '), [{ type: 'login' }])
     req.body.password = crypto.createHash('md5').update(req.body.password).digest('hex')
     const findUser = await list(UserModel, { email: data.user.email, accountId: req.params.id, password: req.body.password }, req.query)
     if (findUser.result.count === 0) {
@@ -58,7 +55,7 @@ export default ({
         _id: getAccount.result._id
       }
     }
-    const token = jwt.sign(payload, secrets[0], { expiresIn: '24h' })
+    const token = jwt.sign(payload, process.env.SECRETS.split(' ')[0], { expiresIn: '24h' })
     let postRes
     if (hooks.login?.post) {
       postRes = await hooks.login.post(req.params, req.body, token)
@@ -94,7 +91,7 @@ export default ({
         _id: getAccount.result.items[0]._id
       }
     }
-    const token = jwt.sign(payload, secrets[0], { expiresIn: '24h' })
+    const token = jwt.sign(payload, process.env.SECRETS.split(' ')[0], { expiresIn: '24h' })
     let postRes
     if (hooks.loginUrlFriendlyName?.post) {
       postRes = await hooks.loginUrlFriendlyName.post(req.params, req.body, token)
@@ -124,7 +121,7 @@ export default ({
       accounts:
        getAccounts.result.items
     }
-    const token = jwt.sign(payload, secrets[0], { expiresIn: '24h' })
+    const token = jwt.sign(payload, process.env.SECRETS.split(' ')[0], { expiresIn: '24h' })
     const info = await sendLogin(req.body.email, token)
     let postRes
     if (hooks.getLoginAccounts?.post) {

@@ -9,15 +9,7 @@ import { list, readOne, deleteOne, deleteMany, patchOne, createOne } from 'mongo
 
 import aws from '../helpers/awsBucket.js'
 
-const bucketName = process.env.AWS_BUCKET_NAME
-const folderName = process.env.AWS_FOLDER_NAME
-
-const s3 = await aws()
-
-const secrets = process.env.SECRETS.split(' ')
-const finalizeRegistration = process.env.ACCOUNT_BLUEFOX_FINALIZE_REGISTRATION_TEMPLATE
-
-export default ({
+export default async ({
   apiServer, UserModel, AccountModel, hooks =
   {
     checkAvailability: { post: (params) => { } },
@@ -33,8 +25,9 @@ export default ({
     deleteLogo: { post: (params) => { } }
   }
 }) => {
+  const s3 = await aws()
   const sendRegistration = async (email, token) => {
-    const url = finalizeRegistration
+    const url = process.env.ACCOUNT_BLUEFOX_FINALIZE_REGISTRATION_TEMPLATE
     const response = await fetch(url, {
       method: 'POST',
       headers: {
@@ -90,7 +83,7 @@ export default ({
   })
 
   apiServer.get('/v1/accounts/', async req => {
-    allowAccessTo(req, secrets, [{ type: 'admin' }])
+    allowAccessTo(req, process.env.SECRETS.split(' '), [{ type: 'admin' }])
     const response = await list(AccountModel, req.params, req.query)
     let postRes
     if (hooks.listAccount?.post) {
@@ -100,7 +93,7 @@ export default ({
   })
 
   apiServer.post('/v1/accounts/', async req => {
-    allowAccessTo(req, secrets, [{ type: 'admin' }])
+    allowAccessTo(req, process.env.SECRETS.split(' '), [{ type: 'admin' }])
     const response = await createOne(AccountModel, req.params, req.body)
     let postRes
     if (hooks.createAccountByAdmin?.post) {
@@ -110,7 +103,7 @@ export default ({
   })
 
   apiServer.get('/v1/accounts/:id', async req => { /// update user should be associated to account
-    allowAccessTo(req, secrets, [{ type: 'admin' }, { type: 'user', account: { _id: req.params.id } }])
+    allowAccessTo(req, process.env.SECRETS.split(' '), [{ type: 'admin' }, { type: 'user', account: { _id: req.params.id } }])
     const response = await readOne(AccountModel, { id: req.params.id }, req.query)
     let postRes
     if (hooks.readOneAccount?.post) {
@@ -120,7 +113,7 @@ export default ({
   })
 
   apiServer.patch('/v1/accounts/:id/name', async req => {
-    allowAccessTo(req, secrets, [{ type: 'admin' }, { type: 'user', role: 'admin' }])
+    allowAccessTo(req, process.env.SECRETS.split(' '), [{ type: 'admin' }, { type: 'user', role: 'admin' }])
     const response = await patchOne(AccountModel, { id: req.params.id }, { name: req.body.name })
     let postRes
     if (hooks.updateName?.post) {
@@ -130,7 +123,7 @@ export default ({
   })
 
   apiServer.patch('/v1/accounts/:id/urlFriendlyName', async req => {
-    allowAccessTo(req, secrets, [{ type: 'admin' }, { type: 'user', role: 'admin' }])
+    allowAccessTo(req, process.env.SECRETS.split(' '), [{ type: 'admin' }, { type: 'user', role: 'admin' }])
     const response = await patchOne(AccountModel, { id: req.params.id }, { urlFriendlyName: req.body.urlFriendlyName })
     let postRes
     if (hooks.updateUrlFriendlyName?.post) {
@@ -140,7 +133,7 @@ export default ({
   })
 
   apiServer.delete('/v1/accounts/:id', async req => {
-    allowAccessTo(req, secrets, [{ type: 'delete' }])
+    allowAccessTo(req, process.env.SECRETS.split(' '), [{ type: 'delete' }])
     deleteMany(UserModel, { accountId: req.params.id })
     const deletedAccount = await deleteOne(AccountModel, { id: req.params.id })
     let postRes
@@ -158,7 +151,7 @@ export default ({
   apiServer.post('/v1/accounts/create', async req => {
     if (process.env.ALPHA_MODE === 'true') {
       try {
-        allowAccessTo(req, secrets, [{ type: 'admin' }])
+        allowAccessTo(req, process.env.SECRETS.split(' '), [{ type: 'admin' }])
       } catch (error) {
         throw new AuthenticationError('NOT ALLOWED IN ALPHA MODE')
       }
@@ -180,7 +173,7 @@ export default ({
         _id: newAccount.result._id
       }
     }
-    const token = jwt.sign(payload, secrets[0], { expiresIn: '24h' })
+    const token = jwt.sign(payload, process.env.SECRETS.split(' ')[0], { expiresIn: '24h' })
     const mail = await sendRegistration(newUser.result.email, token)
     let postRes
     if (hooks.createAccount?.post) {
@@ -197,11 +190,11 @@ export default ({
   })
 
   apiServer.postBinary('/v1/accounts/:id/logo', { mimeTypes: ['image/jpeg', 'image/png', 'image/gif'], fieldName: 'logo', maxFileSize: process.env.MAX_FILE_SIZE }, async req => {
-    allowAccessTo(req, secrets, [{ type: 'admin' }, { type: 'user', role: 'admin' }])
+    allowAccessTo(req, process.env.SECRETS.split(' '), [{ type: 'admin' }, { type: 'user', role: 'admin' }])
     const uploadParams = {
-      Bucket: bucketName,
+      Bucket: process.env.AWS_BUCKET_NAME,
       Body: req.file.buffer,
-      Key: `${folderName}/accounts/${req.params.id}.${mime.extension(req.file.mimetype)}`
+      Key: `${process.env.AWS_FOLDER_NAME}/accounts/${req.params.id}.${mime.extension(req.file.mimetype)}`
     }
     const result = await s3.upload(uploadParams).promise()
     const response = await patchOne(AccountModel, { id: req.params.id }, { logo: process.env.CDN_BASE_URL + result.Key })
@@ -218,13 +211,13 @@ export default ({
   })
 
   apiServer.delete('/v1/accounts/:id/logo', async req => {
-    allowAccessTo(req, secrets, [{ type: 'admin' }, { type: 'user', role: 'admin' }])
+    allowAccessTo(req, process.env.SECRETS.split(' '), [{ type: 'admin' }, { type: 'user', role: 'admin' }])
     const accountData = await readOne(AccountModel, { id: req.params.id }, req.query)
     const key = accountData.result.logo.substring(accountData.result.logo.lastIndexOf('/') + 1)
 
     await s3.deleteObject({
-      Bucket: bucketName,
-      Key: `${folderName}/accounts/${key}`
+      Bucket: process.env.AWS_BUCKET_NAME,
+      Key: `${process.env.AWS_FOLDER_NAME}/accounts/${key}`
     }).promise()
     const response = await patchOne(AccountModel, { id: req.params.id }, { logo: null })
     let postRes
