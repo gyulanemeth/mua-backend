@@ -14,5 +14,5 @@ export default ({
   login({ apiServer, UserModel, AccountModel })
   invitation({ apiServer, UserModel, AccountModel })
   forgotPassword({ apiServer, UserModel, AccountModel })
-  account({ apiServer, UserModel, AccountModel, deleteAccount: { post: (params) => { } } })
+  account({ apiServer, UserModel, AccountModel, hooks })
 }
