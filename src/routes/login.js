@@ -6,12 +6,7 @@ import allowAccessTo from 'bearer-jwt-auth'
 import { AuthenticationError } from 'standard-api-errors'
 
 export default ({
-  apiServer, UserModel, AccountModel, hooks =
-  {
-    login: { post: (params) => { } },
-    loginUrlFriendlyName: { post: (params) => { } },
-    getLoginAccounts: { post: (params) => { } }
-  }
+  apiServer, UserModel, AccountModel
 }) => {
   const sendLogin = async (email, token) => {
     const url = process.env.ACCOUNT_BLUEFOX_LOGIN_SELECT_TEMPLATE
@@ -56,11 +51,7 @@ export default ({
       }
     }
     const token = jwt.sign(payload, process.env.SECRETS.split(' ')[0], { expiresIn: '24h' })
-    let postRes
-    if (hooks.login?.post) {
-      postRes = await hooks.login.post(req.params, req.body, token)
-    }
-    return postRes || {
+    return {
       status: 200,
       result: {
         loginToken: token
@@ -92,11 +83,7 @@ export default ({
       }
     }
     const token = jwt.sign(payload, process.env.SECRETS.split(' ')[0], { expiresIn: '24h' })
-    let postRes
-    if (hooks.loginUrlFriendlyName?.post) {
-      postRes = await hooks.loginUrlFriendlyName.post(req.params, req.body, token)
-    }
-    return postRes || {
+    return {
       status: 200,
       result: {
         loginToken: token
@@ -123,11 +110,7 @@ export default ({
     }
     const token = jwt.sign(payload, process.env.SECRETS.split(' ')[0], { expiresIn: '24h' })
     const info = await sendLogin(req.body.email, token)
-    let postRes
-    if (hooks.getLoginAccounts?.post) {
-      postRes = await hooks.getLoginAccounts.post(req.params, req.body, info)
-    }
-    return postRes || {
+    return {
       status: 201,
       result: {
         success: true,

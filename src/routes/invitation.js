@@ -6,12 +6,7 @@ import { MethodNotAllowedError, ValidationError } from 'standard-api-errors'
 import allowAccessTo from 'bearer-jwt-auth'
 
 export default ({
-  apiServer, UserModel, AccountModel, hooks =
-  {
-    invitationSend: { post: (params) => { } },
-    invitationResend: { post: (params) => { } },
-    invitationAccept: { post: (params) => { } }
-  }
+  apiServer, UserModel, AccountModel
 }) => {
   const sendInvitation = async (email, token) => {
     const url = process.env.ACCOUNT_BLUEFOX_INVITATION_TEMPLATE
@@ -64,11 +59,7 @@ export default ({
       await deleteOne(UserModel, { id: newUser.result._id, accountId: checkAccount.result._id })
       throw e
     }
-    let postRes
-    if (hooks.invitationSend?.post) {
-      postRes = await hooks.invitationSend.post(req.params, req.body, mail)
-    }
-    return postRes || {
+    return {
       status: 201,
       result: {
         success: true,
@@ -103,11 +94,7 @@ export default ({
     }
     const token = jwt.sign(payload, process.env.SECRETS.split(' ')[0], { expiresIn: '24h' })
     const mail = await sendInvitation(getUser.result.items[0].email, token)
-    let postRes
-    if (hooks.invitationResend?.post) {
-      postRes = await hooks.invitationResend.post(req.params, req.body, mail)
-    }
-    return postRes || {
+    return {
       status: 200,
       result: {
         success: true,
@@ -140,11 +127,7 @@ export default ({
       }
     }
     const token = jwt.sign(payload, process.env.SECRETS.split(' ')[0], { expiresIn: '24h' })
-    let postRes
-    if (hooks.invitationAccept?.post) {
-      postRes = await hooks.invitationAccept.post(req.params, req.body, token)
-    }
-    return postRes || {
+    return {
       status: 200,
       result: {
         loginToken: token

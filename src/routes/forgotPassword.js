@@ -6,13 +6,7 @@ import { list, patchOne, readOne } from 'mongoose-crudl'
 import allowAccessTo from 'bearer-jwt-auth'
 import { ValidationError, AuthenticationError } from 'standard-api-errors'
 
-export default ({
-  apiServer, UserModel, AccountModel, hooks =
-  {
-    forgotPasswordSend: { post: (params) => { } },
-    forgotPasswordReset: { post: (params) => { } }
-  }
-}) => {
+export default ({ apiServer, UserModel, AccountModel }) => {
   const sendForgotPassword = async (email, token) => {
     const url = process.env.ACCOUNT_BLUEFOX_FORGOT_PASSWORD_TEMPLATE
     const response = await fetch(url, {
@@ -56,11 +50,7 @@ export default ({
 
     const token = jwt.sign(payload, process.env.SECRETS.split(' ')[0], { expiresIn: '24h' })
     const mail = await sendForgotPassword(response.result.items[0].email, token)
-    let postRes
-    if (hooks.forgotPasswordSend?.post) {
-      postRes = await hooks.forgotPasswordSend.post(req.params, req.body, mail)
-    }
-    return postRes || {
+    return {
       status: 200,
       result: {
         success: true,
@@ -91,11 +81,7 @@ export default ({
       }
     }
     const token = jwt.sign(payload, process.env.SECRETS.split(' ')[0], { expiresIn: '24h' })
-    let postRes
-    if (hooks.forgotPasswordReset?.post) {
-      postRes = await hooks.forgotPasswordReset.post(req.params, req.body, token)
-    }
-    return postRes || {
+    return {
       status: 200,
       result: {
         loginToken: token

@@ -12,17 +12,7 @@ import aws from '../helpers/awsBucket.js'
 export default async ({
   apiServer, UserModel, AccountModel, hooks =
   {
-    checkAvailability: { post: (params) => { } },
-    readOneAccountByUrlFriendlyName: { post: (params) => { } },
-    listAccount: { post: (params) => { } },
-    createAccountByAdmin: { post: (params) => { } },
-    readOneAccount: { post: (params) => { } },
-    updateName: { post: (params) => { } },
-    updateUrlFriendlyName: { post: (params) => { } },
-    deleteAccount: { post: (params) => { } },
-    createAccount: { post: (params) => { } },
-    addLogo: { post: (params) => { } },
-    deleteLogo: { post: (params) => { } }
+    deleteAccount: { post: (params) => { } }
   }
 }) => {
   const s3 = await aws()
@@ -55,11 +45,7 @@ export default async ({
     if (response.result.count > 0) {
       available = true
     }
-    let postRes
-    if (hooks.checkAvailability?.post) {
-      postRes = await hooks.checkAvailability.post(req.params, req.body, response.result)
-    }
-    return postRes || {
+    return {
       status: 200,
       result: {
         available
@@ -72,11 +58,7 @@ export default async ({
     if (!response.result.count) {
       throw new NotFoundError('Account Not Found')
     }
-    let postRes
-    if (hooks.readOneAccountByUrlFriendlyName?.post) {
-      postRes = await hooks.readOneAccountByUrlFriendlyName.post(req.params, req.body, response.result)
-    }
-    return postRes || {
+    return {
       status: 200,
       result: response.result.items[0]
     }
@@ -85,51 +67,31 @@ export default async ({
   apiServer.get('/v1/accounts/', async req => {
     allowAccessTo(req, process.env.SECRETS.split(' '), [{ type: 'admin' }])
     const response = await list(AccountModel, req.params, req.query)
-    let postRes
-    if (hooks.listAccount?.post) {
-      postRes = await hooks.listAccount.post(req.params, req.body, response.result)
-    }
-    return postRes || response
+    return response
   })
 
   apiServer.post('/v1/accounts/', async req => {
     allowAccessTo(req, process.env.SECRETS.split(' '), [{ type: 'admin' }])
     const response = await createOne(AccountModel, req.params, req.body)
-    let postRes
-    if (hooks.createAccountByAdmin?.post) {
-      postRes = await hooks.createAccountByAdmin.post(req.params, req.body, response.result)
-    }
-    return postRes || response
+    return response
   })
 
   apiServer.get('/v1/accounts/:id', async req => { /// update user should be associated to account
     allowAccessTo(req, process.env.SECRETS.split(' '), [{ type: 'admin' }, { type: 'user', account: { _id: req.params.id } }])
     const response = await readOne(AccountModel, { id: req.params.id }, req.query)
-    let postRes
-    if (hooks.readOneAccount?.post) {
-      postRes = await hooks.readOneAccount.post(req.params, req.body, response.result)
-    }
-    return postRes || response
+    return response
   })
 
   apiServer.patch('/v1/accounts/:id/name', async req => {
     allowAccessTo(req, process.env.SECRETS.split(' '), [{ type: 'admin' }, { type: 'user', role: 'admin' }])
     const response = await patchOne(AccountModel, { id: req.params.id }, { name: req.body.name })
-    let postRes
-    if (hooks.updateName?.post) {
-      postRes = await hooks.updateName.post(req.params, req.body, response.result)
-    }
-    return postRes || response
+    return response
   })
 
   apiServer.patch('/v1/accounts/:id/urlFriendlyName', async req => {
     allowAccessTo(req, process.env.SECRETS.split(' '), [{ type: 'admin' }, { type: 'user', role: 'admin' }])
     const response = await patchOne(AccountModel, { id: req.params.id }, { urlFriendlyName: req.body.urlFriendlyName })
-    let postRes
-    if (hooks.updateUrlFriendlyName?.post) {
-      postRes = await hooks.updateUrlFriendlyName.post(req.params, req.body, response.result)
-    }
-    return postRes || response
+    return response
   })
 
   apiServer.delete('/v1/accounts/:id', async req => {
@@ -175,11 +137,7 @@ export default async ({
     }
     const token = jwt.sign(payload, process.env.SECRETS.split(' ')[0], { expiresIn: '24h' })
     const mail = await sendRegistration(newUser.result.email, token)
-    let postRes
-    if (hooks.createAccount?.post) {
-      postRes = await hooks.createAccount.post(req.params, req.body, mail)
-    }
-    return postRes || {
+    return {
       status: 200,
       result: {
         newAccount: newAccount.result,
@@ -197,12 +155,8 @@ export default async ({
       Key: `${process.env.AWS_FOLDER_NAME}/accounts/${req.params.id}.${mime.extension(req.file.mimetype)}`
     }
     const result = await s3.upload(uploadParams).promise()
-    const response = await patchOne(AccountModel, { id: req.params.id }, { logo: process.env.CDN_BASE_URL + result.Key })
-    let postRes
-    if (hooks.addLogo?.post) {
-      postRes = await hooks.addLogo.post(req.params, req.body, response.result)
-    }
-    return postRes || {
+    await patchOne(AccountModel, { id: req.params.id }, { logo: process.env.CDN_BASE_URL + result.Key })
+    return {
       status: 200,
       result: {
         logo: process.env.CDN_BASE_URL + result.Key
@@ -219,12 +173,8 @@ export default async ({
       Bucket: process.env.AWS_BUCKET_NAME,
       Key: `${process.env.AWS_FOLDER_NAME}/accounts/${key}`
     }).promise()
-    const response = await patchOne(AccountModel, { id: req.params.id }, { logo: null })
-    let postRes
-    if (hooks.deleteLogo?.post) {
-      postRes = await hooks.deleteLogo.post(req.params, req.body, response.result)
-    }
-    return postRes || {
+    await patchOne(AccountModel, { id: req.params.id }, { logo: null })
+    return {
       status: 200,
       result: {
         success: true
