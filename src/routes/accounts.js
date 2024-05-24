@@ -7,21 +7,18 @@ import allowAccessTo from 'bearer-jwt-auth'
 import { ConflictError, AuthenticationError, NotFoundError } from 'standard-api-errors'
 import { list, readOne, deleteOne, deleteMany, patchOne, createOne } from 'mongoose-crudl'
 
-import AccountModel from '../models/Account.js'
-import UserModel from '../models/User.js'
 import aws from '../helpers/awsBucket.js'
 
-const bucketName = process.env.AWS_BUCKET_NAME
-const folderName = process.env.AWS_FOLDER_NAME
-
-const s3 = await aws()
-
-const secrets = process.env.SECRETS.split(' ')
-const finalizeRegistration = process.env.BLUEFOX_FINALIZE_REGISTRATION_TEMPLATE
-
-export default (apiServer, connectors, maxFileSize) => {
+export default async ({
+  apiServer, UserModel, AccountModel, hooks =
+  {
+    deleteAccount: { post: (params) => { } }
+  }
+}) => {
+  const secrets = process.env.SECRETS.split(' ')
+  const s3 = await aws()
   const sendRegistration = async (email, token) => {
-    const url = finalizeRegistration
+    const url = process.env.ACCOUNT_BLUEFOX_FINALIZE_REGISTRATION_TEMPLATE
     const response = await fetch(url, {
       method: 'POST',
       headers: {
@@ -30,7 +27,7 @@ export default (apiServer, connectors, maxFileSize) => {
       },
       body: JSON.stringify({
         email,
-        data: { href: `${process.env.APP_URL}finalize-registration?token=${token}` }
+        data: { href: `${process.env.ACCOUNT_APP_URL}finalize-registration?token=${token}` }
       })
     })
     const res = await response.json()
@@ -100,10 +97,13 @@ export default (apiServer, connectors, maxFileSize) => {
 
   apiServer.delete('/v1/accounts/:id', async req => {
     allowAccessTo(req, secrets, [{ type: 'delete' }])
-    connectors.deleteAccount({ id: req.params.id })
     deleteMany(UserModel, { accountId: req.params.id })
     const deletedAccount = await deleteOne(AccountModel, { id: req.params.id })
-    return {
+    let postRes
+    if (hooks.deleteAccount?.post) {
+      postRes = await hooks.deleteAccount.post(req.params, req.body, deletedAccount.result)
+    }
+    return postRes || {
       status: 200,
       result: {
         deletedAccount: deletedAccount.result
@@ -148,12 +148,12 @@ export default (apiServer, connectors, maxFileSize) => {
     }
   })
 
-  apiServer.postBinary('/v1/accounts/:id/logo', { mimeTypes: ['image/jpeg', 'image/png', 'image/gif'], fieldName: 'logo', maxFileSize }, async req => {
+  apiServer.postBinary('/v1/accounts/:id/logo', { mimeTypes: ['image/jpeg', 'image/png', 'image/gif'], fieldName: 'logo', maxFileSize: process.env.MAX_FILE_SIZE }, async req => {
     allowAccessTo(req, secrets, [{ type: 'admin' }, { type: 'user', role: 'admin' }])
     const uploadParams = {
-      Bucket: bucketName,
+      Bucket: process.env.AWS_BUCKET_NAME,
       Body: req.file.buffer,
-      Key: `${folderName}/accounts/${req.params.id}.${mime.extension(req.file.mimetype)}`
+      Key: `${process.env.AWS_FOLDER_NAME}/accounts/${req.params.id}.${mime.extension(req.file.mimetype)}`
     }
     const result = await s3.upload(uploadParams).promise()
     await patchOne(AccountModel, { id: req.params.id }, { logo: process.env.CDN_BASE_URL + result.Key })
@@ -171,8 +171,8 @@ export default (apiServer, connectors, maxFileSize) => {
     const key = accountData.result.logo.substring(accountData.result.logo.lastIndexOf('/') + 1)
 
     await s3.deleteObject({
-      Bucket: bucketName,
-      Key: `${folderName}/accounts/${key}`
+      Bucket: process.env.AWS_BUCKET_NAME,
+      Key: `${process.env.AWS_FOLDER_NAME}/accounts/${key}`
     }).promise()
     await patchOne(AccountModel, { id: req.params.id }, { logo: null })
     return {

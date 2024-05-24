@@ -5,15 +5,12 @@ import { list, readOne, patchOne, createOne, deleteOne } from 'mongoose-crudl'
 import { MethodNotAllowedError, ValidationError } from 'standard-api-errors'
 import allowAccessTo from 'bearer-jwt-auth'
 
-import AccountModel from '../models/Account.js'
-import UserModel from '../models/User.js'
-
-const secrets = process.env.SECRETS.split(' ')
-const invitationTemplate = process.env.BLUEFOX_INVITATION_TEMPLATE
-
-export default (apiServer) => {
+export default ({
+  apiServer, UserModel, AccountModel
+}) => {
+  const secrets = process.env.SECRETS.split(' ')
   const sendInvitation = async (email, token) => {
-    const url = invitationTemplate
+    const url = process.env.ACCOUNT_BLUEFOX_INVITATION_TEMPLATE
     const response = await fetch(url, {
       method: 'POST',
       headers: {
@@ -22,7 +19,7 @@ export default (apiServer) => {
       },
       body: JSON.stringify({
         email,
-        data: { href: `${process.env.APP_URL}invitation/accept?token=${token}` }
+        data: { href: `${process.env.ACCOUNT_APP_URL}invitation/accept?token=${token}` }
       })
     })
     const res = await response.json()
@@ -63,7 +60,6 @@ export default (apiServer) => {
       await deleteOne(UserModel, { id: newUser.result._id, accountId: checkAccount.result._id })
       throw e
     }
-
     return {
       status: 201,
       result: {

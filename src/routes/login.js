@@ -5,15 +5,12 @@ import jwt from 'jsonwebtoken'
 import allowAccessTo from 'bearer-jwt-auth'
 import { AuthenticationError } from 'standard-api-errors'
 
-import AccountModel from '../models/Account.js'
-import UserModel from '../models/User.js'
-
-const secrets = process.env.SECRETS.split(' ')
-const loginSelectTemplate = process.env.BLUEFOX_LOGIN_SELECT_TEMPLATE
-
-export default (apiServer) => {
+export default ({
+  apiServer, UserModel, AccountModel
+}) => {
+  const secrets = process.env.SECRETS.split(' ')
   const sendLogin = async (email, token) => {
-    const url = loginSelectTemplate
+    const url = process.env.ACCOUNT_BLUEFOX_LOGIN_SELECT_TEMPLATE
     const response = await fetch(url, {
       method: 'POST',
       headers: {
@@ -22,7 +19,7 @@ export default (apiServer) => {
       },
       body: JSON.stringify({
         email,
-        data: { href: `${process.env.APP_URL}login-select?token=${token}` }
+        data: { href: `${process.env.ACCOUNT_APP_URL}login-select?token=${token}` }
       })
     })
     const res = await response.json()

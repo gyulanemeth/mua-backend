@@ -6,15 +6,10 @@ import { list, patchOne, readOne } from 'mongoose-crudl'
 import allowAccessTo from 'bearer-jwt-auth'
 import { ValidationError, AuthenticationError } from 'standard-api-errors'
 
-import UserModel from '../models/User.js'
-import AccountModel from '../models/Account.js'
-
-const secrets = process.env.SECRETS.split(' ')
-const forgotPasswordTemplate = process.env.BLUEFOX_FORGOT_PASSWORD_TEMPLATE
-
-export default (apiServer) => {
+export default ({ apiServer, UserModel, AccountModel }) => {
+  const secrets = process.env.SECRETS.split(' ')
   const sendForgotPassword = async (email, token) => {
-    const url = forgotPasswordTemplate
+    const url = process.env.ACCOUNT_BLUEFOX_FORGOT_PASSWORD_TEMPLATE
     const response = await fetch(url, {
       method: 'POST',
       headers: {
@@ -23,7 +18,7 @@ export default (apiServer) => {
       },
       body: JSON.stringify({
         email,
-        data: { href: `${process.env.APP_URL}forgot-password/reset?token=${token}` }
+        data: { href: `${process.env.ACCOUNT_APP_URL}forgot-password/reset?token=${token}` }
       })
     })
     const res = await response.json()

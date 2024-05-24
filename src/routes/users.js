@@ -7,19 +7,13 @@ import mime from 'mime-types'
 import { list, readOne, deleteOne, patchOne, createOne } from 'mongoose-crudl'
 import { MethodNotAllowedError, ValidationError, AuthenticationError } from 'standard-api-errors'
 
-import AccountModel from '../models/Account.js'
-import UserModel from '../models/User.js'
 import aws from '../helpers/awsBucket.js'
 
-const secrets = process.env.SECRETS.split(' ')
-const bucketName = process.env.AWS_BUCKET_NAME
-const folderName = process.env.AWS_FOLDER_NAME
-const verifyEmailTamplate = process.env.BLUEFOX_VERIFY_EMAIL_TEMPLATE
-const finalizeRegistrationTemplate = process.env.BLUEFOX_FINALIZE_REGISTRATION_TEMPLATE
-
-const s3 = await aws()
-
-export default (apiServer, maxFileSize) => {
+export default async ({
+  apiServer, UserModel, AccountModel
+}) => {
+  const secrets = process.env.SECRETS.split(' ')
+  const s3 = await aws()
   const sendUserEmail = async (email, href, templateUrl) => {
     const url = templateUrl
     const response = await fetch(url, {
@@ -97,7 +91,7 @@ export default (apiServer, maxFileSize) => {
       }
     }
     const token = jwt.sign(payload, secrets[0], { expiresIn: '24h' })
-    const mail = await sendUserEmail(req.body.newEmail, `${process.env.APP_URL}verify-email?token=${token}`, verifyEmailTamplate)
+    const mail = await sendUserEmail(req.body.newEmail, `${process.env.ACCOUNT_APP_URL}verify-email?token=${token}`, process.env.ACCOUNT_BLUEFOX_VERIFY_EMAIL_TEMPLATE)
     return {
       status: 200,
       result: {
@@ -229,12 +223,12 @@ export default (apiServer, maxFileSize) => {
     return user
   })
 
-  apiServer.postBinary('/v1/accounts/:accountId/users/:id/profile-picture', { mimeTypes: ['image/jpeg', 'image/png', 'image/gif'], fieldName: 'profilePicture', maxFileSize }, async req => {
+  apiServer.postBinary('/v1/accounts/:accountId/users/:id/profile-picture', { mimeTypes: ['image/jpeg', 'image/png', 'image/gif'], fieldName: 'profilePicture', maxFileSize: process.env.MAX_FILE_SIZE }, async req => {
     allowAccessTo(req, secrets, [{ type: 'admin' }, { type: 'user', user: { _id: req.params.id }, account: { _id: req.params.accountId } }])
     const uploadParams = {
-      Bucket: bucketName,
+      Bucket: process.env.AWS_BUCKET_NAME,
       Body: req.file.buffer,
-      Key: `${folderName}/users/${req.params.id}.${mime.extension(req.file.mimetype)}`
+      Key: `${process.env.AWS_FOLDER_NAME}/users/${req.params.id}.${mime.extension(req.file.mimetype)}`
     }
 
     const result = await s3.upload(uploadParams).promise()
@@ -251,8 +245,8 @@ export default (apiServer, maxFileSize) => {
     const userData = await readOne(UserModel, { id: req.params.id, accountId: req.params.accountId }, { select: { password: 0 } })
     const key = userData.result.profilePicture.substring(userData.result.profilePicture.lastIndexOf('/') + 1)
     await s3.deleteObject({
-      Bucket: bucketName,
-      Key: `${folderName}/users/${key}`
+      Bucket: process.env.AWS_BUCKET_NAME,
+      Key: `${process.env.AWS_FOLDER_NAME}/users/${key}`
     }).promise()
     await patchOne(UserModel, { id: req.params.id, accountId: req.params.accountId }, { profilePicture: null })
     return {
@@ -277,8 +271,7 @@ export default (apiServer, maxFileSize) => {
       }
     }
     const token = jwt.sign(payload, secrets[0], { expiresIn: '24h' })
-    const mail = await sendUserEmail(getUser.result.email, `${process.env.APP_URL}finalize-registration?token=${token}`, finalizeRegistrationTemplate)
-
+    const mail = await sendUserEmail(getUser.result.email, `${process.env.ACCOUNT_APP_URL}finalize-registration?token=${token}`, process.env.ACCOUNT_BLUEFOX_FINALIZE_REGISTRATION_TEMPLATE)
     return {
       status: 200,
       result: {
