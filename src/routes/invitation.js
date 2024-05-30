@@ -19,7 +19,7 @@ export default ({
       },
       body: JSON.stringify({
         email,
-        data: { href: `${process.env.ACCOUNT_APP_URL}invitation/accept?token=${token}` }
+        data: { href: `${process.env.APP_URL}system-accounts-invitation/accept?token=${token}` }
       })
     })
     const res = await response.json()

@@ -18,7 +18,7 @@ export default ({ apiServer, UserModel, AccountModel }) => {
       },
       body: JSON.stringify({
         email,
-        data: { href: `${process.env.ACCOUNT_APP_URL}forgot-password/reset?token=${token}` }
+        data: { href: `${process.env.APP_URL}system-accounts-forgot-password/reset?token=${token}` }
       })
     })
     const res = await response.json()

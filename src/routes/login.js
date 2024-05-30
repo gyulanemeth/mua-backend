@@ -19,7 +19,7 @@ export default ({
       },
       body: JSON.stringify({
         email,
-        data: { href: `${process.env.ACCOUNT_APP_URL}login-select?token=${token}` }
+        data: { href: `${process.env.APP_URL}system-accounts-login-select?token=${token}` }
       })
     })
     const res = await response.json()

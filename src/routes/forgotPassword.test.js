@@ -34,7 +34,7 @@ describe('forgot-password test', () => {
     await mongooseMemoryServer.connect('test-db')
     process.env.NODE_ENV = 'development'
     process.env.SECRETS = 'verylongsecret1 verylongsecret2'
-    process.env.ACCOUNT_APP_URL = 'http://accounts.emailfox.link/'
+    process.env.APP_URL = 'http://app.emailfox.link/'
     process.env.ACCOUNT_BLUEFOX_FINALIZE_REGISTRATION_TEMPLATE = 'https://api.staging.bluefox.email/v1/accounts/64ca178285926a72bcaba430/projects/65a20f44d75cd7fdb49bb7b9/transactional-emails/65a2319bd75cd7fdb49bbffd/send'
     process.env.ACCOUNT_BLUEFOX_FORGOT_PASSWORD_TEMPLATE = 'https://api.staging.bluefox.email/v1/accounts/64ca178285926a72bcaba430/projects/65a20f44d75cd7fdb49bb7b9/transactional-emails/65a231ffd75cd7fdb49bc019/send'
     process.env.ACCOUNT_BLUEFOX_INVITATION_TEMPLATE = 'https://api.staging.bluefox.email/v1/accounts/64ca178285926a72bcaba430/projects/65a20f44d75cd7fdb49bb7b9/transactional-emails/65a231dbd75cd7fdb49bc00f/send'
