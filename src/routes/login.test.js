@@ -26,6 +26,13 @@ const UserTestModel = mongoose.model('UserTest', new mongoose.Schema({
   profilePicture: { type: String }
 }, { timestamps: true }))
 
+const TestModel = mongoose.model('Test', new mongoose.Schema({
+  name: { type: String },
+  email: { type: String, lowercase: true, required: true, match: /.+[\\@].+\..+/, unique: true },
+  password: { type: String },
+  profilePicture: { type: String }
+}, { timestamps: true }))
+
 describe('login test ', () => {
   let app
   let secrets
@@ -40,6 +47,9 @@ describe('login test ', () => {
     process.env.ACCOUNT_BLUEFOX_INVITATION_TEMPLATE = 'https://api.staging.bluefox.email/v1/accounts/64ca178285926a72bcaba430/projects/65a20f44d75cd7fdb49bb7b9/transactional-emails/65a231dbd75cd7fdb49bc00f/send'
     process.env.ACCOUNT_BLUEFOX_LOGIN_SELECT_TEMPLATE = 'https://api.staging.bluefox.email/v1/accounts/64ca178285926a72bcaba430/projects/65a20f44d75cd7fdb49bb7b9/transactional-emails/65a231b9d75cd7fdb49bc007/send'
     process.env.ACCOUNT_BLUEFOX_VERIFY_EMAIL_TEMPLATE = 'https://api.staging.bluefox.email/v1/accounts/64ca178285926a72bcaba430/projects/65a20f44d75cd7fdb49bb7b9/transactional-emails/65a2314ed75cd7fdb49bbf73/send'
+    process.env.ADMIN_BLUEFOX_VERIFY_EMAIL_TEMPLATE = ''
+    process.env.ADMIN_BLUEFOX_FORGOT_PASSWORD_TEMPLATE = ''
+    process.env.ADMIN_BLUEFOX_INVITATION_TEMPLATE = ''
     process.env.BLUEFOX_API_KEY = '<your_bluefox_api_key>'
     process.env.TEST_STATIC_SERVER_URL = 'http://localhost:10007/'
     process.env.CDN_BASE_URL = 'http://localhost:10007/'
@@ -70,7 +80,7 @@ describe('login test ', () => {
         }
       }
     }, () => {})
-    login({ apiServer: app, UserModel: UserTestModel, AccountModel: AccountTestModel })
+    login({ apiServer: app, UserModel: UserTestModel, AccountModel: AccountTestModel, AdminModel: TestModel })
     app = app._expressServer
   })
 
@@ -325,5 +335,49 @@ describe('login test ', () => {
       .send({ email: 'wrongTest@gmail.com' })
 
     expect(res.body.status).toBe(401)
+  })
+
+  // admins login tests
+  test('login with email and password', async () => {
+    const hash1 = crypto.createHash('md5').update('user1Password').digest('hex')
+    const user1 = new TestModel({ email: 'user1@gmail.com', name: 'user1', password: hash1 })
+    await user1.save()
+
+    const hash2 = crypto.createHash('md5').update('user2Password').digest('hex')
+    const user2 = new TestModel({ email: 'user2@gmail.com', name: 'user2', password: hash2 })
+    await user2.save()
+
+    const res = await request(app)
+      .post('/v1/system-admins/login/')
+      .send({ email: user1.email, password: 'user1Password' })
+    expect(res.body.status).toBe(200)
+  })
+
+  test('login with wrong email', async () => {
+    const hash1 = crypto.createHash('md5').update('user1Password').digest('hex')
+    const user1 = new TestModel({ email: 'user1@gmail.com', name: 'user1', password: hash1 })
+    await user1.save()
+
+    const res = await request(app)
+      .post('/v1/system-admins/login/')
+      .send({ email: 'user3@gmail.com', password: 'user1Password' })
+
+    expect(res.statusCode).toBe(401)
+  })
+
+  test('login with wrong password', async () => {
+    const hash1 = crypto.createHash('md5').update('user1Password').digest('hex')
+    const user1 = new TestModel({ email: 'user1@gmail.com', name: 'user1', password: hash1 })
+    await user1.save()
+
+    const hash2 = crypto.createHash('md5').update('user2Password').digest('hex')
+    const user2 = new TestModel({ email: 'user2@gmail.com', name: 'user2', password: hash2 })
+    await user2.save()
+
+    const res = await request(app)
+      .post('/v1/system-admins/login/')
+      .send({ email: user1.email, password: 'user3Password' })
+
+    expect(res.statusCode).toBe(401)
   })
 })
