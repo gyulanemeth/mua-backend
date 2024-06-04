@@ -13,8 +13,8 @@ export default ({
 }) => {
   admins({ apiServer, AdminModel })
   users({ apiServer, UserModel, AccountModel })
-  login({ apiServer, UserModel, AccountModel })
-  invitation({ apiServer, UserModel, AccountModel })
-  forgotPassword({ apiServer, UserModel, AccountModel })
+  login({ apiServer, UserModel, AccountModel, AdminModel })
+  invitation({ apiServer, UserModel, AccountModel, AdminModel })
+  forgotPassword({ apiServer, UserModel, AccountModel, AdminModel })
   account({ apiServer, UserModel, AccountModel, hooks })
 }
