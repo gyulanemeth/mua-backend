@@ -18,7 +18,7 @@ export default async ({
   const secrets = process.env.SECRETS.split(' ')
   const s3 = await aws()
   const sendRegistration = async (email, token) => {
-    const url = process.env.ACCOUNT_BLUEFOX_FINALIZE_REGISTRATION_TEMPLATE
+    const url = process.env.BLUEFOX_TEMPLATE_ACCOUNT_FINALIZE_REGISTRATION
     const response = await fetch(url, {
       method: 'POST',
       headers: {

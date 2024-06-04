@@ -6,7 +6,7 @@ import { MethodNotAllowedError, ValidationError, AuthenticationError } from 'sta
 import allowAccessTo from 'bearer-jwt-auth'
 
 export default ({
-  apiServer, UserModel, AccountModel, AdminModel
+  apiServer, UserModel, AccountModel, SystemAdminModel
 }) => {
   const secrets = process.env.SECRETS.split(' ')
   const sendInvitation = async (url, email, token, type) => {
@@ -54,7 +54,7 @@ export default ({
     const token = jwt.sign(payload, secrets[0], { expiresIn: '24h' })
     let mail
     try {
-      mail = await sendInvitation(process.env.ADMIN_BLUEFOX_INVITATION_TEMPLATE, newUser.result.email, token, 'system-accounts-invitation')
+      mail = await sendInvitation(process.env.BLUEFOX_TEMPLATE_ADMIN_INVITATION, newUser.result.email, token, 'system-accounts-invitation')
     } catch (e) {
       await deleteOne(UserModel, { id: newUser.result._id, accountId: checkAccount.result._id })
       throw e
@@ -64,6 +64,38 @@ export default ({
       result: {
         success: true,
         info: mail.result.info
+      }
+    }
+  })
+
+  apiServer.post('/v1/system-admins/invitation/send', async req => {
+    allowAccessTo(req, secrets, [{ type: 'admin' }])
+    const response = await list(SystemAdminModel, req.body, { select: { password: 0 } })
+    if (response.result.count !== 0) {
+      throw new MethodNotAllowedError('User exist')
+    }
+    const newAdmin = await createOne(SystemAdminModel, req.body, req.query)
+
+    const payload = {
+      type: 'invitation',
+      user: {
+        _id: newAdmin.result._id,
+        email: newAdmin.result.email
+      }
+    }
+    const token = jwt.sign(payload, secrets[0], { expiresIn: '24h' })
+    let mail
+    try {
+      mail = await sendInvitation(process.env.BLUEFOX_TEMPLATE_ADMIN_INVITATION, newAdmin.result.email, token, 'system-admins-invitation')
+    } catch (e) {
+      await deleteOne(SystemAdminModel, { id: newAdmin.result._id })
+      throw e
+    }
+    return {
+      status: 201,
+      result: {
+        success: true,
+        info: { mail: mail.result.info, admin: newAdmin.result }
       }
     }
   })
@@ -93,12 +125,39 @@ export default ({
       }
     }
     const token = jwt.sign(payload, secrets[0], { expiresIn: '24h' })
-    const mail = await sendInvitation(process.env.ADMIN_BLUEFOX_INVITATION_TEMPLATE, getUser.result.items[0].email, token, 'system-accounts-invitation')
+    const mail = await sendInvitation(process.env.BLUEFOX_TEMPLATE_ADMIN_INVITATION, getUser.result.items[0].email, token, 'system-accounts-invitation')
     return {
       status: 200,
       result: {
         success: true,
         info: mail.result.info
+      }
+    }
+  })
+
+  apiServer.post('/v1/system-admins/invitation/resend', async req => {
+    allowAccessTo(req, secrets, [{ type: 'admin' }])
+    const response = await list(SystemAdminModel, req.body, { select: { password: 0 } })
+    if (response.result.count === 0) {
+      throw new MethodNotAllowedError("User dosen't exist")
+    }
+    if (response.result.items[0].name) {
+      throw new MethodNotAllowedError('User already verified')
+    }
+    const payload = {
+      type: 'invitation',
+      user: {
+        _id: response.result.items[0]._id,
+        email: response.result.items[0].email
+      }
+    }
+    const token = jwt.sign(payload, secrets[0], { expiresIn: '24h' })
+    const mail = await sendInvitation(process.env.BLUEFOX_TEMPLATE_ADMIN_INVITATION, response.result.items[0].email, token, 'system-admins-invitation')
+    return {
+      status: 201,
+      result: {
+        success: true,
+        info: { mail: mail.result.info, admin: response.result.items[0] }
       }
     }
   })
@@ -135,68 +194,9 @@ export default ({
     }
   })
 
-  apiServer.post('/v1/system-admins/invitation/send', async req => {
-    allowAccessTo(req, secrets, [{ type: 'admin' }])
-    const response = await list(AdminModel, req.body, { select: { password: 0 } })
-    if (response.result.count !== 0) {
-      throw new MethodNotAllowedError('User exist')
-    }
-    const newAdmin = await createOne(AdminModel, req.body, req.query)
-
-    const payload = {
-      type: 'invitation',
-      user: {
-        _id: newAdmin.result._id,
-        email: newAdmin.result.email
-      }
-    }
-    const token = jwt.sign(payload, secrets[0], { expiresIn: '24h' })
-    let mail
-    try {
-      mail = await sendInvitation(process.env.ADMIN_BLUEFOX_INVITATION_TEMPLATE, newAdmin.result.email, token, 'system-admins-invitation')
-    } catch (e) {
-      await deleteOne(AdminModel, { id: newAdmin.result._id })
-      throw e
-    }
-    return {
-      status: 201,
-      result: {
-        success: true,
-        info: { mail: mail.result.info, admin: newAdmin.result }
-      }
-    }
-  })
-
-  apiServer.post('/v1/system-admins/invitation/resend', async req => {
-    allowAccessTo(req, secrets, [{ type: 'admin' }])
-    const response = await list(AdminModel, req.body, { select: { password: 0 } })
-    if (response.result.count === 0) {
-      throw new MethodNotAllowedError("User dosen't exist")
-    }
-    if (response.result.items[0].name) {
-      throw new MethodNotAllowedError('User already verified')
-    }
-    const payload = {
-      type: 'invitation',
-      user: {
-        _id: response.result.items[0]._id,
-        email: response.result.items[0].email
-      }
-    }
-    const token = jwt.sign(payload, secrets[0], { expiresIn: '24h' })
-    const mail = await sendInvitation(process.env.ADMIN_BLUEFOX_INVITATION_TEMPLATE, response.result.items[0].email, token, 'system-admins-invitation')
-    return {
-      status: 201,
-      result: {
-        success: true,
-        info: { mail: mail.result.info, admin: response.result.items[0] }
-      }
-    }
-  })
-
   apiServer.post('/v1/system-admins/invitation/accept', async req => {
     const data = allowAccessTo(req, secrets, [{ type: 'invitation' }])
-    const response = await list(AdminModel, { id: data.user._id, email: data.user.email }, req.query)
+    const response = await list(SystemAdminModel, { id: data.user._id, email: data.user.email }, req.query)
     if (response.result.count === 0) {
       throw new AuthenticationError('Check user name')
     }
@@ -208,7 +208,7 @@ export default ({
     }
 
     const hash = crypto.createHash('md5').update(req.body.newPasswordAgain).digest('hex')
-    const updatedAdmin = await patchOne(AdminModel, { id: data.user._id }, { password: hash, name: req.body.name })
+    const updatedAdmin = await patchOne(SystemAdminModel, { id: data.user._id }, { password: hash, name: req.body.name })
     const payload = {
       type: 'login',
       user: {

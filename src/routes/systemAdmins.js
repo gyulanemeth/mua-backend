@@ -10,12 +10,12 @@ import allowAccessTo from 'bearer-jwt-auth'
 import aws from '../helpers/awsBucket.js'
 
 export default async ({
-  apiServer, AdminModel
+  apiServer, SystemAdminModel
 }) => {
   const secrets = process.env.SECRETS.split(' ')
   const s3 = await aws()
   const sendVerifyEmail = async (email, token) => {
-    const url = process.env.ADMIN_BLUEFOX_VERIFY_EMAIL_TEMPLATE
+    const url = process.env.BLUEFOX_TEMPLATE_ADMIN_VERIFY_EMAIL
     const response = await fetch(url, {
       method: 'POST',
       headers: {
@@ -36,7 +36,7 @@ export default async ({
 
   apiServer.get('/v1/system-admins/', async req => {
     allowAccessTo(req, secrets, [{ type: 'admin' }])
-    const response = await list(AdminModel, req.params, req.query)
+    const response = await list(SystemAdminModel, req.params, req.query)
     response.result.items = response.result.items.map(user => {
       user.invitationAccepted = !!user.password
       delete user.password
@@ -47,24 +47,24 @@ export default async ({
 
   apiServer.get('/v1/system-admins/:id', async req => {
     allowAccessTo(req, secrets, [{ type: 'admin' }])
-    const response = await readOne(AdminModel, { id: req.params.id }, { ...req.query, select: { password: 0 } })
+    const response = await readOne(SystemAdminModel, { id: req.params.id }, { ...req.query, select: { password: 0 } })
     return response
   })
 
   apiServer.delete('/v1/system-admins/:id', async req => {
     allowAccessTo(req, secrets, [{ type: 'delete' }])
-    const adminCount = await AdminModel.count({})
+    const adminCount = await SystemAdminModel.count({})
     if (adminCount === 1) {
       throw new MethodNotAllowedError('Removing the last admin is not allowed')
     }
-    const response = await deleteOne(AdminModel, { id: req.params.id }, { password: 0 })
+    const response = await deleteOne(SystemAdminModel, { id: req.params.id }, { password: 0 })
     return response
   })
 
   apiServer.post('/v1/system-admins/permission/:permissionFor', async req => {
     const tokenData = allowAccessTo(req, secrets, [{ type: 'admin' }])
     const hash = crypto.createHash('md5').update(req.body.password).digest('hex')
-    const findUser = await list(AdminModel, { email: tokenData.user.email, password: hash })
+    const findUser = await list(SystemAdminModel, { email: tokenData.user.email, password: hash })
     if (findUser.result.count === 0) {
       throw new AuthenticationError('Invalid password')
     }
@@ -83,7 +83,7 @@ export default async ({
 
   apiServer.get('/v1/system-admins/:id/access-token', async req => {
     allowAccessTo(req, secrets, [{ type: 'admin', user: { _id: req.params.id } }, { type: 'login', user: { _id: req.params.id } }])
-    const response = await readOne(AdminModel, { id: req.params.id }, { select: { password: 0 } })
+    const response = await readOne(SystemAdminModel, { id: req.params.id }, { select: { password: 0 } })
     const payload = {
       type: 'admin',
       user: {
@@ -102,7 +102,7 @@ export default async ({
 
   apiServer.patch('/v1/system-admins/:id/name', async req => {
     allowAccessTo(req, secrets, [{ type: 'admin', user: { _id: req.params.id } }])
-    await patchOne(AdminModel, { id: req.params.id }, { name: req.body.name })
+    await patchOne(SystemAdminModel, { id: req.params.id }, { name: req.body.name })
     return {
       status: 200,
       result: {
@@ -118,11 +118,11 @@ export default async ({
     }
     const hash = crypto.createHash('md5').update(req.body.newPassword).digest('hex')
     const oldHash = crypto.createHash('md5').update(req.body.oldPassword).digest('hex')
-    const getAdmin = await readOne(AdminModel, { id: req.params.id }, req.query)
+    const getAdmin = await readOne(SystemAdminModel, { id: req.params.id }, req.query)
     if (oldHash !== getAdmin.result.password) {
       throw new AuthorizationError('Wrong password.')
     }
-    await patchOne(AdminModel, { id: req.params.id }, { password: hash })
+    await patchOne(SystemAdminModel, { id: req.params.id }, { password: hash })
     return {
       status: 200,
       result: {
@@ -136,11 +136,11 @@ export default async ({
     if (req.body.newEmail !== req.body.newEmailAgain) {
       throw new ValidationError('Validation error email didn\'t match.')
     }
-    const checkExist = await list(AdminModel, { email: req.body.newEmail })
+    const checkExist = await list(SystemAdminModel, { email: req.body.newEmail })
     if (checkExist.result.count > 0) {
       throw new MethodNotAllowedError('Email exist')
     }
-    const response = await readOne(AdminModel, { id: req.params.id }, { select: { password: 0, email: 0 } })
+    const response = await readOne(SystemAdminModel, { id: req.params.id }, { select: { password: 0, email: 0 } })
     const payload = {
       type: 'verfiy-email',
       user: response.result,
@@ -159,7 +159,7 @@ export default async ({
 
   apiServer.patch('/v1/system-admins/:id/email-confirm', async req => {
     const data = await allowAccessTo(req, secrets, [{ type: 'verfiy-email', user: { _id: req.params.id } }])
-    await patchOne(AdminModel, { id: req.params.id }, { email: data.newEmail })
+    await patchOne(SystemAdminModel, { id: req.params.id }, { email: data.newEmail })
     return {
       status: 200,
       result: {
@@ -178,7 +178,7 @@ export default async ({
     }
 
     const result = await s3.upload(uploadParams).promise()
-    await patchOne(AdminModel, { id: req.params.id }, { profilePicture: process.env.CDN_BASE_URL + result.Key })
+    await patchOne(SystemAdminModel, { id: req.params.id }, { profilePicture: process.env.CDN_BASE_URL + result.Key })
     return {
       status: 200,
       result: {
@@ -189,14 +189,14 @@ export default async ({
 
   apiServer.delete('/v1/system-admins/:id/profile-picture', async req => {
     allowAccessTo(req, secrets, [{ type: 'admin', user: { _id: req.params.id } }])
-    const userData = await readOne(AdminModel, { id: req.params.id }, { select: { password: 0, email: 0 } })
+    const userData = await readOne(SystemAdminModel, { id: req.params.id }, { select: { password: 0, email: 0 } })
     const key = userData.result.profilePicture.substring(userData.result.profilePicture.lastIndexOf('/') + 1)
 
     await s3.deleteObject({
       Bucket: process.env.AWS_BUCKET_NAME,
       Key: `${process.env.AWS_FOLDER_NAME}/${key}`
     }).promise()
-    await patchOne(AdminModel, { id: req.params.id }, { profilePicture: null })
+    await patchOne(SystemAdminModel, { id: req.params.id }, { profilePicture: null })
     return {
       status: 200,
       result: {

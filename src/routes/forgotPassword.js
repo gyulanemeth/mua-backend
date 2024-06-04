@@ -6,7 +6,7 @@ import { list, patchOne, readOne } from 'mongoose-crudl'
 import allowAccessTo from 'bearer-jwt-auth'
 import { ValidationError, AuthenticationError } from 'standard-api-errors'
 
-export default ({ apiServer, UserModel, AdminModel, AccountModel }) => {
+export default ({ apiServer, UserModel, SystemAdminModel, AccountModel }) => {
   const secrets = process.env.SECRETS.split(' ')
   const sendForgotPassword = async (url, email, token, type) => {
     const response = await fetch(url, {
@@ -49,7 +49,7 @@ export default ({ apiServer, UserModel, AdminModel, AccountModel }) => {
     }
 
     const token = jwt.sign(payload, secrets[0], { expiresIn: '24h' })
-    const mail = await sendForgotPassword(process.env.ACCOUNT_BLUEFOX_FORGOT_PASSWORD_TEMPLATE, response.result.items[0].email, token, 'system-accounts-forgot-password')
+    const mail = await sendForgotPassword(process.env.BLUEFOX_TEMPLATE_ACCOUNT_FORGOT_PASSWORD, response.result.items[0].email, token, 'system-accounts-forgot-password')
     return {
       status: 200,
       result: {
@@ -60,7 +60,7 @@ export default ({ apiServer, UserModel, AdminModel, AccountModel }) => {
   })
 
   apiServer.post('/v1/system-admins/forgot-password/send', async req => {
-    const response = await list(AdminModel, req.body, { select: { password: 0 } })
+    const response = await list(SystemAdminModel, req.body, { select: { password: 0 } })
     if (response.result.count === 0) {
       throw new AuthenticationError('Check user name')
     }
@@ -72,7 +72,7 @@ export default ({ apiServer, UserModel, AdminModel, AccountModel }) => {
       }
     }
     const token = jwt.sign(payload, secrets[0], { expiresIn: '24h' })
-    const mail = await sendForgotPassword(process.env.ADMIN_BLUEFOX_FORGOT_PASSWORD_TEMPLATE, response.result.items[0].email, token, 'system-admins-forgot-password')
+    const mail = await sendForgotPassword(process.env.BLUEFOX_TEMPLATE_ADMIN_FORGOT_PASSWORD, response.result.items[0].email, token, 'system-admins-forgot-password')
     return {
       status: 200,
       result: {
@@ -118,7 +118,7 @@ export default ({ apiServer, UserModel, AdminModel, AccountModel }) => {
       throw new ValidationError("Validation error passwords didn't match ")
     }
     const hash = crypto.createHash('md5').update(req.body.newPassword).digest('hex')
-    const updatedAdmin = await patchOne(AdminModel, { id: data.user._id, email: data.user.email }, { password: hash })
+    const updatedAdmin = await patchOne(SystemAdminModel, { id: data.user._id, email: data.user.email }, { password: hash })
     const payload = {
       type: 'login',
       user: {

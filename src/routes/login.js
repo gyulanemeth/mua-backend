@@ -6,11 +6,11 @@ import allowAccessTo from 'bearer-jwt-auth'
 import { AuthenticationError } from 'standard-api-errors'
 
 export default ({
-  apiServer, UserModel, AccountModel, AdminModel
+  apiServer, UserModel, AccountModel, SystemAdminModel
 }) => {
   const secrets = process.env.SECRETS.split(' ')
   const sendLogin = async (email, token) => {
-    const url = process.env.ACCOUNT_BLUEFOX_LOGIN_SELECT_TEMPLATE
+    const url = process.env.BLUEFOX_TEMPLATE_ACCOUNT_LOGIN_SELECT
     const response = await fetch(url, {
       method: 'POST',
       headers: {
@@ -123,7 +123,7 @@ export default ({
   apiServer.post('/v1/system-admins/login', async req => {
     req.body.email = req.body.email.toLowerCase()
     req.body.password = crypto.createHash('md5').update(req.body.password).digest('hex')
-    const findUser = await list(AdminModel, { email: req.body.email, password: req.body.password }, { select: { password: 0 } })
+    const findUser = await list(SystemAdminModel, { email: req.body.email, password: req.body.password }, { select: { password: 0 } })
 
     if (findUser.result.count === 0) {
       throw new AuthenticationError('Invalid email or password')
