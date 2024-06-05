@@ -1,6 +1,6 @@
 {
-  "name": "mua-accounts-api",
-  "version": "0.0.1",
+  "name": "mua-backend",
+  "version": "0.0.3",
   "description": "",
   "type": "module",
   "main": "src/index.js",
