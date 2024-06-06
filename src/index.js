@@ -8,7 +8,8 @@ import systemAdmins from './routes/systemAdmins.js'
 export default ({
   apiServer, UserModel, AccountModel, SystemAdminModel, hooks =
   {
-    deleteAccount: { post: (params) => { } }
+    deleteAccount: { post: (params) => { } },
+    createAccount: { post: (params) => { } }
   }
 }) => {
   systemAdmins({ apiServer, SystemAdminModel })

@@ -14,12 +14,12 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/gyulanemeth/mua-accounts-api.git"
+    "url": "git+https://github.com/gyulanemeth/mua-backend.git"
   },
   "bugs": {
-    "url": "https://github.com/gyulanemeth/mua-accounts-api/issues"
+    "url": "https://github.com/gyulanemeth/mua-backend/issues"
   },
-  "homepage": "https://github.com/gyulanemeth/mua-accounts-api#readme",
+  "homepage": "https://github.com/gyulanemeth/mua-backend#readme",
   "dependencies": {
     "@aws-sdk/client-ses": "^3.131.0",
     "aws-sdk": "^2.1216.0",

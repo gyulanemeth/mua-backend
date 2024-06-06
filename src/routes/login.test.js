@@ -23,7 +23,8 @@ const UserTestModel = mongoose.model('UserTest', new mongoose.Schema({
   password: { type: String },
   role: { type: String, default: 'user', enum: ['user', 'admin'] },
   accountId: { type: mongoose.Schema.Types.ObjectId, ref: 'Account', required: true },
-  profilePicture: { type: String }
+  profilePicture: { type: String },
+  verified: { type: Boolean, default: false }
 }, { timestamps: true }))
 
 const SystemAdminTestModel = mongoose.model('SystemAdminTest', new mongoose.Schema({
@@ -98,11 +99,11 @@ describe('Accounts login test ', () => {
     await account1.save()
 
     const hash1 = crypto.createHash('md5').update('user1Password').digest('hex')
-    const user1 = new UserTestModel({ email: 'user1@gmail.com', name: 'user1', password: hash1, accountId: account1._id })
+    const user1 = new UserTestModel({ email: 'user1@gmail.com', name: 'user1', password: hash1, accountId: account1._id, verified: true })
     await user1.save()
 
     const hash2 = crypto.createHash('md5').update('user2Password').digest('hex')
-    const user2 = new UserTestModel({ email: 'user2@gmail.com', name: 'user2', password: hash2, accountId: account1._id })
+    const user2 = new UserTestModel({ email: 'user2@gmail.com', name: 'user2', password: hash2, accountId: account1._id, verified: true })
     await user2.save()
 
     const token = jwt.sign({ type: 'login', user: { email: user1.email } }, secrets[0])
@@ -115,7 +116,14 @@ describe('Accounts login test ', () => {
     expect(res.body.status).toBe(200)
   })
 
-  test('success login with urlFriendlyName  ', async () => {
+  test('unverified user login with valid password ', async () => {
+    const fetchSpy = vi.spyOn(global, 'fetch')
+    fetchSpy.mockResolvedValue({
+      ok: true,
+      headers: { get: () => 'application/json' },
+      json: () => Promise.resolve({ result: { success: true }, status: 200 })
+    })
+
     const account1 = new AccountTestModel({ name: 'accountExample1', urlFriendlyName: 'urlFriendlyNameExample1' })
     await account1.save()
 
@@ -124,7 +132,60 @@ describe('Accounts login test ', () => {
     await user1.save()
 
     const hash2 = crypto.createHash('md5').update('user2Password').digest('hex')
-    const user2 = new UserTestModel({ email: 'user2@gmail.com', name: 'user2', password: hash2, accountId: account1._id })
+    const user2 = new UserTestModel({ email: 'user2@gmail.com', name: 'user2', password: hash2, accountId: account1._id, verified: true })
+    await user2.save()
+
+    const token = jwt.sign({ type: 'login', user: { email: user1.email } }, secrets[0])
+
+    const res = await request(app)
+      .post('/v1/accounts/' + account1._id + '/login')
+      .set('authorization', 'Bearer ' + token)
+      .send({ password: 'user1Password' })
+
+    expect(res.body.status).toBe(405)
+    await fetchSpy.mockRestore()
+  })
+
+  test('unverified user resend email error ', async () => {
+    const fetchSpy = vi.spyOn(global, 'fetch')
+    fetchSpy.mockResolvedValue({
+      ok: true,
+      headers: { get: () => 'application/json' },
+      json: () => Promise.resolve({ error: { name: 'error', message: 'error test' }, status: 400 })
+    })
+
+    const account1 = new AccountTestModel({ name: 'accountExample1', urlFriendlyName: 'urlFriendlyNameExample1' })
+    await account1.save()
+
+    const hash1 = crypto.createHash('md5').update('user1Password').digest('hex')
+    const user1 = new UserTestModel({ email: 'user1@gmail.com', name: 'user1', password: hash1, accountId: account1._id })
+    await user1.save()
+
+    const hash2 = crypto.createHash('md5').update('user2Password').digest('hex')
+    const user2 = new UserTestModel({ email: 'user2@gmail.com', name: 'user2', password: hash2, accountId: account1._id, verified: true })
+    await user2.save()
+
+    const token = jwt.sign({ type: 'login', user: { email: user1.email } }, secrets[0])
+
+    const res = await request(app)
+      .post('/v1/accounts/' + account1._id + '/login')
+      .set('authorization', 'Bearer ' + token)
+      .send({ password: 'user1Password' })
+
+    expect(res.body.status).toBe(400)
+    await fetchSpy.mockRestore()
+  })
+
+  test('success login with urlFriendlyName  ', async () => {
+    const account1 = new AccountTestModel({ name: 'accountExample1', urlFriendlyName: 'urlFriendlyNameExample1' })
+    await account1.save()
+
+    const hash1 = crypto.createHash('md5').update('user1Password').digest('hex')
+    const user1 = new UserTestModel({ email: 'user1@gmail.com', name: 'user1', password: hash1, accountId: account1._id, verified: true })
+    await user1.save()
+
+    const hash2 = crypto.createHash('md5').update('user2Password').digest('hex')
+    const user2 = new UserTestModel({ email: 'user2@gmail.com', name: 'user2', password: hash2, accountId: account1._id, verified: true })
     await user2.save()
 
     const token = jwt.sign({ type: 'login', user: { email: user1.email }, account: { urlFriendlyName: 'urlFriendlyName1' } }, secrets[0])
@@ -135,6 +196,36 @@ describe('Accounts login test ', () => {
       .send({ password: 'user1Password', email: user1.email })
 
     expect(res.body.status).toBe(200)
+  })
+
+  test('unverified user login with urlFriendlyName  ', async () => {
+    const fetchSpy = vi.spyOn(global, 'fetch')
+    fetchSpy.mockResolvedValue({
+      ok: true,
+      headers: { get: () => 'application/json' },
+      json: () => Promise.resolve({ result: { success: true }, status: 200 })
+    })
+
+    const account1 = new AccountTestModel({ name: 'accountExample1', urlFriendlyName: 'urlFriendlyNameExample1' })
+    await account1.save()
+
+    const hash1 = crypto.createHash('md5').update('user1Password').digest('hex')
+    const user1 = new UserTestModel({ email: 'user1@gmail.com', name: 'user1', password: hash1, accountId: account1._id })
+    await user1.save()
+
+    const hash2 = crypto.createHash('md5').update('user2Password').digest('hex')
+    const user2 = new UserTestModel({ email: 'user2@gmail.com', name: 'user2', password: hash2, accountId: account1._id, verified: true })
+    await user2.save()
+
+    const token = jwt.sign({ type: 'login', user: { email: user1.email }, account: { urlFriendlyName: 'urlFriendlyName1' } }, secrets[0])
+
+    const res = await request(app)
+      .post('/v1/accounts/' + account1.urlFriendlyName + '/login/url-friendly-name')
+      .set('authorization', 'Bearer ' + token)
+      .send({ password: 'user1Password', email: user1.email })
+
+    expect(res.body.status).toBe(405)
+    await fetchSpy.mockRestore()
   })
 
   test('error login with urlFriendlyName unexist urlFriendlyName  ', async () => {
