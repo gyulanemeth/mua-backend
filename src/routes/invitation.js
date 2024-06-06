@@ -39,7 +39,7 @@ export default ({
     if (checkUser.result.count !== 0) {
       throw new MethodNotAllowedError('User exist')
     }
-    const newUser = await createOne(UserModel, req.params, { email: req.body.email, accountId: req.params.id })
+    const newUser = await createOne(UserModel, req.params, { email: req.body.email, accountId: req.params.id, verified: true })
     const payload = {
       type: 'invitation',
       user: {
@@ -54,7 +54,7 @@ export default ({
     const token = jwt.sign(payload, secrets[0], { expiresIn: '24h' })
     let mail
     try {
-      mail = await sendInvitation(process.env.BLUEFOX_TEMPLATE_ADMIN_INVITATION, newUser.result.email, token, 'system-accounts-invitation')
+      mail = await sendInvitation(process.env.BLUEFOX_TEMPLATE_ADMIN_INVITATION, newUser.result.email, token, 'accounts/invitation')
     } catch (e) {
       await deleteOne(UserModel, { id: newUser.result._id, accountId: checkAccount.result._id })
       throw e
@@ -86,7 +86,7 @@ export default ({
     const token = jwt.sign(payload, secrets[0], { expiresIn: '24h' })
     let mail
     try {
-      mail = await sendInvitation(process.env.BLUEFOX_TEMPLATE_ADMIN_INVITATION, newAdmin.result.email, token, 'system-admins-invitation')
+      mail = await sendInvitation(process.env.BLUEFOX_TEMPLATE_ADMIN_INVITATION, newAdmin.result.email, token, 'system-admins/invitation')
     } catch (e) {
       await deleteOne(SystemAdminModel, { id: newAdmin.result._id })
       throw e
@@ -125,7 +125,7 @@ export default ({
       }
     }
     const token = jwt.sign(payload, secrets[0], { expiresIn: '24h' })
-    const mail = await sendInvitation(process.env.BLUEFOX_TEMPLATE_ADMIN_INVITATION, getUser.result.items[0].email, token, 'system-accounts-invitation')
+    const mail = await sendInvitation(process.env.BLUEFOX_TEMPLATE_ADMIN_INVITATION, getUser.result.items[0].email, token, 'accounts/invitation')
     return {
       status: 200,
       result: {
@@ -152,7 +152,7 @@ export default ({
       }
     }
     const token = jwt.sign(payload, secrets[0], { expiresIn: '24h' })
-    const mail = await sendInvitation(process.env.BLUEFOX_TEMPLATE_ADMIN_INVITATION, response.result.items[0].email, token, 'system-admins-invitation')
+    const mail = await sendInvitation(process.env.BLUEFOX_TEMPLATE_ADMIN_INVITATION, response.result.items[0].email, token, 'system-admins/invitation')
     return {
       status: 201,
       result: {

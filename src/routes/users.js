@@ -91,7 +91,7 @@ export default async ({
       }
     }
     const token = jwt.sign(payload, secrets[0], { expiresIn: '24h' })
-    const mail = await sendUserEmail(req.body.newEmail, `${process.env.APP_URL}system-accounts-verify-email?token=${token}`, process.env.BLUEFOX_TEMPLATE_ACCOUNT_VERIFY_EMAIL)
+    const mail = await sendUserEmail(req.body.newEmail, `${process.env.APP_URL}accounts/verify-email?token=${token}`, process.env.BLUEFOX_TEMPLATE_ACCOUNT_VERIFY_EMAIL)
     return {
       status: 200,
       result: {
@@ -176,7 +176,7 @@ export default async ({
 
   apiServer.post('/v1/accounts/:accountId/users/:id/finalize-registration', async req => {
     const data = allowAccessTo(req, secrets, [{ type: 'registration', user: { _id: req.params.id }, account: { _id: req.params.accountId } }])
-    const user = await patchOne(UserModel, { id: data.user._id, accountId: req.params.accountId }, { role: 'admin' })
+    const user = await patchOne(UserModel, { id: data.user._id, accountId: req.params.accountId }, { role: 'admin', verified: true })
     const payload = {
       type: 'login',
       user: {
@@ -212,7 +212,7 @@ export default async ({
       throw new MethodNotAllowedError('User exist')
     }
     const hash = crypto.createHash('md5').update(req.body.password).digest('hex')
-    const newUser = await createOne(UserModel, req.params, { name: req.body.name, email: req.body.email, password: hash, accountId: req.params.accountId })
+    const newUser = await createOne(UserModel, req.params, { name: req.body.name, email: req.body.email, password: hash, accountId: req.params.accountId, verified: true })
 
     return newUser
   })
@@ -271,7 +271,7 @@ export default async ({
       }
     }
     const token = jwt.sign(payload, secrets[0], { expiresIn: '24h' })
-    const mail = await sendUserEmail(getUser.result.email, `${process.env.APP_URL}system-accounts-finalize-registration?token=${token}`, process.env.BLUEFOX_TEMPLATE_ACCOUNT_FINALIZE_REGISTRATION)
+    const mail = await sendUserEmail(getUser.result.email, `${process.env.APP_URL}accounts/finalize-registration?token=${token}`, process.env.BLUEFOX_TEMPLATE_ACCOUNT_FINALIZE_REGISTRATION)
     return {
       status: 200,
       result: {

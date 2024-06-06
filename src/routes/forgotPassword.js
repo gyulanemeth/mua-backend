@@ -49,7 +49,7 @@ export default ({ apiServer, UserModel, SystemAdminModel, AccountModel }) => {
     }
 
     const token = jwt.sign(payload, secrets[0], { expiresIn: '24h' })
-    const mail = await sendForgotPassword(process.env.BLUEFOX_TEMPLATE_ACCOUNT_FORGOT_PASSWORD, response.result.items[0].email, token, 'system-accounts-forgot-password')
+    const mail = await sendForgotPassword(process.env.BLUEFOX_TEMPLATE_ACCOUNT_FORGOT_PASSWORD, response.result.items[0].email, token, 'accounts/forgot-password')
     return {
       status: 200,
       result: {
@@ -72,7 +72,7 @@ export default ({ apiServer, UserModel, SystemAdminModel, AccountModel }) => {
       }
     }
     const token = jwt.sign(payload, secrets[0], { expiresIn: '24h' })
-    const mail = await sendForgotPassword(process.env.BLUEFOX_TEMPLATE_ADMIN_FORGOT_PASSWORD, response.result.items[0].email, token, 'system-admins-forgot-password')
+    const mail = await sendForgotPassword(process.env.BLUEFOX_TEMPLATE_ADMIN_FORGOT_PASSWORD, response.result.items[0].email, token, 'system-admins/forgot-password')
     return {
       status: 200,
       result: {

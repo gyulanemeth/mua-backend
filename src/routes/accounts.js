@@ -28,7 +28,7 @@ export default async ({
       },
       body: JSON.stringify({
         email,
-        data: { href: `${process.env.APP_URL}system-accounts-finalize-registration?token=${token}` }
+        data: { href: `${process.env.APP_URL}accounts/finalize-registration?token=${token}` }
       })
     })
     const res = await response.json()

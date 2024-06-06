@@ -19,7 +19,7 @@ export default ({
       },
       body: JSON.stringify({
         email,
-        data: { href: `${process.env.APP_URL}system-accounts-login-select?token=${token}` }
+        data: { href: `${process.env.APP_URL}accounts/login-select?token=${token}` }
       })
     })
     const res = await response.json()
@@ -42,7 +42,7 @@ export default ({
       },
       body: JSON.stringify({
         email,
-        data: { href: `${process.env.APP_URL}system-accounts-finalize-registration?token=${token}` }
+        data: { href: `${process.env.APP_URL}accounts/finalize-registration?token=${token}` }
       })
     })
     const res = await response.json()
