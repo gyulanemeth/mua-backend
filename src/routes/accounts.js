@@ -12,7 +12,8 @@ import aws from '../helpers/awsBucket.js'
 export default async ({
   apiServer, UserModel, AccountModel, hooks =
   {
-    deleteAccount: { post: (params) => { } }
+    deleteAccount: { post: (params) => { } },
+    createAccount: { post: (params) => { } }
   }
 }) => {
   const secrets = process.env.SECRETS.split(' ')
@@ -27,7 +28,7 @@ export default async ({
       },
       body: JSON.stringify({
         email,
-        data: { href: `${process.env.APP_URL}system-accounts-finalize-registration?token=${token}` }
+        data: { href: `${process.env.APP_URL}accounts/finalize-registration?token=${token}` }
       })
     })
     const res = await response.json()
@@ -74,7 +75,11 @@ export default async ({
   apiServer.post('/v1/accounts/', async req => {
     allowAccessTo(req, secrets, [{ type: 'admin' }])
     const response = await createOne(AccountModel, req.params, req.body)
-    return response
+    let postRes
+    if (hooks.createAccount?.post) {
+      postRes = await hooks.createAccount.post(req.body, response.result)
+    }
+    return postRes || response
   })
 
   apiServer.get('/v1/accounts/:id', async req => { /// update user should be associated to account
@@ -138,7 +143,11 @@ export default async ({
     }
     const token = jwt.sign(payload, secrets[0], { expiresIn: '24h' })
     const mail = await sendRegistration(newUser.result.email, token)
-    return {
+    let postRes
+    if (hooks.createAccount?.post) {
+      postRes = await hooks.createAccount.post(req.body, newAccount.result)
+    }
+    return postRes || {
       status: 200,
       result: {
         newAccount: newAccount.result,

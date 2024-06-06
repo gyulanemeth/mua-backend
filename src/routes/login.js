@@ -3,7 +3,7 @@ import crypto from 'crypto'
 import { list, readOne } from 'mongoose-crudl'
 import jwt from 'jsonwebtoken'
 import allowAccessTo from 'bearer-jwt-auth'
-import { AuthenticationError } from 'standard-api-errors'
+import { AuthenticationError, MethodNotAllowedError } from 'standard-api-errors'
 
 export default ({
   apiServer, UserModel, AccountModel, SystemAdminModel
@@ -19,7 +19,30 @@ export default ({
       },
       body: JSON.stringify({
         email,
-        data: { href: `${process.env.APP_URL}system-accounts-login-select?token=${token}` }
+        data: { href: `${process.env.APP_URL}accounts/login-select?token=${token}` }
+      })
+    })
+    const res = await response.json()
+    if (res.status !== 200) {
+      const error = new Error(res.error.message)
+      error.status = res.status
+      error.name = res.error.name
+      throw error
+    }
+    return res
+  }
+
+  const sendRegistration = async (email, token) => {
+    const url = process.env.BLUEFOX_TEMPLATE_ACCOUNT_FINALIZE_REGISTRATION
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: 'Bearer ' + process.env.BLUEFOX_API_KEY
+      },
+      body: JSON.stringify({
+        email,
+        data: { href: `${process.env.APP_URL}accounts/finalize-registration?token=${token}` }
       })
     })
     const res = await response.json()
@@ -38,6 +61,21 @@ export default ({
     const findUser = await list(UserModel, { email: data.user.email, accountId: req.params.id, password: req.body.password }, req.query)
     if (findUser.result.count === 0) {
       throw new AuthenticationError('Invalid email or password')
+    }
+    if (!findUser.result.items[0].verified) {
+      const payload = {
+        type: 'registration',
+        user: {
+          _id: findUser.result.items[0]._id,
+          email: findUser.result.items[0].email
+        },
+        account: {
+          _id: req.params.id
+        }
+      }
+      const token = jwt.sign(payload, secrets[0], { expiresIn: '24h' })
+      await sendRegistration(findUser.result.items[0].email, token)
+      throw new MethodNotAllowedError('Please verify your email')
     }
     const getAccount = await readOne(AccountModel, { id: req.params.id }, req.query)
 
@@ -72,6 +110,21 @@ export default ({
       }
     } catch (error) {
       throw new AuthenticationError('Invalid urlFriendlyName, email or password ')
+    }
+    if (!findUser.result.items[0].verified) {
+      const payload = {
+        type: 'registration',
+        user: {
+          _id: findUser.result.items[0]._id,
+          email: findUser.result.items[0].email
+        },
+        account: {
+          _id: getAccount.result._id
+        }
+      }
+      const token = jwt.sign(payload, secrets[0], { expiresIn: '24h' })
+      await sendRegistration(findUser.result.items[0].email, token)
+      throw new MethodNotAllowedError('Please verify your email')
     }
     const payload = {
       type: 'login',

@@ -24,7 +24,7 @@ export default async ({
       },
       body: JSON.stringify({
         email,
-        data: { href: `${process.env.APP_URL}system-admins-verify-email?token=${token}` }
+        data: { href: `${process.env.APP_URL}system-admins/verify-email?token=${token}` }
       })
     })
     const res = await response.json()
