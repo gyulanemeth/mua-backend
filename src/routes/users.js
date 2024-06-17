@@ -103,11 +103,25 @@ export default async ({
 
   apiServer.patch('/v1/accounts/:accountId/users/:id/email-confirm', async req => {
     const data = await allowAccessTo(req, secrets, [{ type: 'verfiy-email', user: { _id: req.params.id }, account: { _id: req.params.accountId } }])
-    await patchOne(UserModel, { id: req.params.id }, { email: data.newEmail })
+    const user = await patchOne(UserModel, { id: req.params.id }, { email: data.newEmail })
+    const payload = {
+      type: 'user',
+      user: {
+        _id: user.result._id,
+        email: user.result.email
+      },
+      account: {
+        _id: user.result.accountId
+      },
+      role: user.result.role
+    }
+    const token = jwt.sign(payload, secrets[0], { expiresIn: '24h' })
+
     return {
       status: 200,
       result: {
-        success: true
+        success: true,
+        accessToken: token
       }
     }
   })

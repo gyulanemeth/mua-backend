@@ -119,7 +119,7 @@ export default ({
           email: findUser.result.items[0].email
         },
         account: {
-          _id: getAccount.result._id
+          _id: getAccount.result.items[0]._id
         }
       }
       const token = jwt.sign(payload, secrets[0], { expiresIn: '24h' })
