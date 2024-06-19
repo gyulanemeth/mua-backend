@@ -63,7 +63,7 @@ export default async ({
 
     const user = await readOne(UserModel, { id: req.params.id, accountId: req.params.accountId }, { select: { password: 0 } })
     if (user.result.role === 'admin') {
-      const admin = await list(UserModel, { role: 'admin' }, { select: { password: 0 } })
+      const admin = await list(UserModel, { accountId: req.params.accountId, role: 'admin' }, { select: { password: 0 } })
       if (admin.result.count < 2) {
         throw new MethodNotAllowedError('Removing the last admin is not allowed')
       }
@@ -130,7 +130,7 @@ export default async ({
     allowAccessTo(req, secrets, [{ type: 'delete' }])
     let user = await readOne(UserModel, { id: req.params.id, accountId: req.params.accountId })
     if (user.result.role === 'admin') {
-      const admin = await list(UserModel, { role: 'admin' }, { select: { password: 0 } })
+      const admin = await list(UserModel, { accountId: req.params.accountId, role: 'admin' }, { select: { password: 0 } })
       if (admin.result.count < 2) {
         throw new MethodNotAllowedError('Removing the last admin is not allowed')
       }
