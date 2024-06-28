@@ -18,7 +18,7 @@ export default async ({
 }) => {
   const secrets = process.env.SECRETS.split(' ')
   const s3 = await aws()
-  const sendRegistration = async (email, token) => {
+  const sendRegistration = async (email, data) => {
     const url = process.env.BLUEFOX_TEMPLATE_ACCOUNT_FINALIZE_REGISTRATION
     const response = await fetch(url, {
       method: 'POST',
@@ -28,7 +28,7 @@ export default async ({
       },
       body: JSON.stringify({
         email,
-        data: { href: `${process.env.APP_URL}accounts/finalize-registration?token=${token}` }
+        data
       })
     })
     const res = await response.json()
@@ -142,7 +142,7 @@ export default async ({
       }
     }
     const token = jwt.sign(payload, secrets[0], { expiresIn: '24h' })
-    const mail = await sendRegistration(newUser.result.email, token)
+    const mail = await sendRegistration(newUser.result.email, { link: `${process.env.APP_URL}accounts/finalize-registration?token=${token}`, name: newUser.result.name })
     let postRes
     if (hooks.createAccount?.post) {
       postRes = await hooks.createAccount.post(req.body, newAccount.result)

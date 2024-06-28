@@ -9,7 +9,7 @@ export default ({
   apiServer, UserModel, AccountModel, SystemAdminModel
 }) => {
   const secrets = process.env.SECRETS.split(' ')
-  const sendInvitation = async (url, email, token, type) => {
+  const sendInvitation = async (url, email, data) => {
     const response = await fetch(url, {
       method: 'POST',
       headers: {
@@ -18,7 +18,7 @@ export default ({
       },
       body: JSON.stringify({
         email,
-        data: { href: `${process.env.APP_URL}${type}/accept?token=${token}` }
+        data
       })
     })
     const res = await response.json()
@@ -32,7 +32,7 @@ export default ({
   }
 
   apiServer.post('/v1/accounts/:id/invitation/send', async req => {
-    allowAccessTo(req, secrets, [{ type: 'admin' }, { type: 'user', role: 'admin' }])
+    const tokenData = await allowAccessTo(req, secrets, [{ type: 'admin' }, { type: 'user', role: 'admin' }])
     const checkAccount = await readOne(AccountModel, { id: req.params.id }, req.query)
 
     const checkUser = await list(UserModel, { email: req.body.email, accountId: req.params.id }, req.query)
@@ -52,9 +52,15 @@ export default ({
       }
     }
     const token = jwt.sign(payload, secrets[0], { expiresIn: '24h' })
+    let inviterData
+    if (tokenData.type === 'user') {
+      inviterData = await readOne(UserModel, { id: tokenData.user._id })
+    } else {
+      inviterData = await readOne(SystemAdminModel, { id: tokenData.user._id })
+    }
     let mail
     try {
-      mail = await sendInvitation(process.env.BLUEFOX_TEMPLATE_ADMIN_INVITATION, newUser.result.email, token, 'accounts/invitation')
+      mail = await sendInvitation(process.env.BLUEFOX_TEMPLATE_ADMIN_INVITATION, newUser.result.email, { link: `${process.env.APP_URL}accounts/invitation/accept?token=${token}`, inviter: inviterData.result.name, accountName: checkAccount.result.name })
     } catch (e) {
       await deleteOne(UserModel, { id: newUser.result._id, accountId: checkAccount.result._id })
       throw e
@@ -69,12 +75,13 @@ export default ({
   })
 
   apiServer.post('/v1/system-admins/invitation/send', async req => {
-    allowAccessTo(req, secrets, [{ type: 'admin' }])
+    const tokenData = await allowAccessTo(req, secrets, [{ type: 'admin' }])
     const response = await list(SystemAdminModel, req.body, { select: { password: 0 } })
     if (response.result.count !== 0) {
       throw new MethodNotAllowedError('User exist')
     }
     const newAdmin = await createOne(SystemAdminModel, req.body, req.query)
+    const inviterData = await readOne(SystemAdminModel, { id: tokenData.user._id })
 
     const payload = {
       type: 'invitation',
@@ -86,7 +93,7 @@ export default ({
     const token = jwt.sign(payload, secrets[0], { expiresIn: '24h' })
     let mail
     try {
-      mail = await sendInvitation(process.env.BLUEFOX_TEMPLATE_ADMIN_INVITATION, newAdmin.result.email, token, 'system-admins/invitation')
+      mail = await sendInvitation(process.env.BLUEFOX_TEMPLATE_ADMIN_INVITATION, newAdmin.result.email, { link: `${process.env.APP_URL}system-admins/invitation/accept?token=${token}`, inviter: inviterData.result.name })
     } catch (e) {
       await deleteOne(SystemAdminModel, { id: newAdmin.result._id })
       throw e
@@ -101,7 +108,7 @@ export default ({
   })
 
   apiServer.post('/v1/accounts/:id/invitation/resend', async req => {
-    allowAccessTo(req, secrets, [{ type: 'admin' }, { type: 'user', role: 'admin' }])
+    const tokenData = await allowAccessTo(req, secrets, [{ type: 'admin' }, { type: 'user', role: 'admin' }])
     const getAccount = await readOne(AccountModel, { id: req.params.id }, req.query)
 
     const getUser = await list(UserModel, { email: req.body.email, accountId: req.params.id }, req.query)
@@ -124,8 +131,14 @@ export default ({
         urlFriendlyName: getAccount.result.urlFriendlyName
       }
     }
+    let inviterData
+    if (tokenData.type === 'user') {
+      inviterData = await readOne(UserModel, { id: tokenData.user._id })
+    } else {
+      inviterData = await readOne(SystemAdminModel, { id: tokenData.user._id })
+    }
     const token = jwt.sign(payload, secrets[0], { expiresIn: '24h' })
-    const mail = await sendInvitation(process.env.BLUEFOX_TEMPLATE_ADMIN_INVITATION, getUser.result.items[0].email, token, 'accounts/invitation')
+    const mail = await sendInvitation(process.env.BLUEFOX_TEMPLATE_ADMIN_INVITATION, getUser.result.items[0].email, { link: `${process.env.APP_URL}accounts/invitation/accept?token=${token}`, inviter: inviterData.result.name, accountName: getAccount.result.name })
     return {
       status: 200,
       result: {
@@ -136,7 +149,7 @@ export default ({
   })
 
   apiServer.post('/v1/system-admins/invitation/resend', async req => {
-    allowAccessTo(req, secrets, [{ type: 'admin' }])
+    const tokenData = await allowAccessTo(req, secrets, [{ type: 'admin' }])
     const response = await list(SystemAdminModel, req.body, { select: { password: 0 } })
     if (response.result.count === 0) {
       throw new MethodNotAllowedError("User dosen't exist")
@@ -151,8 +164,10 @@ export default ({
         email: response.result.items[0].email
       }
     }
+
+    const inviterData = await readOne(SystemAdminModel, { id: tokenData.user._id })
     const token = jwt.sign(payload, secrets[0], { expiresIn: '24h' })
-    const mail = await sendInvitation(process.env.BLUEFOX_TEMPLATE_ADMIN_INVITATION, response.result.items[0].email, token, 'system-admins/invitation')
+    const mail = await sendInvitation(process.env.BLUEFOX_TEMPLATE_ADMIN_INVITATION, response.result.items[0].email, { link: `${process.env.APP_URL}system-admins/invitation/accept?token=${token}`, inviter: inviterData.result.name })
     return {
       status: 201,
       result: {
@@ -163,7 +178,7 @@ export default ({
   })
 
   apiServer.post('/v1/accounts/:id/invitation/accept', async req => {
-    const data = allowAccessTo(req, secrets, [{ type: 'invitation', account: { _id: req.params.id } }])
+    const data = await allowAccessTo(req, secrets, [{ type: 'invitation', account: { _id: req.params.id } }])
 
     const user = await readOne(UserModel, { id: data.user._id, email: data.user.email, accountId: req.params.id }, req.query)
 

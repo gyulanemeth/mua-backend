@@ -107,6 +107,10 @@ describe('Accounts invitation test', () => {
     const account1 = new AccountTestModel({ name: 'accountExample1', urlFriendlyName: 'urlFriendlyNameExample1' })
     await account1.save()
 
+    const adminHash = crypto.createHash('md5').update('user1Password').digest('hex')
+    const admin1 = new SystemAdminTestModel({ email: 'admin1@gmail.com', name: 'user1', password: adminHash })
+    await admin1.save()
+
     const hash1 = crypto.createHash('md5').update('user1Password').digest('hex')
     const user1 = new UserTestModel({ email: 'user1@gmail.com', name: 'user1', password: hash1, accountId: account1._id })
     await user1.save()
@@ -115,7 +119,7 @@ describe('Accounts invitation test', () => {
     const user2 = new UserTestModel({ email: 'user2@gmail.com', name: 'user2', password: hash2, accountId: account1._id })
     await user2.save()
 
-    const token = jwt.sign({ type: 'admin' }, secrets[0])
+    const token = jwt.sign({ type: 'admin', user: { _id: admin1._id } }, secrets[0])
 
     const res = await request(app)
       .post('/v1/accounts/' + account1._id + '/invitation/send').set('authorization', 'Bearer ' + token).send({ email: 'user3@gmail.com' })
@@ -137,14 +141,14 @@ describe('Accounts invitation test', () => {
     await account1.save()
 
     const hash1 = crypto.createHash('md5').update('user1Password').digest('hex')
-    const user1 = new UserTestModel({ email: 'user1@gmail.com', name: 'user1', password: hash1, accountId: account1._id })
+    const user1 = new UserTestModel({ email: 'user1@gmail.com', role: 'admin', name: 'user1', password: hash1, accountId: account1._id })
     await user1.save()
 
     const hash2 = crypto.createHash('md5').update('user2Password').digest('hex')
     const user2 = new UserTestModel({ email: 'user2@gmail.com', name: 'user2', password: hash2, accountId: account1._id })
     await user2.save()
 
-    const token = jwt.sign({ type: 'admin' }, secrets[0])
+    const token = jwt.sign({ type: 'user', role: 'admin', user: { _id: user1._id } }, secrets[0])
 
     const res = await request(app)
       .post('/v1/accounts/' + account1._id + '/invitation/send').set('authorization', 'Bearer ' + token).send({ email: 'user3@gmail.com' })
@@ -168,10 +172,42 @@ describe('Accounts invitation test', () => {
     await user1.save()
 
     const hash2 = crypto.createHash('md5').update('user2Password').digest('hex')
-    const user2 = new UserTestModel({ email: 'user2@gmail.com', name: 'user2', password: hash2, accountId: account1._id })
+    const user2 = new UserTestModel({ email: 'user2@gmail.com', name: 'user2', role: 'admin', password: hash2, accountId: account1._id })
     await user2.save()
 
-    const token = jwt.sign({ type: 'admin' }, secrets[0])
+    const token = jwt.sign({ type: 'user', role: 'admin', user: { _id: user2._id } }, secrets[0])
+
+    const res = await request(app)
+      .post('/v1/accounts/' + account1._id + '/invitation/resend').set('authorization', 'Bearer ' + token).send({ email: 'user1@gmail.com' })
+
+    expect(res.body.status).toBe(200)
+    expect(res.body.result.success).toBe(true)
+    await fetchSpy.mockRestore()
+  })
+
+  test('success resend invitation by admin /v1/accounts/:accountId/invitation/resend', async () => {
+    const fetchSpy = vi.spyOn(global, 'fetch')
+    fetchSpy.mockResolvedValue({
+      ok: true,
+      headers: { get: () => 'application/json' },
+      json: () => Promise.resolve({ result: { success: true }, status: 200 })
+    })
+
+    const account1 = new AccountTestModel({ name: 'accountExample1', urlFriendlyName: 'urlFriendlyNameExample1' })
+    await account1.save()
+
+    const adminHash = crypto.createHash('md5').update('user1Password').digest('hex')
+    const admin1 = new SystemAdminTestModel({ email: 'admin1@gmail.com', name: 'user1', password: adminHash })
+    await admin1.save()
+
+    const user1 = new UserTestModel({ email: 'user1@gmail.com', accountId: account1._id })
+    await user1.save()
+
+    const hash2 = crypto.createHash('md5').update('user2Password').digest('hex')
+    const user2 = new UserTestModel({ email: 'user2@gmail.com', name: 'user2', role: 'admin', password: hash2, accountId: account1._id })
+    await user2.save()
+
+    const token = jwt.sign({ type: 'admin', user: { _id: admin1._id } }, secrets[0])
 
     const res = await request(app)
       .post('/v1/accounts/' + account1._id + '/invitation/resend').set('authorization', 'Bearer ' + token).send({ email: 'user1@gmail.com' })
@@ -195,14 +231,14 @@ describe('Accounts invitation test', () => {
     await account1.save()
 
     const hash1 = crypto.createHash('md5').update('user1Password').digest('hex')
-    const user1 = new UserTestModel({ email: 'user1@gmail.com', name: 'user1', password: hash1, accountId: account1._id })
+    const user1 = new UserTestModel({ email: 'user1@gmail.com', name: 'user1', role: 'admin', password: hash1, accountId: account1._id })
     await user1.save()
 
     const hash2 = crypto.createHash('md5').update('user2Password').digest('hex')
     const user2 = new UserTestModel({ email: 'user2@gmail.com', name: 'user2', password: hash2, accountId: account1._id })
     await user2.save()
 
-    const token = jwt.sign({ type: 'user', role: 'admin' }, secrets[0])
+    const token = jwt.sign({ type: 'user', role: 'admin', user: { _id: user1._id } }, secrets[0])
 
     const res = await request(app)
       .post('/v1/accounts/' + account1._id + '/invitation/send').set('authorization', 'Bearer ' + token).send({ email: 'user3@gmail.com' })
@@ -224,7 +260,7 @@ describe('Accounts invitation test', () => {
     const user2 = new UserTestModel({ email: 'user2@gmail.com', name: 'user2', password: hash2, accountId: account1._id })
     await user2.save()
 
-    const token = jwt.sign({ type: 'admin' }, secrets[0])
+    const token = jwt.sign({ type: 'admin', user: { _id: user1._id } }, secrets[0])
 
     const res = await request(app)
       .post('/v1/accounts/' + account1._id + '/invitation/send').set('authorization', 'Bearer ' + token).send({ email: 'user1@gmail.com' })
@@ -244,7 +280,7 @@ describe('Accounts invitation test', () => {
     const user2 = new UserTestModel({ email: 'user2@gmail.com', name: 'user2', password: hash2, accountId: account1._id })
     await user2.save()
 
-    const token = jwt.sign({ type: 'admin' }, secrets[0])
+    const token = jwt.sign({ type: 'admin', user: { _id: user1._id } }, secrets[0])
 
     const res = await request(app)
       .post('/v1/accounts/' + account1._id + '/invitation/resend').set('authorization', 'Bearer ' + token).send({ email: 'user1@gmail.com' })
@@ -264,7 +300,7 @@ describe('Accounts invitation test', () => {
     const user2 = new UserTestModel({ email: 'user2@gmail.com', name: 'user2', password: hash2, accountId: account1._id })
     await user2.save()
 
-    const token = jwt.sign({ type: 'admin' }, secrets[0])
+    const token = jwt.sign({ type: 'admin', user: { _id: user1._id } }, secrets[0])
 
     const res = await request(app)
       .post('/v1/accounts/' + account1._id + '/invitation/resend').set('authorization', 'Bearer ' + token).send({ email: 'user3@gmail.com' })
@@ -276,6 +312,10 @@ describe('Accounts invitation test', () => {
     const account1 = new AccountTestModel({ name: 'accountExample1', urlFriendlyName: 'urlFriendlyNameExample1' })
     await account1.save()
 
+    const adminHash = crypto.createHash('md5').update('user1Password').digest('hex')
+    const admin1 = new SystemAdminTestModel({ email: 'admin1@gmail.com', name: 'user1', password: adminHash })
+    await admin1.save()
+
     const hash1 = crypto.createHash('md5').update('user1Password').digest('hex')
     const user1 = new UserTestModel({ email: 'user1@gmail.com', name: 'user1', password: hash1, accountId: account1._id })
     await user1.save()
@@ -284,7 +324,7 @@ describe('Accounts invitation test', () => {
     const user2 = new UserTestModel({ email: 'user2@gmail.com', name: 'user2', password: hash2, accountId: account1._id })
     await user2.save()
 
-    const token = jwt.sign({ type: 'admin' }, secrets[0])
+    const token = jwt.sign({ type: 'admin', user: { _id: admin1._id } }, secrets[0])
     const fetchSpy = vi.spyOn(global, 'fetch')
     fetchSpy.mockRejectedValue(new Error('test mock send email error'))
     app = createApiServer((e) => {
@@ -475,7 +515,7 @@ describe('Accounts invitation test', () => {
     const user2 = new SystemAdminTestModel({ email: 'user2@gmail.com', name: 'user2', password: hash2 })
     await user2.save()
 
-    const token = jwt.sign({ type: 'admin' }, secrets[0])
+    const token = jwt.sign({ type: 'admin', user: { _id: user1._id } }, secrets[0])
 
     const res = await request(app)
       .post('/v1/system-admins/invitation/send').set('authorization', 'Bearer ' + token).send({ email: 'user3@gmail.com' })
@@ -501,7 +541,7 @@ describe('Accounts invitation test', () => {
     const user2 = new SystemAdminTestModel({ email: 'user2@gmail.com', name: 'user2', password: hash2 })
     await user2.save()
 
-    const token = jwt.sign({ type: 'admin' }, secrets[0])
+    const token = jwt.sign({ type: 'admin', user: { _id: user1._id } }, secrets[0])
 
     const res = await request(app)
       .post('/v1/system-admins/invitation/send').set('authorization', 'Bearer ' + token).send({ email: 'user3@gmail.com' })
@@ -525,7 +565,7 @@ describe('Accounts invitation test', () => {
     const user2 = new SystemAdminTestModel({ email: 'user2@gmail.com', name: 'user2', password: hash2 })
     await user2.save()
 
-    const token = jwt.sign({ type: 'admin' }, secrets[0])
+    const token = jwt.sign({ type: 'admin', user: { _id: user1._id } }, secrets[0])
 
     const res = await request(app)
       .post('/v1/system-admins/invitation/resend').set('authorization', 'Bearer ' + token).send({ email: 'user1@gmail.com' })
@@ -544,7 +584,7 @@ describe('Accounts invitation test', () => {
     const user2 = new SystemAdminTestModel({ email: 'user2@gmail.com', name: 'user2', password: hash2 })
     await user2.save()
 
-    const token = jwt.sign({ type: 'admin' }, secrets[0])
+    const token = jwt.sign({ type: 'admin', user: { _id: user1._id } }, secrets[0])
 
     const res = await request(app)
       .post('/v1/system-admins/invitation/send').set('authorization', 'Bearer ' + token).send({ email: 'user2@gmail.com' })
@@ -561,7 +601,7 @@ describe('Accounts invitation test', () => {
     const user2 = new SystemAdminTestModel({ email: 'user2@gmail.com', name: 'user2', password: hash2 })
     await user2.save()
 
-    const token = jwt.sign({ type: 'admin' }, secrets[0])
+    const token = jwt.sign({ type: 'admin', user: { _id: user1._id } }, secrets[0])
     const res = await request(app)
       .post('/v1/system-admins/invitation/resend').set('authorization', 'Bearer ' + token).send({ email: 'user3@gmail.com' })
 
@@ -577,7 +617,7 @@ describe('Accounts invitation test', () => {
     const user2 = new SystemAdminTestModel({ email: 'user2@gmail.com', name: 'user2', password: hash2 })
     await user2.save()
 
-    const token = jwt.sign({ type: 'admin' }, secrets[0])
+    const token = jwt.sign({ type: 'admin', user: { _id: user1._id } }, secrets[0])
     const res = await request(app)
       .post('/v1/system-admins/invitation/resend').set('authorization', 'Bearer ' + token).send({ email: 'user1@gmail.com' })
 
@@ -625,7 +665,7 @@ describe('Accounts invitation test', () => {
     invitation({ apiServer: app, UserModel: UserTestModel, AccountModel: AccountTestModel, SystemAdminModel: SystemAdminTestModel })
     app = app._expressServer
 
-    const token = jwt.sign({ type: 'admin' }, secrets[0])
+    const token = jwt.sign({ type: 'admin', user: { _id: user1._id } }, secrets[0])
 
     const res = await request(app)
       .post('/v1/system-admins/invitation/send').set('authorization', 'Bearer ' + token).send({ email: 'user3@gmail.com' })
@@ -801,7 +841,7 @@ describe('System admin invitation test', () => {
     const user2 = new SystemAdminTestModel({ email: 'user2@gmail.com', name: 'user2', password: hash2 })
     await user2.save()
 
-    const token = jwt.sign({ type: 'admin' }, secrets[0])
+    const token = jwt.sign({ type: 'admin', user: { _id: user1._id } }, secrets[0])
 
     const res = await request(app)
       .post('/v1/system-admins/invitation/send').set('authorization', 'Bearer ' + token).send({ email: 'user3@gmail.com' })
@@ -827,7 +867,7 @@ describe('System admin invitation test', () => {
     const user2 = new SystemAdminTestModel({ email: 'user2@gmail.com', name: 'user2', password: hash2 })
     await user2.save()
 
-    const token = jwt.sign({ type: 'admin' }, secrets[0])
+    const token = jwt.sign({ type: 'admin', user: { _id: user1._id } }, secrets[0])
 
     const res = await request(app)
       .post('/v1/system-admins/invitation/send').set('authorization', 'Bearer ' + token).send({ email: 'user3@gmail.com' })
@@ -851,7 +891,7 @@ describe('System admin invitation test', () => {
     const user2 = new SystemAdminTestModel({ email: 'user2@gmail.com', name: 'user2', password: hash2 })
     await user2.save()
 
-    const token = jwt.sign({ type: 'admin' }, secrets[0])
+    const token = jwt.sign({ type: 'admin', user: { _id: user1._id } }, secrets[0])
 
     const res = await request(app)
       .post('/v1/system-admins/invitation/resend').set('authorization', 'Bearer ' + token).send({ email: 'user1@gmail.com' })
@@ -870,7 +910,7 @@ describe('System admin invitation test', () => {
     const user2 = new SystemAdminTestModel({ email: 'user2@gmail.com', name: 'user2', password: hash2 })
     await user2.save()
 
-    const token = jwt.sign({ type: 'admin' }, secrets[0])
+    const token = jwt.sign({ type: 'admin', user: { _id: user1._id } }, secrets[0])
 
     const res = await request(app)
       .post('/v1/system-admins/invitation/send').set('authorization', 'Bearer ' + token).send({ email: 'user2@gmail.com' })
@@ -887,7 +927,7 @@ describe('System admin invitation test', () => {
     const user2 = new SystemAdminTestModel({ email: 'user2@gmail.com', name: 'user2', password: hash2 })
     await user2.save()
 
-    const token = jwt.sign({ type: 'admin' }, secrets[0])
+    const token = jwt.sign({ type: 'admin', user: { _id: user1._id } }, secrets[0])
     const res = await request(app)
       .post('/v1/system-admins/invitation/resend').set('authorization', 'Bearer ' + token).send({ email: 'user3@gmail.com' })
 
@@ -903,7 +943,7 @@ describe('System admin invitation test', () => {
     const user2 = new SystemAdminTestModel({ email: 'user2@gmail.com', name: 'user2', password: hash2 })
     await user2.save()
 
-    const token = jwt.sign({ type: 'admin' }, secrets[0])
+    const token = jwt.sign({ type: 'admin', user: { _id: user1._id } }, secrets[0])
     const res = await request(app)
       .post('/v1/system-admins/invitation/resend').set('authorization', 'Bearer ' + token).send({ email: 'user1@gmail.com' })
 
@@ -951,7 +991,7 @@ describe('System admin invitation test', () => {
     invitation({ apiServer: app, UserModel: UserTestModel, AccountModel: AccountTestModel, SystemAdminModel: SystemAdminTestModel })
     app = app._expressServer
 
-    const token = jwt.sign({ type: 'admin' }, secrets[0])
+    const token = jwt.sign({ type: 'admin', user: { _id: user1._id } }, secrets[0])
 
     const res = await request(app)
       .post('/v1/system-admins/invitation/send').set('authorization', 'Bearer ' + token).send({ email: 'user3@gmail.com' })
