@@ -14,7 +14,7 @@ export default async ({
 }) => {
   const secrets = process.env.SECRETS.split(' ')
   const s3 = await aws()
-  const sendUserEmail = async (email, href, templateUrl) => {
+  const sendUserEmail = async (templateUrl, email, data) => {
     const url = templateUrl
     const response = await fetch(url, {
       method: 'POST',
@@ -24,7 +24,7 @@ export default async ({
       },
       body: JSON.stringify({
         email,
-        data: { href }
+        data
       })
     })
     const res = await response.json()
@@ -91,7 +91,7 @@ export default async ({
       }
     }
     const token = jwt.sign(payload, secrets[0], { expiresIn: '24h' })
-    const mail = await sendUserEmail(req.body.newEmail, `${process.env.APP_URL}accounts/verify-email?token=${token}`, process.env.BLUEFOX_TEMPLATE_ACCOUNT_VERIFY_EMAIL)
+    const mail = await sendUserEmail(process.env.BLUEFOX_TEMPLATE_ACCOUNT_VERIFY_EMAIL, req.body.newEmail, { link: `${process.env.APP_URL}accounts/verify-email?token=${token}`, name: response.result.name })
     return {
       status: 200,
       result: {
@@ -285,7 +285,7 @@ export default async ({
       }
     }
     const token = jwt.sign(payload, secrets[0], { expiresIn: '24h' })
-    const mail = await sendUserEmail(getUser.result.email, `${process.env.APP_URL}accounts/finalize-registration?token=${token}`, process.env.BLUEFOX_TEMPLATE_ACCOUNT_FINALIZE_REGISTRATION)
+    const mail = await sendUserEmail(process.env.BLUEFOX_TEMPLATE_ACCOUNT_FINALIZE_REGISTRATION, getUser.result.email, { link: `${process.env.APP_URL}accounts/finalize-registration?token=${token}` })
     return {
       status: 200,
       result: {

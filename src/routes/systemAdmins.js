@@ -14,7 +14,7 @@ export default async ({
 }) => {
   const secrets = process.env.SECRETS.split(' ')
   const s3 = await aws()
-  const sendVerifyEmail = async (email, token) => {
+  const sendVerifyEmail = async (email, data) => {
     const url = process.env.BLUEFOX_TEMPLATE_ADMIN_VERIFY_EMAIL
     const response = await fetch(url, {
       method: 'POST',
@@ -24,7 +24,7 @@ export default async ({
       },
       body: JSON.stringify({
         email,
-        data: { href: `${process.env.APP_URL}system-admins/verify-email?token=${token}` }
+        data
       })
     })
     const res = await response.json()
@@ -147,7 +147,7 @@ export default async ({
       newEmail: req.body.newEmail
     }
     const token = jwt.sign(payload, secrets[0], { expiresIn: '24h' })
-    const mail = await sendVerifyEmail(req.body.newEmail, token)
+    const mail = await sendVerifyEmail(req.body.newEmail, { link: `${process.env.APP_URL}system-admins/verify-email?token=${token}`, name: response.result.name })
     return {
       status: 200,
       result: {
