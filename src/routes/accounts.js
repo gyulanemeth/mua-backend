@@ -13,7 +13,8 @@ export default async ({
   apiServer, UserModel, AccountModel, hooks =
   {
     deleteAccount: { post: (params) => { } },
-    createAccount: { post: (params) => { } }
+    createAccount: { post: (params) => { } },
+    createNewUser: { post: (params) => { } }
   }
 }) => {
   const secrets = process.env.SECRETS.split(' ')
@@ -131,6 +132,7 @@ export default async ({
     const newAccount = await createOne(AccountModel, req.params, { name: req.body.account.name, urlFriendlyName: req.body.account.urlFriendlyName })
     const hash = crypto.createHash('md5').update(req.body.user.password).digest('hex')
     const newUser = await createOne(UserModel, req.params, { name: req.body.user.name, email: req.body.user.email, password: hash, accountId: newAccount.result._id })
+    hooks.createNewUser.post({ accountId: newAccount.result._id, name: newUser.result.name, email: newUser.result.email })
     const payload = {
       type: 'registration',
       user: {

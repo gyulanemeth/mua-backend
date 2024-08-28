@@ -6,7 +6,9 @@ import { MethodNotAllowedError, ValidationError, AuthenticationError } from 'sta
 import allowAccessTo from 'bearer-jwt-auth'
 
 export default ({
-  apiServer, UserModel, AccountModel, SystemAdminModel
+  apiServer, UserModel, AccountModel, SystemAdminModel, hooks = {
+    createNewUser: { post: (params) => { } }
+  }
 }) => {
   const secrets = process.env.SECRETS.split(' ')
   const sendInvitation = async (url, email, data) => {
@@ -190,6 +192,8 @@ export default ({
     }
     const hash = crypto.createHash('md5').update(req.body.newPassword).digest('hex')
     const updatedUser = await patchOne(UserModel, { id: data.user._id }, { password: hash, name: req.body.name })
+    hooks.createNewUser.post({ accountId: req.params.accountId, name: updatedUser.result.name, email: updatedUser.result.email })
+
     const payload = {
       type: 'login',
       user: {
