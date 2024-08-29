@@ -9,13 +9,15 @@ export default ({
   apiServer, UserModel, AccountModel, SystemAdminModel, hooks =
   {
     deleteAccount: { post: (params) => { } },
-    createAccount: { post: (params) => { } }
+    createAccount: { post: (params) => { } },
+    createNewUser: { post: (params) => { } },
+    updateUserEmail: { post: (params) => { } }
   }
 }) => {
   systemAdmins({ apiServer, SystemAdminModel })
-  users({ apiServer, UserModel, AccountModel })
+  users({ apiServer, UserModel, AccountModel, hooks })
   login({ apiServer, UserModel, AccountModel, SystemAdminModel })
-  invitation({ apiServer, UserModel, AccountModel, SystemAdminModel })
+  invitation({ apiServer, UserModel, AccountModel, SystemAdminModel, hooks })
   forgotPassword({ apiServer, UserModel, AccountModel, SystemAdminModel })
   account({ apiServer, UserModel, AccountModel, hooks })
 }
