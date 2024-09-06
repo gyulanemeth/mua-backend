@@ -13,7 +13,8 @@ const mongooseMemoryServer = createMongooseMemoryServer(mongoose)
 const AccountTestModel = mongoose.model('AccountTest', new mongoose.Schema({
   name: { type: String },
   urlFriendlyName: { type: String, unique: true },
-  logo: { type: String }
+  logo: { type: String },
+  deleted: { type: Boolean }
 }, { timestamps: true }))
 
 const UserTestModel = mongoose.model('UserTest', new mongoose.Schema({
@@ -22,7 +23,8 @@ const UserTestModel = mongoose.model('UserTest', new mongoose.Schema({
   password: { type: String },
   role: { type: String, default: 'user', enum: ['user', 'admin'] },
   accountId: { type: mongoose.Schema.Types.ObjectId, ref: 'Account', required: true },
-  profilePicture: { type: String }
+  profilePicture: { type: String },
+  deleted: { type: Boolean }
 }, { timestamps: true }))
 
 describe('stats test', () => {
