@@ -1007,6 +1007,34 @@ describe('users test', () => {
     await fetchSpy.mockRestore()
   })
 
+  test('patch email required password req send  /v1/accounts/:accountId/users/:id/email', async () => {
+    const fetchSpy = vi.spyOn(global, 'fetch')
+    fetchSpy.mockResolvedValue({
+      ok: true,
+      headers: { get: () => 'application/json' },
+      json: () => Promise.resolve({ result: { success: true }, status: 200 })
+    })
+
+    const account1 = new AccountTestModel({ name: 'accountExample1', urlFriendlyName: 'urlFriendlyNameExample1' })
+    await account1.save()
+
+    const user1 = new UserTestModel({ email: 'user1@gmail.com', name: 'user1', accountId: account1._id })
+    await user1.save()
+
+    const hash2 = crypto.createHash('md5').update('user2Password').digest('hex')
+    const user2 = new UserTestModel({ email: 'user2@gmail.com', name: 'user2', password: hash2, accountId: account1._id })
+    await user2.save()
+
+    const token = jwt.sign({ type: 'user', user: { _id: user1._id }, account: { _id: account1._id } }, secrets[0])
+
+    const res = await request(app)
+      .patch(`/v1/accounts/${account1._id}/users/${user1._id}/email`).set('authorization', 'Bearer ' + token).send({ newEmail: 'userUpdate@gmail.com', newEmailAgain: 'userUpdate@gmail.com' })
+
+    expect(res.body.status).toBe(405)
+    expect(res.body.error.message).toBe('Password is required to change the email for this account. Please set a password to proceed.')
+    await fetchSpy.mockRestore()
+  })
+
   test('patch email req send error email exist /v1/accounts/:accountId/users/:id/email', async () => {
     const account1 = new AccountTestModel({ name: 'accountExample1', urlFriendlyName: 'urlFriendlyNameExample1' })
     await account1.save()

@@ -30,7 +30,11 @@ const UserTestModel = mongoose.model('UserTest', new mongoose.Schema({
   password: { type: String },
   role: { type: String, default: 'user', enum: ['user', 'admin'] },
   accountId: { type: mongoose.Schema.Types.ObjectId, ref: 'Account', required: true },
-  profilePicture: { type: String }
+  profilePicture: { type: String },
+  googleProfileId: { type: String },
+  microsoftProfileId: { type: String },
+  githubProfileId: { type: String },
+  verified: { type: Boolean, default: false }
 }, { timestamps: true }))
 
 describe('accounts test', () => {
@@ -523,6 +527,50 @@ describe('accounts test', () => {
       .post('/v1/accounts/create')
       .send({
         user: { name: 'user1', email: 'user1@gmail.com', password: 'userPassword' },
+        account: { name: 'account1', urlFriendlyName: 'account1UrlFriendlyName' }
+      })
+
+    expect(res.body.status).toBe(200)
+    await fetchSpy.mockRestore()
+  })
+
+  test('error create account without password, google, microsoft or github  /v1/accounts/create', async () => {
+    process.env.ALPHA_MODE = false
+
+    const fetchSpy = vi.spyOn(global, 'fetch')
+    fetchSpy.mockResolvedValue({
+      ok: true,
+      headers: { get: () => 'application/json' },
+      json: () => Promise.resolve({ result: { success: true }, status: 200 })
+    })
+
+    const res = await request(app)
+      .post('/v1/accounts/create')
+      .send({
+        user: { name: 'user1', email: 'user1@gmail.com' },
+        account: { name: 'account1', urlFriendlyName: 'account1UrlFriendlyName' }
+      })
+
+    expect(res.body.status).toBe(400)
+    expect(res.body.error.message).toBe('Please provide password or create using Google, Microsoft or Github')
+
+    await fetchSpy.mockRestore()
+  })
+
+  test('success create account with google, microsoft or github  /v1/accounts/create', async () => {
+    process.env.ALPHA_MODE = false
+
+    const fetchSpy = vi.spyOn(global, 'fetch')
+    fetchSpy.mockResolvedValue({
+      ok: true,
+      headers: { get: () => 'application/json' },
+      json: () => Promise.resolve({ result: { success: true }, status: 200 })
+    })
+
+    const res = await request(app)
+      .post('/v1/accounts/create')
+      .send({
+        user: { name: 'user1', email: 'user1@gmail.com', googleProfileId: 'test123' },
         account: { name: 'account1', urlFriendlyName: 'account1UrlFriendlyName' }
       })
 

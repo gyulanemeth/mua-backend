@@ -54,7 +54,7 @@ export default async ({
     const hash = crypto.createHash('md5').update(req.body.newPassword).digest('hex')
     const oldHash = crypto.createHash('md5').update(req.body.oldPassword).digest('hex')
     const getUser = await readOne(UserModel, { id: req.params.id, accountId: req.params.accountId }, req.query)
-    if (oldHash !== getUser.result.password) {
+    if (getUser.result.password && oldHash !== getUser.result.password) {
       throw new ValidationError("Validation error passwords didn't match ")
     }
     const user = await patchOne(UserModel, { id: req.params.id, accountId: req.params.accountId }, { password: hash }, { password: 0 })
@@ -84,7 +84,11 @@ export default async ({
     if (checkExist.result.count > 0) {
       throw new MethodNotAllowedError('Email exist')
     }
-    const response = await readOne(UserModel, { id: req.params.id, accountId: req.params.accountId }, { select: { password: 0, email: 0 } })
+    const response = await readOne(UserModel, { id: req.params.id, accountId: req.params.accountId }, { select: { email: 0 } })
+    if (!response.result.password) {
+      throw new MethodNotAllowedError('Password is required to change the email for this account. Please set a password to proceed.')
+    }
+    delete response.result.password
     const payload = {
       type: 'verfiy-email',
       user: response.result,
@@ -107,7 +111,7 @@ export default async ({
   apiServer.patch('/v1/accounts/:accountId/users/:id/email-confirm', async req => {
     const data = await allowAccessTo(req, secrets, [{ type: 'verfiy-email', user: { _id: req.params.id }, account: { _id: req.params.accountId } }])
     const getUserData = await readOne(UserModel, { id: req.params.id, accountId: req.params.accountId })
-    const user = await patchOne(UserModel, { id: req.params.id }, { email: data.newEmail })
+    const user = await patchOne(UserModel, { id: req.params.id }, { email: data.newEmail, googleProfileId: undefined, microsoftProfileId: undefined })
     hooks.updateUserEmail.post({ accountId: req.params.accountId, oldEmail: getUserData.result.email, newEmail: data.newEmail })
     const payload = {
       type: 'user',

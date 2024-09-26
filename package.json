@@ -1,6 +1,6 @@
 {
   "name": "mua-backend",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "",
   "type": "module",
   "main": "src/index.js",
@@ -32,6 +32,10 @@
     "mock-aws-s3": "^4.0.2",
     "mongoose": "^6.3.5",
     "mongoose-crudl": "^1.1.0",
+    "passport": "^0.7.0",
+    "passport-github": "^1.1.0",
+    "passport-google-oauth20": "^2.0.0",
+    "passport-microsoft": "^2.1.0",
     "standard-api-errors": "^1.0.0",
     "standard-json-api-connectors": "^0.1.2",
     "static-server": "^3.0.0",
