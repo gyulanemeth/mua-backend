@@ -184,7 +184,7 @@ export default ({
 
     const user = await readOne(UserModel, { id: data.user._id, email: data.user.email, accountId: req.params.id }, req.query)
 
-    if (user.result.password || user.result.googleProfileId || user.result.microsoftProfileId | user.result.githubProfileId) { // check if user accepted the invitation before and completed the necessary data.
+    if (user.result.password || user.result.googleProfileId || user.result.microsoftProfileId || user.result.githubProfileId) { // check if user accepted the invitation before and completed the necessary data.
       throw new MethodNotAllowedError('Token already used, user exists')
     }
     if (req.body.newPassword !== req.body.newPasswordAgain) { // check password matching
