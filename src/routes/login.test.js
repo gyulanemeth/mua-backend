@@ -842,7 +842,6 @@ describe('System admin login test ', () => {
       .send()
 
     expect(response.status).toBe(302)
-    console.log(response.header.location)
 
     expect(response.header.location).toContain(`${process.env.APP_URL}accounts/login/${account1.urlFriendlyName}?loginToken`)
     mockAuthenticate.mockRestore()
@@ -1025,8 +1024,6 @@ describe('System admin login test ', () => {
       .send()
 
     expect(response.status).toBe(302)
-
-    console.log(response.header.location)
 
     expect(response.header.location).toContain(`${process.env.APP_URL}accounts/login/${account1.urlFriendlyName}?failed=NOT_FOUND`)
     mockAuthenticate.mockRestore()
