@@ -744,8 +744,6 @@ describe('System admin login test ', () => {
     expect(response.body.error.message).toBe('Unsupported provider')
   })
 
-  /// //////////////////////////////// check state data for the upper tests////////////////////////////////////////////////
-
   test('login with google callback', async () => {
     const account1 = new AccountTestModel({ name: 'accountExample1', urlFriendlyName: 'urlFriendlyNameExample1' })
     await account1.save()
