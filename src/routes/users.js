@@ -42,7 +42,7 @@ export default async ({
 
   apiServer.patch('/v1/accounts/:accountId/users/:id/name', async req => {
     allowAccessTo(req, secrets, [{ type: 'admin' }, { type: 'user', role: 'admin' }, { type: 'user', user: { _id: req.params.id }, account: { _id: req.params.accountId } }])
-    const user = await patchOne(UserModel, { id: req.params.id, accountId: req.params.accountId }, { name: req.body.name }, { password: 0 })
+    const user = await patchOne(UserModel, { id: req.params.id, accountId: req.params.accountId }, { name: req.body.name }, { password: 0, googleProfileId: 0, microsoftProfileId: 0, githubProfileId: 0 })
     return user
   })
 
@@ -57,21 +57,21 @@ export default async ({
     if (getUser.result.password && oldHash !== getUser.result.password) {
       throw new ValidationError("Validation error passwords didn't match ")
     }
-    const user = await patchOne(UserModel, { id: req.params.id, accountId: req.params.accountId }, { password: hash }, { password: 0 })
+    const user = await patchOne(UserModel, { id: req.params.id, accountId: req.params.accountId }, { password: hash }, { password: 0, googleProfileId: 0, microsoftProfileId: 0, githubProfileId: 0 })
     return user
   })
 
   apiServer.patch('/v1/accounts/:accountId/users/:id/role', async req => {
     allowAccessTo(req, secrets, [{ type: 'admin' }, { type: 'user', role: 'admin' }])
 
-    const user = await readOne(UserModel, { id: req.params.id, accountId: req.params.accountId }, { select: { password: 0 } })
+    const user = await readOne(UserModel, { id: req.params.id, accountId: req.params.accountId }, { select: { password: 0, googleProfileId: 0, microsoftProfileId: 0, githubProfileId: 0 } })
     if (user.result.role === 'admin') {
-      const admin = await list(UserModel, { accountId: req.params.accountId, role: 'admin' }, { select: { password: 0 } })
+      const admin = await list(UserModel, { accountId: req.params.accountId, role: 'admin' }, { select: { password: 0, googleProfileId: 0, microsoftProfileId: 0, githubProfileId: 0 } })
       if (admin.result.count < 2) {
         throw new MethodNotAllowedError('Removing the last admin is not allowed')
       }
     }
-    const updatedUser = await patchOne(UserModel, { id: req.params.id, accountId: req.params.accountId }, { role: req.body.role }, { password: 0 })
+    const updatedUser = await patchOne(UserModel, { id: req.params.id, accountId: req.params.accountId }, { role: req.body.role }, { password: 0, googleProfileId: 0, microsoftProfileId: 0, githubProfileId: 0 })
     return updatedUser
   })
 
@@ -139,12 +139,12 @@ export default async ({
     allowAccessTo(req, secrets, [{ type: 'delete' }])
     let user = await readOne(UserModel, { id: req.params.id, accountId: req.params.accountId })
     if (user.result.role === 'admin') {
-      const admin = await list(UserModel, { accountId: req.params.accountId, role: 'admin' }, { select: { password: 0 } })
+      const admin = await list(UserModel, { accountId: req.params.accountId, role: 'admin' }, { select: { password: 0, googleProfileId: 0, microsoftProfileId: 0, githubProfileId: 0 } })
       if (admin.result.count < 2) {
         throw new MethodNotAllowedError('Removing the last admin is not allowed')
       }
     }
-    user = await deleteOne(UserModel, { id: req.params.id, accountId: req.params.accountId }, { password: 0 })
+    user = await deleteOne(UserModel, { id: req.params.id, accountId: req.params.accountId }, { password: 0, googleProfileId: 0, microsoftProfileId: 0, githubProfileId: 0 })
     return user
   })
 
@@ -172,7 +172,7 @@ export default async ({
 
   apiServer.get('/v1/accounts/:accountId/users/:id/access-token', async req => {
     allowAccessTo(req, secrets, [{ type: 'admin' }, { type: 'login', user: { _id: req.params.id }, account: { _id: req.params.accountId } }, { type: 'user', user: { _id: req.params.id }, account: { _id: req.params.accountId } }])
-    const findUser = await readOne(UserModel, { _id: req.params.id, accountId: req.params.accountId }, { select: { password: 0 } })
+    const findUser = await readOne(UserModel, { _id: req.params.id, accountId: req.params.accountId }, { select: { password: 0, googleProfileId: 0, microsoftProfileId: 0, githubProfileId: 0 } })
     const getAccount = await readOne(AccountModel, { _id: req.params.accountId }, req.query)
 
     const payload = {
@@ -222,7 +222,7 @@ export default async ({
   apiServer.get('/v1/accounts/:accountId/users', async req => {
     allowAccessTo(req, secrets, [{ type: 'admin' }, { type: 'user' }])
     await readOne(AccountModel, { id: req.params.accountId }, req.query)
-    const userList = await list(UserModel, { accountId: req.params.accountId }, { ...req.query, select: { password: 0 } })
+    const userList = await list(UserModel, { accountId: req.params.accountId }, { ...req.query, select: { password: 0, googleProfileId: 0, microsoftProfileId: 0, githubProfileId: 0 } })
     return userList
   })
 
@@ -230,7 +230,7 @@ export default async ({
     allowAccessTo(req, secrets, [{ type: 'admin' }, { type: 'user' }])
     await readOne(AccountModel, { id: req.params.accountId }, req.query)
 
-    const checkUser = await list(UserModel, { email: req.body.email, accountId: req.params.accountId }, { select: { password: 0 } })
+    const checkUser = await list(UserModel, { email: req.body.email, accountId: req.params.accountId }, { select: { password: 0, googleProfileId: 0, microsoftProfileId: 0, githubProfileId: 0 } })
     if (checkUser.result.count !== 0) {
       throw new MethodNotAllowedError('User exist')
     }
@@ -242,7 +242,7 @@ export default async ({
 
   apiServer.get('/v1/accounts/:accountId/users/:id', async req => {
     allowAccessTo(req, secrets, [{ type: 'admin' }, { type: 'user', user: { _id: req.params.id }, account: { _id: req.params.accountId } }])
-    const user = await readOne(UserModel, { id: req.params.id, accountId: req.params.accountId }, { select: { password: 0 } })
+    const user = await readOne(UserModel, { id: req.params.id, accountId: req.params.accountId }, { select: { password: 0, googleProfileId: 0, microsoftProfileId: 0, githubProfileId: 0 } })
     return user
   })
 
@@ -265,7 +265,7 @@ export default async ({
   })
   apiServer.delete('/v1/accounts/:accountId/users/:id/profile-picture', async req => {
     allowAccessTo(req, secrets, [{ type: 'admin' }, { type: 'user', user: { _id: req.params.id }, account: { _id: req.params.accountId } }])
-    const userData = await readOne(UserModel, { id: req.params.id, accountId: req.params.accountId }, { select: { password: 0 } })
+    const userData = await readOne(UserModel, { id: req.params.id, accountId: req.params.accountId }, { select: { password: 0, googleProfileId: 0, microsoftProfileId: 0, githubProfileId: 0 } })
     const key = userData.result.profilePicture.substring(userData.result.profilePicture.lastIndexOf('/') + 1)
     await s3.deleteObject({
       Bucket: process.env.AWS_BUCKET_NAME,

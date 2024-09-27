@@ -357,7 +357,7 @@ export default ({
       throw new ValidationError('Unsupported provider')
     }
     const getAccount = await readOne(AccountModel, { id: req.params.accountId })
-    const getUser = await readOne(UserModel, { id: req.params.id, accountId: req.params.accountId }, { select: { password: 0 } })
+    const getUser = await readOne(UserModel, { id: req.params.id, accountId: req.params.accountId }, { select: { password: 0, googleProfileId: 0, microsoftProfileId: 0, githubProfileId: 0 } })
     const state = Buffer.from(JSON.stringify({ type: 'link', account: getAccount.result, user: getUser.result })).toString('base64')
     let url
     const mockRes = {
@@ -390,7 +390,7 @@ export default ({
     }
     if (req.body.accountId && req.body.userId) {
       const getAccount = await readOne(AccountModel, { id: req.body.accountId })
-      const getUser = await readOne(UserModel, { id: req.body.userId, accountId: req.body.accountId }, { select: { password: 0 } })
+      const getUser = await readOne(UserModel, { id: req.body.userId, accountId: req.body.accountId }, { select: { password: 0, googleProfileId: 0, microsoftProfileId: 0, githubProfileId: 0 } })
       data.account = getAccount.result
       data.user = getUser.result
     }
