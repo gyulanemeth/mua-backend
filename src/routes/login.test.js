@@ -619,6 +619,13 @@ describe('System admin login test ', () => {
   })
 
   test('login with provider', async () => {
+    process.env.GOOGLE_CLIENT_ID = 'googleClientId'
+    process.env.GOOGLE_CLIENT_SECRET = 'googleSecret'
+    process.env.MICROSOFT_CLIENT_ID = 'microsoftClientId'
+    process.env.MICROSOFT_CLIENT_SECRET = 'microsoftSecret'
+    process.env.GITHUB_CLIENT_ID = 'githubClientId'
+    process.env.GITHUB_CLIENT_SECRET = 'githubSecret'
+
     const mockAuthenticate = vi.spyOn(passport, 'authenticate').mockImplementation((provider, options) => {
       return (req, res, next) => {
         res.redirect(`https://test/provider/${provider}/callback?state=${options.state}`)
@@ -641,6 +648,13 @@ describe('System admin login test ', () => {
   })
 
   test('login with wrong provider', async () => {
+    process.env.GOOGLE_CLIENT_ID = 'googleClientId'
+    process.env.GOOGLE_CLIENT_SECRET = 'googleSecret'
+    process.env.MICROSOFT_CLIENT_ID = 'microsoftClientId'
+    process.env.MICROSOFT_CLIENT_SECRET = 'microsoftSecret'
+    process.env.GITHUB_CLIENT_ID = 'githubClientId'
+    process.env.GITHUB_CLIENT_SECRET = 'githubSecret'
+
     const account1 = new AccountTestModel({ name: 'accountExample1', urlFriendlyName: 'urlFriendlyNameExample1' })
     await account1.save()
 
@@ -678,6 +692,12 @@ describe('System admin login test ', () => {
   })
 
   test('link with wrong provider', async () => {
+    process.env.GOOGLE_CLIENT_ID = 'googleClientId'
+    process.env.GOOGLE_CLIENT_SECRET = 'googleSecret'
+    process.env.MICROSOFT_CLIENT_ID = 'microsoftClientId'
+    process.env.MICROSOFT_CLIENT_SECRET = 'microsoftSecret'
+    process.env.GITHUB_CLIENT_ID = 'githubClientId'
+    process.env.GITHUB_CLIENT_SECRET = 'githubSecret'
     const account1 = new AccountTestModel({ name: 'accountExample1', urlFriendlyName: 'urlFriendlyNameExample1' })
     await account1.save()
 
@@ -693,6 +713,12 @@ describe('System admin login test ', () => {
   })
 
   test('create with provider from scratch', async () => {
+    process.env.GOOGLE_CLIENT_ID = 'googleClientId'
+    process.env.GOOGLE_CLIENT_SECRET = 'googleSecret'
+    process.env.MICROSOFT_CLIENT_ID = 'microsoftClientId'
+    process.env.MICROSOFT_CLIENT_SECRET = 'microsoftSecret'
+    process.env.GITHUB_CLIENT_ID = 'githubClientId'
+    process.env.GITHUB_CLIENT_SECRET = 'githubSecret'
     const mockAuthenticate = vi.spyOn(passport, 'authenticate').mockImplementation((provider, options) => {
       return (req, res, next) => {
         res.redirect(`https://test/provider/${provider}/callback?state=${options.state}`)
@@ -712,6 +738,12 @@ describe('System admin login test ', () => {
   })
 
   test('create with provider from invitation', async () => {
+    process.env.GOOGLE_CLIENT_ID = 'googleClientId'
+    process.env.GOOGLE_CLIENT_SECRET = 'googleSecret'
+    process.env.MICROSOFT_CLIENT_ID = 'microsoftClientId'
+    process.env.MICROSOFT_CLIENT_SECRET = 'microsoftSecret'
+    process.env.GITHUB_CLIENT_ID = 'githubClientId'
+    process.env.GITHUB_CLIENT_SECRET = 'githubSecret'
     const mockAuthenticate = vi.spyOn(passport, 'authenticate').mockImplementation((provider, options) => {
       return (req, res, next) => {
         res.redirect(`https://test/provider/${provider}/callback?state=${options.state}`)
@@ -737,6 +769,13 @@ describe('System admin login test ', () => {
   })
 
   test('link with wrong provider', async () => {
+    process.env.GOOGLE_CLIENT_ID = 'googleClientId'
+    process.env.GOOGLE_CLIENT_SECRET = 'googleSecret'
+    process.env.MICROSOFT_CLIENT_ID = 'microsoftClientId'
+    process.env.MICROSOFT_CLIENT_SECRET = 'microsoftSecret'
+    process.env.GITHUB_CLIENT_ID = 'githubClientId'
+    process.env.GITHUB_CLIENT_SECRET = 'githubSecret'
+
     const response = await request(app)
       .post('/v1/accounts/create-account/provider/test', req)
       .send({})
