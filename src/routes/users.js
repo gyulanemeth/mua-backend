@@ -17,8 +17,7 @@ export default async ({
 }) => {
   const secrets = process.env.SECRETS.split(' ')
   const s3 = await aws()
-  const sendUserEmail = async (templateUrl, email, data) => {
-    const url = templateUrl
+  const sendUserEmail = async (url, email, data) => {
     const response = await fetch(url, {
       method: 'POST',
       headers: {
@@ -46,15 +45,62 @@ export default async ({
     return user
   })
 
+  apiServer.patch('/v1/accounts/:accountId/users/:id/create-password', async req => {
+    const tokenData = await allowAccessTo(req, secrets, [{ type: 'create-password', user: { _id: req.params.id }, account: { _id: req.params.accountId } }])
+    const hash = crypto.createHash('md5').update(tokenData.newPassword).digest('hex')
+    const user = await patchOne(UserModel, { id: req.params.id, accountId: req.params.accountId }, { password: hash }, { password: 0, googleProfileId: 0, microsoftProfileId: 0, githubProfileId: 0 })
+    const payload = {
+      type: 'user',
+      user: {
+        _id: user.result._id,
+        email: user.result.email
+      },
+      account: {
+        _id: user.result.accountId
+      },
+      role: user.result.role
+    }
+    const token = jwt.sign(payload, secrets[0], { expiresIn: '24h' })
+    return {
+      status: 200,
+      result: {
+        success: true,
+        accessToken: token
+      }
+    }
+  })
+
   apiServer.patch('/v1/accounts/:accountId/users/:id/password', async req => {
     allowAccessTo(req, secrets, [{ type: 'admin' }, { type: 'user', role: 'admin' }, { type: 'user', user: { _id: req.params.id }, account: { _id: req.params.accountId } }])
     if (req.body.newPassword !== req.body.newPasswordAgain) {
       throw new ValidationError("Validation error passwords didn't match ")
     }
+    const getUser = await readOne(UserModel, { id: req.params.id, accountId: req.params.accountId }, req.query)
+    if (!getUser.result.password) {
+      const getAccount = await readOne(AccountModel, { id: req.params.accountId })
+      const payload = {
+        type: 'create-password',
+        user: {
+          _id: getUser.result._id
+        },
+        newPassword: req.body.newPassword,
+        account: {
+          _id: getAccount.result._id
+        }
+      }
+      const token = jwt.sign(payload, secrets[0], { expiresIn: '24h' })
+      const mail = await sendUserEmail(process.env.BLUEFOX_TEMPLATE_ACCOUNT_CREATE_PASSWORD, getUser.result.email, { link: `${process.env.APP_URL}accounts/create-password?token=${token}`, userName: getUser.result.name, accountName: getAccount.result.name })
+      return {
+        status: 200,
+        result: {
+          success: true,
+          info: mail.result.info
+        }
+      }
+    }
     const hash = crypto.createHash('md5').update(req.body.newPassword).digest('hex')
     const oldHash = crypto.createHash('md5').update(req.body.oldPassword).digest('hex')
-    const getUser = await readOne(UserModel, { id: req.params.id, accountId: req.params.accountId }, req.query)
-    if (getUser.result.password && oldHash !== getUser.result.password) {
+    if (oldHash !== getUser.result.password) {
       throw new ValidationError("Validation error passwords didn't match ")
     }
     const user = await patchOne(UserModel, { id: req.params.id, accountId: req.params.accountId }, { password: hash }, { password: 0, googleProfileId: 0, microsoftProfileId: 0, githubProfileId: 0 })
@@ -242,7 +288,11 @@ export default async ({
 
   apiServer.get('/v1/accounts/:accountId/users/:id', async req => {
     allowAccessTo(req, secrets, [{ type: 'admin' }, { type: 'user', user: { _id: req.params.id }, account: { _id: req.params.accountId } }])
-    const user = await readOne(UserModel, { id: req.params.id, accountId: req.params.accountId }, { select: { password: 0, googleProfileId: 0, microsoftProfileId: 0, githubProfileId: 0 } })
+    const user = await readOne(UserModel, { id: req.params.id, accountId: req.params.accountId })
+    user.result.password = !!user.result.password
+    user.result.googleProfileId = !!user.result.googleProfileId
+    user.result.microsoftProfileId = !!user.result.microsoftProfileId
+    user.result.githubProfileId = !!user.result.githubProfileId
     return user
   })
 

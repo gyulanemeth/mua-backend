@@ -31,7 +31,10 @@ const UserTestModel = mongoose.model('UserTest', new mongoose.Schema({
   password: { type: String },
   role: { type: String, default: 'user', enum: ['user', 'admin'] },
   accountId: { type: mongoose.Schema.Types.ObjectId, ref: 'Account', required: true },
-  profilePicture: { type: String }
+  profilePicture: { type: String },
+  googleProfileId: { type: String },
+  microsoftProfileId: { type: String },
+  githubProfileId: { type: String }
 }, { timestamps: true }))
 
 describe('users test', () => {
@@ -255,6 +258,30 @@ describe('users test', () => {
       .send({ oldPassword: 'user1Password', newPassword: 'updatePassword', newPasswordAgain: 'updatePassword' })
 
     expect(res.body.status).toBe(200)
+  })
+
+  test('success send create password email user /v1/accounts/:accountId/users/:id/password', async () => {
+    const fetchSpy = vi.spyOn(global, 'fetch')
+    fetchSpy.mockResolvedValue({
+      ok: true,
+      headers: { get: () => 'application/json' },
+      json: () => Promise.resolve({ result: { success: true }, status: 200 })
+    })
+
+    const account1 = new AccountTestModel({ name: 'accountExample1', urlFriendlyName: 'urlFriendlyNameExample1' })
+    await account1.save()
+
+    const user1 = new UserTestModel({ email: 'user1@gmail.com', name: 'user1', googleProfileId: 'googleProfileId', accountId: account1._id })
+    await user1.save()
+
+    const token = jwt.sign({ type: 'user', account: { _id: account1._id }, user: { _id: user1._id } }, secrets[0])
+    const res = await request(app)
+      .patch('/v1/accounts/' + account1._id + '/users/' + user1._id + '/password')
+      .set('authorization', 'Bearer ' + token)
+      .send({ newPassword: 'newPassword', newPasswordAgain: 'newPassword' })
+
+    expect(res.body.result.success).toBe(true)
+    await fetchSpy.mockRestore()
   })
 
   test('success update user password in account by user with role admin  /v1/accounts/:accountId/users/:id/password', async () => {
@@ -1254,5 +1281,30 @@ describe('users test', () => {
     const pic = await fetch(uploadRes.body.result.profilePicture)
     expect(pic.status).toBe(404)
     expect(res.body.status).toBe(200)
+  })
+
+  test('success create password email user /v1/accounts/:accountId/users/:id/create-password', async () => {
+    const fetchSpy = vi.spyOn(global, 'fetch')
+    fetchSpy.mockResolvedValue({
+      ok: true,
+      headers: { get: () => 'application/json' },
+      json: () => Promise.resolve({ result: { success: true }, status: 200 })
+    })
+
+    const account1 = new AccountTestModel({ name: 'accountExample1', urlFriendlyName: 'urlFriendlyNameExample1' })
+    await account1.save()
+
+    const user1 = new UserTestModel({ email: 'user1@gmail.com', name: 'user1', googleProfileId: 'googleProfileId', accountId: account1._id })
+    await user1.save()
+
+    const hash = crypto.createHash('md5').update('passTest').digest('hex')
+    const token = jwt.sign({ type: 'create-password', account: { _id: account1._id }, user: { _id: user1._id }, newPassword: hash }, secrets[0])
+    const res = await request(app)
+      .patch('/v1/accounts/' + account1._id + '/users/' + user1._id + '/create-password')
+      .set('authorization', 'Bearer ' + token)
+      .send()
+
+    expect(res.body.result.success).toBe(true)
+    await fetchSpy.mockRestore()
   })
 })
