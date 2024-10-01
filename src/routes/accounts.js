@@ -4,7 +4,7 @@ import jwt from 'jsonwebtoken'
 import mime from 'mime-types'
 
 import allowAccessTo from 'bearer-jwt-auth'
-import { ConflictError, AuthenticationError, NotFoundError } from 'standard-api-errors'
+import { ConflictError, AuthenticationError, NotFoundError, ValidationError } from 'standard-api-errors'
 import { list, readOne, deleteOne, deleteMany, patchOne, createOne } from 'mongoose-crudl'
 
 import aws from '../helpers/awsBucket.js'
@@ -129,10 +129,47 @@ export default async ({
     if (response.result.count > 0) {
       throw new ConflictError('urlFriendlyName exist')
     }
+    if (!req.body.user.password && !req.body.user.googleProfileId && !req.body.user.microsoftProfileId && !req.body.user.githubProfileId) {
+      throw new ValidationError('Please provide password or create using Google, Microsoft or Github')
+    }
     const newAccount = await createOne(AccountModel, req.params, { name: req.body.account.name, urlFriendlyName: req.body.account.urlFriendlyName })
-    const hash = crypto.createHash('md5').update(req.body.user.password).digest('hex')
-    const newUser = await createOne(UserModel, req.params, { name: req.body.user.name, email: req.body.user.email, password: hash, accountId: newAccount.result._id })
+    const userData = {
+      name: req.body.user.name,
+      email: req.body.user.email,
+      accountId: newAccount.result._id
+    }
+    if (req.body.user.password) {
+      const hash = crypto.createHash('md5').update(req.body.user.password).digest('hex')
+      userData.password = hash
+    } else {
+      userData.googleProfileId = req.body.user.googleProfileId
+      userData.microsoftProfileId = req.body.user.microsoftProfileId
+      userData.githubProfileId = req.body.user.githubProfileId
+      userData.profilePicture = req.body.user.profilePicture
+      userData.role = 'admin'
+      userData.verified = true
+    }
+    const newUser = await createOne(UserModel, req.params, userData)
     hooks.createNewUser.post({ accountId: newAccount.result._id, name: newUser.result.name, email: newUser.result.email })
+    if (newUser.result.verified) {
+      const payload = {
+        type: 'login',
+        user: {
+          _id: newUser.result._id,
+          email: newUser.result.email
+        },
+        account: {
+          _id: newAccount.result._id
+        }
+      }
+      const token = jwt.sign(payload, secrets[0], { expiresIn: '24h' })
+      return {
+        status: 200,
+        result: {
+          loginToken: token
+        }
+      }
+    }
     const payload = {
       type: 'registration',
       user: {

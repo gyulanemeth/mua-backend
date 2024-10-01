@@ -17,8 +17,7 @@ export default async ({
 }) => {
   const secrets = process.env.SECRETS.split(' ')
   const s3 = await aws()
-  const sendUserEmail = async (templateUrl, email, data) => {
-    const url = templateUrl
+  const sendUserEmail = async (url, email, data) => {
     const response = await fetch(url, {
       method: 'POST',
       headers: {
@@ -42,8 +41,33 @@ export default async ({
 
   apiServer.patch('/v1/accounts/:accountId/users/:id/name', async req => {
     allowAccessTo(req, secrets, [{ type: 'admin' }, { type: 'user', role: 'admin' }, { type: 'user', user: { _id: req.params.id }, account: { _id: req.params.accountId } }])
-    const user = await patchOne(UserModel, { id: req.params.id, accountId: req.params.accountId }, { name: req.body.name }, { password: 0 })
+    const user = await patchOne(UserModel, { id: req.params.id, accountId: req.params.accountId }, { name: req.body.name }, { password: 0, googleProfileId: 0, microsoftProfileId: 0, githubProfileId: 0 })
     return user
+  })
+
+  apiServer.patch('/v1/accounts/:accountId/users/:id/create-password', async req => {
+    const tokenData = await allowAccessTo(req, secrets, [{ type: 'create-password', user: { _id: req.params.id }, account: { _id: req.params.accountId } }])
+    const hash = crypto.createHash('md5').update(tokenData.newPassword).digest('hex')
+    const user = await patchOne(UserModel, { id: req.params.id, accountId: req.params.accountId }, { password: hash }, { password: 0, googleProfileId: 0, microsoftProfileId: 0, githubProfileId: 0 })
+    const payload = {
+      type: 'user',
+      user: {
+        _id: user.result._id,
+        email: user.result.email
+      },
+      account: {
+        _id: user.result.accountId
+      },
+      role: user.result.role
+    }
+    const token = jwt.sign(payload, secrets[0], { expiresIn: '24h' })
+    return {
+      status: 200,
+      result: {
+        success: true,
+        accessToken: token
+      }
+    }
   })
 
   apiServer.patch('/v1/accounts/:accountId/users/:id/password', async req => {
@@ -51,27 +75,49 @@ export default async ({
     if (req.body.newPassword !== req.body.newPasswordAgain) {
       throw new ValidationError("Validation error passwords didn't match ")
     }
+    const getUser = await readOne(UserModel, { id: req.params.id, accountId: req.params.accountId }, req.query)
+    if (!getUser.result.password) {
+      const getAccount = await readOne(AccountModel, { id: req.params.accountId })
+      const payload = {
+        type: 'create-password',
+        user: {
+          _id: getUser.result._id
+        },
+        newPassword: req.body.newPassword,
+        account: {
+          _id: getAccount.result._id
+        }
+      }
+      const token = jwt.sign(payload, secrets[0], { expiresIn: '24h' })
+      const mail = await sendUserEmail(process.env.BLUEFOX_TEMPLATE_ACCOUNT_CREATE_PASSWORD, getUser.result.email, { link: `${process.env.APP_URL}accounts/create-password?token=${token}`, userName: getUser.result.name, accountName: getAccount.result.name })
+      return {
+        status: 200,
+        result: {
+          success: true,
+          info: mail.result.info
+        }
+      }
+    }
     const hash = crypto.createHash('md5').update(req.body.newPassword).digest('hex')
     const oldHash = crypto.createHash('md5').update(req.body.oldPassword).digest('hex')
-    const getUser = await readOne(UserModel, { id: req.params.id, accountId: req.params.accountId }, req.query)
     if (oldHash !== getUser.result.password) {
       throw new ValidationError("Validation error passwords didn't match ")
     }
-    const user = await patchOne(UserModel, { id: req.params.id, accountId: req.params.accountId }, { password: hash }, { password: 0 })
+    const user = await patchOne(UserModel, { id: req.params.id, accountId: req.params.accountId }, { password: hash }, { password: 0, googleProfileId: 0, microsoftProfileId: 0, githubProfileId: 0 })
     return user
   })
 
   apiServer.patch('/v1/accounts/:accountId/users/:id/role', async req => {
     allowAccessTo(req, secrets, [{ type: 'admin' }, { type: 'user', role: 'admin' }])
 
-    const user = await readOne(UserModel, { id: req.params.id, accountId: req.params.accountId }, { select: { password: 0 } })
+    const user = await readOne(UserModel, { id: req.params.id, accountId: req.params.accountId }, { select: { password: 0, googleProfileId: 0, microsoftProfileId: 0, githubProfileId: 0 } })
     if (user.result.role === 'admin') {
-      const admin = await list(UserModel, { accountId: req.params.accountId, role: 'admin' }, { select: { password: 0 } })
+      const admin = await list(UserModel, { accountId: req.params.accountId, role: 'admin' }, { select: { password: 0, googleProfileId: 0, microsoftProfileId: 0, githubProfileId: 0 } })
       if (admin.result.count < 2) {
         throw new MethodNotAllowedError('Removing the last admin is not allowed')
       }
     }
-    const updatedUser = await patchOne(UserModel, { id: req.params.id, accountId: req.params.accountId }, { role: req.body.role }, { password: 0 })
+    const updatedUser = await patchOne(UserModel, { id: req.params.id, accountId: req.params.accountId }, { role: req.body.role }, { password: 0, googleProfileId: 0, microsoftProfileId: 0, githubProfileId: 0 })
     return updatedUser
   })
 
@@ -84,7 +130,11 @@ export default async ({
     if (checkExist.result.count > 0) {
       throw new MethodNotAllowedError('Email exist')
     }
-    const response = await readOne(UserModel, { id: req.params.id, accountId: req.params.accountId }, { select: { password: 0, email: 0 } })
+    const response = await readOne(UserModel, { id: req.params.id, accountId: req.params.accountId }, { select: { email: 0 } })
+    if (!response.result.password) {
+      throw new MethodNotAllowedError('Password is required to change the email for this account. Please set a password to proceed.')
+    }
+    delete response.result.password
     const payload = {
       type: 'verfiy-email',
       user: response.result,
@@ -107,7 +157,7 @@ export default async ({
   apiServer.patch('/v1/accounts/:accountId/users/:id/email-confirm', async req => {
     const data = await allowAccessTo(req, secrets, [{ type: 'verfiy-email', user: { _id: req.params.id }, account: { _id: req.params.accountId } }])
     const getUserData = await readOne(UserModel, { id: req.params.id, accountId: req.params.accountId })
-    const user = await patchOne(UserModel, { id: req.params.id }, { email: data.newEmail })
+    const user = await patchOne(UserModel, { id: req.params.id }, { email: data.newEmail, googleProfileId: undefined, microsoftProfileId: undefined })
     hooks.updateUserEmail.post({ accountId: req.params.accountId, oldEmail: getUserData.result.email, newEmail: data.newEmail })
     const payload = {
       type: 'user',
@@ -135,12 +185,12 @@ export default async ({
     allowAccessTo(req, secrets, [{ type: 'delete' }])
     let user = await readOne(UserModel, { id: req.params.id, accountId: req.params.accountId })
     if (user.result.role === 'admin') {
-      const admin = await list(UserModel, { accountId: req.params.accountId, role: 'admin' }, { select: { password: 0 } })
+      const admin = await list(UserModel, { accountId: req.params.accountId, role: 'admin' }, { select: { password: 0, googleProfileId: 0, microsoftProfileId: 0, githubProfileId: 0 } })
       if (admin.result.count < 2) {
         throw new MethodNotAllowedError('Removing the last admin is not allowed')
       }
     }
-    user = await deleteOne(UserModel, { id: req.params.id, accountId: req.params.accountId }, { password: 0 })
+    user = await deleteOne(UserModel, { id: req.params.id, accountId: req.params.accountId }, { password: 0, googleProfileId: 0, microsoftProfileId: 0, githubProfileId: 0 })
     return user
   })
 
@@ -168,7 +218,7 @@ export default async ({
 
   apiServer.get('/v1/accounts/:accountId/users/:id/access-token', async req => {
     allowAccessTo(req, secrets, [{ type: 'admin' }, { type: 'login', user: { _id: req.params.id }, account: { _id: req.params.accountId } }, { type: 'user', user: { _id: req.params.id }, account: { _id: req.params.accountId } }])
-    const findUser = await readOne(UserModel, { _id: req.params.id, accountId: req.params.accountId }, { select: { password: 0 } })
+    const findUser = await readOne(UserModel, { _id: req.params.id, accountId: req.params.accountId }, { select: { password: 0, googleProfileId: 0, microsoftProfileId: 0, githubProfileId: 0 } })
     const getAccount = await readOne(AccountModel, { _id: req.params.accountId }, req.query)
 
     const payload = {
@@ -218,7 +268,7 @@ export default async ({
   apiServer.get('/v1/accounts/:accountId/users', async req => {
     allowAccessTo(req, secrets, [{ type: 'admin' }, { type: 'user' }])
     await readOne(AccountModel, { id: req.params.accountId }, req.query)
-    const userList = await list(UserModel, { accountId: req.params.accountId }, { ...req.query, select: { password: 0 } })
+    const userList = await list(UserModel, { accountId: req.params.accountId }, { ...req.query, select: { password: 0, googleProfileId: 0, microsoftProfileId: 0, githubProfileId: 0 } })
     return userList
   })
 
@@ -226,7 +276,7 @@ export default async ({
     allowAccessTo(req, secrets, [{ type: 'admin' }, { type: 'user' }])
     await readOne(AccountModel, { id: req.params.accountId }, req.query)
 
-    const checkUser = await list(UserModel, { email: req.body.email, accountId: req.params.accountId }, { select: { password: 0 } })
+    const checkUser = await list(UserModel, { email: req.body.email, accountId: req.params.accountId }, { select: { password: 0, googleProfileId: 0, microsoftProfileId: 0, githubProfileId: 0 } })
     if (checkUser.result.count !== 0) {
       throw new MethodNotAllowedError('User exist')
     }
@@ -238,7 +288,11 @@ export default async ({
 
   apiServer.get('/v1/accounts/:accountId/users/:id', async req => {
     allowAccessTo(req, secrets, [{ type: 'admin' }, { type: 'user', user: { _id: req.params.id }, account: { _id: req.params.accountId } }])
-    const user = await readOne(UserModel, { id: req.params.id, accountId: req.params.accountId }, { select: { password: 0 } })
+    const user = await readOne(UserModel, { id: req.params.id, accountId: req.params.accountId })
+    user.result.password = !!user.result.password
+    user.result.googleProfileId = !!user.result.googleProfileId
+    user.result.microsoftProfileId = !!user.result.microsoftProfileId
+    user.result.githubProfileId = !!user.result.githubProfileId
     return user
   })
 
@@ -261,7 +315,7 @@ export default async ({
   })
   apiServer.delete('/v1/accounts/:accountId/users/:id/profile-picture', async req => {
     allowAccessTo(req, secrets, [{ type: 'admin' }, { type: 'user', user: { _id: req.params.id }, account: { _id: req.params.accountId } }])
-    const userData = await readOne(UserModel, { id: req.params.id, accountId: req.params.accountId }, { select: { password: 0 } })
+    const userData = await readOne(UserModel, { id: req.params.id, accountId: req.params.accountId }, { select: { password: 0, googleProfileId: 0, microsoftProfileId: 0, githubProfileId: 0 } })
     const key = userData.result.profilePicture.substring(userData.result.profilePicture.lastIndexOf('/') + 1)
     await s3.deleteObject({
       Bucket: process.env.AWS_BUCKET_NAME,

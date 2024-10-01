@@ -31,7 +31,7 @@ export default ({ apiServer, UserModel, SystemAdminModel, AccountModel }) => {
   }
 
   apiServer.post('/v1/accounts/:id/forgot-password/send', async req => {
-    const response = await list(UserModel, { email: req.body.email, accountId: req.params.id }, { select: { password: 0 } })
+    const response = await list(UserModel, { email: req.body.email, accountId: req.params.id }, { select: { password: 0, googleProfileId: 0, microsoftProfileId: 0, githubProfileId: 0 } })
     if (response.result.count === 0) {
       throw new AuthenticationError('Email Authentication Error ')
     }
@@ -84,7 +84,7 @@ export default ({ apiServer, UserModel, SystemAdminModel, AccountModel }) => {
 
   apiServer.post('/v1/accounts/:id/forgot-password/reset', async req => {
     const data = allowAccessTo(req, secrets, [{ type: 'forgot-password' }])
-    const response = await list(UserModel, { email: data.user.email, accountId: req.params.id }, { select: { password: 0 } })
+    const response = await list(UserModel, { email: data.user.email, accountId: req.params.id }, { select: { password: 0, googleProfileId: 0, microsoftProfileId: 0, githubProfileId: 0 } })
     if (response.result.count === 0) {
       throw new AuthenticationError('Email Authentication Error ')
     }
