@@ -354,9 +354,15 @@ export default ({
 
   apiServer.post('/v1/accounts/:accountId/users/:id/link/provider/:provider', async req => {
     const providers = []
-    if (process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET) { providers.push('google') }
-    if (process.env.GITHUB_CLIENT_ID && process.env.GITHUB_CLIENT_SECRET) { providers.push('github') }
-    if (process.env.MICROSOFT_CLIENT_ID && process.env.MICROSOFT_CLIENT_SECRET) { providers.push('microsoft') }
+    if (process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET) {
+      providers.push('google')
+    }
+    if (process.env.GITHUB_CLIENT_ID && process.env.GITHUB_CLIENT_SECRET) {
+      providers.push('github')
+    }
+    if (process.env.MICROSOFT_CLIENT_ID && process.env.MICROSOFT_CLIENT_SECRET) {
+      providers.push('microsoft')
+    }
     if (!providers.includes(req.params.provider)) {
       throw new ValidationError('Unsupported provider')
     }
@@ -387,10 +393,15 @@ export default ({
 
   apiServer.post('/v1/accounts/create-account/provider/:provider', async req => {
     const providers = []
-    if (process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET) { providers.push('google') }
-    if (process.env.GITHUB_CLIENT_ID && process.env.GITHUB_CLIENT_SECRET) { providers.push('github') }
-    if (process.env.MICROSOFT_CLIENT_ID && process.env.MICROSOFT_CLIENT_SECRET) { providers.push('microsoft') }
-
+    if (process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET) {
+      providers.push('google')
+    }
+    if (process.env.GITHUB_CLIENT_ID && process.env.GITHUB_CLIENT_SECRET) {
+      providers.push('github')
+    }
+    if (process.env.MICROSOFT_CLIENT_ID && process.env.MICROSOFT_CLIENT_SECRET) {
+      providers.push('microsoft')
+    }
     if (!providers.includes(req.params.provider)) {
       throw new ValidationError('Unsupported provider')
     }
