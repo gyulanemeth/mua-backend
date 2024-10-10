@@ -11,8 +11,8 @@ export default ({
   }
 }) => {
   const secrets = process.env.SECRETS.split(' ')
-  const sendInvitation = async (url, email, data) => {
-    const response = await fetch(url, {
+  const sendInvitation = async (email, transactionalId, data) => {
+    const response = await fetch(process.env.BLUEFOX_TRANSACTIONAL_EMAIL_API_URL, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -20,6 +20,7 @@ export default ({
       },
       body: JSON.stringify({
         email,
+        transactionalId,
         data
       })
     })
@@ -62,7 +63,7 @@ export default ({
     }
     let mail
     try {
-      mail = await sendInvitation(process.env.BLUEFOX_TEMPLATE_ACCOUNT_INVITATION, newUser.result.email, { link: `${process.env.APP_URL}accounts/invitation/accept?token=${token}`, inviter: inviterData.result.name, accountName: checkAccount.result.name })
+      mail = await sendInvitation(newUser.result.email, process.env.BLUEFOX_TEMPLATE_ACCOUNT_INVITATION_ID, { link: `${process.env.APP_URL}accounts/invitation/accept?token=${token}`, inviter: { name: inviterData.result.name, email: inviterData.result.email, profilePicture: inviterData.result.profilePicture }, account: { name: checkAccount.result.name, urlFriendlyName: checkAccount.result.urlFriendlyName, logo: checkAccount.result.logo } })
     } catch (e) {
       await deleteOne(UserModel, { id: newUser.result._id, accountId: checkAccount.result._id })
       throw e
@@ -95,7 +96,7 @@ export default ({
     const token = jwt.sign(payload, secrets[0], { expiresIn: '24h' })
     let mail
     try {
-      mail = await sendInvitation(process.env.BLUEFOX_TEMPLATE_ADMIN_INVITATION, newAdmin.result.email, { link: `${process.env.APP_URL}system-admins/invitation/accept?token=${token}`, inviter: inviterData.result.name })
+      mail = await sendInvitation(newAdmin.result.email, process.env.BLUEFOX_TEMPLATE_ADMIN_INVITATION_ID, { link: `${process.env.APP_URL}system-admins/invitation/accept?token=${token}`, inviter: { name: inviterData.result.name, email: inviterData.result.email, profilePicture: inviterData.result.profilePicture } })
     } catch (e) {
       await deleteOne(SystemAdminModel, { id: newAdmin.result._id })
       throw e
@@ -140,7 +141,7 @@ export default ({
       inviterData = await readOne(SystemAdminModel, { id: tokenData.user._id })
     }
     const token = jwt.sign(payload, secrets[0], { expiresIn: '24h' })
-    const mail = await sendInvitation(process.env.BLUEFOX_TEMPLATE_ACCOUNT_INVITATION, getUser.result.items[0].email, { link: `${process.env.APP_URL}accounts/invitation/accept?token=${token}`, inviter: inviterData.result.name, accountName: getAccount.result.name })
+    const mail = await sendInvitation(getUser.result.items[0].email, process.env.BLUEFOX_TEMPLATE_ACCOUNT_INVITATION_ID, { link: `${process.env.APP_URL}accounts/invitation/accept?token=${token}`, inviter: { name: inviterData.result.name, email: inviterData.result.email, profilePicture: inviterData.result.profilePicture }, account: { name: getAccount.result.name, urlFriendlyName: getAccount.result.urlFriendlyName, logo: getAccount.result.logo } })
     return {
       status: 200,
       result: {
@@ -169,7 +170,7 @@ export default ({
 
     const inviterData = await readOne(SystemAdminModel, { id: tokenData.user._id })
     const token = jwt.sign(payload, secrets[0], { expiresIn: '24h' })
-    const mail = await sendInvitation(process.env.BLUEFOX_TEMPLATE_ADMIN_INVITATION, response.result.items[0].email, { link: `${process.env.APP_URL}system-admins/invitation/accept?token=${token}`, inviter: inviterData.result.name })
+    const mail = await sendInvitation(response.result.items[0].email, process.env.BLUEFOX_TEMPLATE_ADMIN_INVITATION_ID, { link: `${process.env.APP_URL}system-admins/invitation/accept?token=${token}`, inviter: { name: inviterData.result.name, email: inviterData.result.email, profilePicture: inviterData.result.profilePicture } })
     return {
       status: 201,
       result: {

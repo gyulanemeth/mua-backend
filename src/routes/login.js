@@ -10,9 +10,8 @@ export default ({
   apiServer, UserModel, AccountModel, SystemAdminModel
 }) => {
   const secrets = process.env.SECRETS.split(' ')
-  const sendLogin = async (email, data) => {
-    const url = process.env.BLUEFOX_TEMPLATE_ACCOUNT_LOGIN_SELECT
-    const response = await fetch(url, {
+  const sendLogin = async (email, transactionalId, data) => {
+    const response = await fetch(process.env.BLUEFOX_TRANSACTIONAL_EMAIL_API_URL, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -20,6 +19,7 @@ export default ({
       },
       body: JSON.stringify({
         email,
+        transactionalId,
         data
       })
     })
@@ -289,7 +289,7 @@ export default ({
         getAccounts.result.items
     }
     const token = jwt.sign(payload, secrets[0], { expiresIn: '24h' })
-    const info = await sendLogin(req.body.email, { link: `${process.env.APP_URL}accounts/login-select?token=${token}` })
+    const info = await sendLogin(req.body.email, process.env.BLUEFOX_TEMPLATE_ACCOUNT_LOGIN_SELECT_ID, { link: `${process.env.APP_URL}accounts/login-select?token=${token}` })
     return {
       status: 201,
       result: {

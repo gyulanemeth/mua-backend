@@ -8,8 +8,8 @@ import { ValidationError, AuthenticationError } from 'standard-api-errors'
 
 export default ({ apiServer, UserModel, SystemAdminModel, AccountModel }) => {
   const secrets = process.env.SECRETS.split(' ')
-  const sendForgotPassword = async (url, email, data) => {
-    const response = await fetch(url, {
+  const sendForgotPassword = async (email, transactionalId, data) => {
+    const response = await fetch(process.env.BLUEFOX_TRANSACTIONAL_EMAIL_API_URL, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -17,6 +17,7 @@ export default ({ apiServer, UserModel, SystemAdminModel, AccountModel }) => {
       },
       body: JSON.stringify({
         email,
+        transactionalId,
         data
       })
     })
@@ -49,7 +50,7 @@ export default ({ apiServer, UserModel, SystemAdminModel, AccountModel }) => {
     }
 
     const token = jwt.sign(payload, secrets[0], { expiresIn: '24h' })
-    const mail = await sendForgotPassword(process.env.BLUEFOX_TEMPLATE_ACCOUNT_FORGOT_PASSWORD, response.result.items[0].email, { link: `${process.env.APP_URL}accounts/forgot-password/reset?token=${token}`, name: response.result.items[0].name })
+    const mail = await sendForgotPassword(response.result.items[0].email, process.env.BLUEFOX_TEMPLATE_ACCOUNT_FORGOT_PASSWORD_ID, { link: `${process.env.APP_URL}accounts/forgot-password/reset?token=${token}`, name: response.result.items[0].name })
     return {
       status: 200,
       result: {
@@ -72,7 +73,7 @@ export default ({ apiServer, UserModel, SystemAdminModel, AccountModel }) => {
       }
     }
     const token = jwt.sign(payload, secrets[0], { expiresIn: '24h' })
-    const mail = await sendForgotPassword(process.env.BLUEFOX_TEMPLATE_ADMIN_FORGOT_PASSWORD, response.result.items[0].email, { link: `${process.env.APP_URL}system-admins/forgot-password/reset?token=${token}`, name: response.result.items[0].name })
+    const mail = await sendForgotPassword(response.result.items[0].email, process.env.BLUEFOX_TEMPLATE_ADMIN_FORGOT_PASSWORD_ID, { link: `${process.env.APP_URL}system-admins/forgot-password/reset?token=${token}`, name: response.result.items[0].name })
     return {
       status: 200,
       result: {
