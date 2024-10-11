@@ -50,7 +50,7 @@ export default ({ apiServer, UserModel, SystemAdminModel, AccountModel }) => {
     }
 
     const token = jwt.sign(payload, secrets[0], { expiresIn: '24h' })
-    const mail = await sendForgotPassword(response.result.items[0].email, process.env.BLUEFOX_TEMPLATE_ACCOUNT_FORGOT_PASSWORD_ID, { link: `${process.env.APP_URL}accounts/forgot-password/reset?token=${token}`, name: response.result.items[0].name })
+    const mail = await sendForgotPassword(response.result.items[0].email, process.env.BLUEFOX_TEMPLATE_ID_ACCOUNT_FORGOT_PASSWORD, { link: `${process.env.APP_URL}accounts/forgot-password/reset?token=${token}`, name: response.result.items[0].name })
     return {
       status: 200,
       result: {
@@ -73,7 +73,7 @@ export default ({ apiServer, UserModel, SystemAdminModel, AccountModel }) => {
       }
     }
     const token = jwt.sign(payload, secrets[0], { expiresIn: '24h' })
-    const mail = await sendForgotPassword(response.result.items[0].email, process.env.BLUEFOX_TEMPLATE_ADMIN_FORGOT_PASSWORD_ID, { link: `${process.env.APP_URL}system-admins/forgot-password/reset?token=${token}`, name: response.result.items[0].name })
+    const mail = await sendForgotPassword(response.result.items[0].email, process.env.BLUEFOX_TEMPLATE_ID_ADMIN_FORGOT_PASSWORD, { link: `${process.env.APP_URL}system-admins/forgot-password/reset?token=${token}`, name: response.result.items[0].name })
     return {
       status: 200,
       result: {
