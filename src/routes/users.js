@@ -17,8 +17,8 @@ export default async ({
 }) => {
   const secrets = process.env.SECRETS.split(' ')
   const s3 = await aws()
-  const sendUserEmail = async (url, email, data) => {
-    const response = await fetch(url, {
+  const sendUserEmail = async (email, transactionalId, data) => {
+    const response = await fetch(process.env.BLUEFOX_TRANSACTIONAL_EMAIL_API_URL, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -26,6 +26,7 @@ export default async ({
       },
       body: JSON.stringify({
         email,
+        transactionalId,
         data
       })
     })
@@ -89,7 +90,7 @@ export default async ({
         }
       }
       const token = jwt.sign(payload, secrets[0], { expiresIn: '24h' })
-      const mail = await sendUserEmail(process.env.BLUEFOX_TEMPLATE_ACCOUNT_CREATE_PASSWORD, getUser.result.email, { link: `${process.env.APP_URL}accounts/create-password?token=${token}`, userName: getUser.result.name, accountName: getAccount.result.name })
+      const mail = await sendUserEmail(getUser.result.email, process.env.BLUEFOX_TEMPLATE_ID_ACCOUNT_CREATE_PASSWORD, { link: `${process.env.APP_URL}accounts/create-password?token=${token}`, userName: getUser.result.name, accountName: getAccount.result.name })
       return {
         status: 200,
         result: {
@@ -144,7 +145,7 @@ export default async ({
       }
     }
     const token = jwt.sign(payload, secrets[0], { expiresIn: '24h' })
-    const mail = await sendUserEmail(process.env.BLUEFOX_TEMPLATE_ACCOUNT_VERIFY_EMAIL, req.body.newEmail, { link: `${process.env.APP_URL}accounts/verify-email?token=${token}`, name: response.result.name })
+    const mail = await sendUserEmail(req.body.newEmail, process.env.BLUEFOX_TEMPLATE_ID_ACCOUNT_VERIFY_EMAIL, { link: `${process.env.APP_URL}accounts/verify-email?token=${token}`, name: response.result.name })
     return {
       status: 200,
       result: {
@@ -157,7 +158,7 @@ export default async ({
   apiServer.patch('/v1/accounts/:accountId/users/:id/email-confirm', async req => {
     const data = await allowAccessTo(req, secrets, [{ type: 'verfiy-email', user: { _id: req.params.id }, account: { _id: req.params.accountId } }])
     const getUserData = await readOne(UserModel, { id: req.params.id, accountId: req.params.accountId })
-    const user = await patchOne(UserModel, { id: req.params.id }, { email: data.newEmail, googleProfileId: undefined, microsoftProfileId: undefined })
+    const user = await patchOne(UserModel, { id: req.params.id }, { email: data.newEmail, googleProfileId: undefined, microsoftProfileId: undefined, githubProfileId: undefined })
     hooks.updateUserEmail.post({ accountId: req.params.accountId, oldEmail: getUserData.result.email, newEmail: data.newEmail })
     const payload = {
       type: 'user',
@@ -344,7 +345,7 @@ export default async ({
       }
     }
     const token = jwt.sign(payload, secrets[0], { expiresIn: '24h' })
-    const mail = await sendUserEmail(process.env.BLUEFOX_TEMPLATE_ACCOUNT_FINALIZE_REGISTRATION, getUser.result.email, { link: `${process.env.APP_URL}accounts/finalize-registration?token=${token}` })
+    const mail = await sendUserEmail(getUser.result.email, process.env.BLUEFOX_TEMPLATE_ID_ACCOUNT_FINALIZE_REGISTRATION, { link: `${process.env.APP_URL}accounts/finalize-registration?token=${token}` })
     return {
       status: 200,
       result: {

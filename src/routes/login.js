@@ -10,9 +10,8 @@ export default ({
   apiServer, UserModel, AccountModel, SystemAdminModel
 }) => {
   const secrets = process.env.SECRETS.split(' ')
-  const sendLogin = async (email, data) => {
-    const url = process.env.BLUEFOX_TEMPLATE_ACCOUNT_LOGIN_SELECT
-    const response = await fetch(url, {
+  const sendLogin = async (email, transactionalId, data) => {
+    const response = await fetch(process.env.BLUEFOX_TRANSACTIONAL_EMAIL_API_URL, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -20,6 +19,7 @@ export default ({
       },
       body: JSON.stringify({
         email,
+        transactionalId,
         data
       })
     })
@@ -33,9 +33,8 @@ export default ({
     return res
   }
 
-  const sendRegistration = async (email, token) => {
-    const url = process.env.BLUEFOX_TEMPLATE_ACCOUNT_FINALIZE_REGISTRATION
-    const response = await fetch(url, {
+  const sendRegistration = async (email, transactionalId, token) => {
+    const response = await fetch(process.env.BLUEFOX_TRANSACTIONAL_EMAIL_API_URL, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -43,6 +42,7 @@ export default ({
       },
       body: JSON.stringify({
         email,
+        transactionalId,
         data: { link: `${process.env.APP_URL}accounts/finalize-registration?token=${token}` }
       })
     })
@@ -200,7 +200,7 @@ export default ({
         }
       }
       const token = jwt.sign(payload, secrets[0], { expiresIn: '24h' })
-      await sendRegistration(findUser.result.items[0].email, token)
+      await sendRegistration(findUser.result.items[0].email, process.env.BLUEFOX_TEMPLATE_ID_ACCOUNT_FINALIZE_REGISTRATION, token)
       throw new MethodNotAllowedError('Please verify your email')
     }
     const getAccount = await readOne(AccountModel, { id: req.params.id }, req.query)
@@ -289,7 +289,7 @@ export default ({
         getAccounts.result.items
     }
     const token = jwt.sign(payload, secrets[0], { expiresIn: '24h' })
-    const info = await sendLogin(req.body.email, { link: `${process.env.APP_URL}accounts/login-select?token=${token}` })
+    const info = await sendLogin(req.body.email, process.env.BLUEFOX_TEMPLATE_ID_ACCOUNT_LOGIN_SELECT, { link: `${process.env.APP_URL}accounts/login-select?token=${token}` })
     return {
       status: 201,
       result: {
