@@ -151,6 +151,10 @@ export default async ({
     }
     const newUser = await createOne(UserModel, req.params, userData)
     hooks.createNewUser.post({ accountId: newAccount.result._id, name: newUser.result.name, email: newUser.result.email })
+    let postRes
+    if (hooks.createAccount?.post) {
+      postRes = await hooks.createAccount.post(req.body, newAccount.result)
+    }
     if (newUser.result.verified) {
       const payload = {
         type: 'login',
@@ -182,10 +186,6 @@ export default async ({
     }
     const token = jwt.sign(payload, secrets[0], { expiresIn: '24h' })
     const mail = await sendRegistration(newUser.result.email, process.env.BLUEFOX_TEMPLATE_ACCOUNT_FINALIZE_REGISTRATION_ID, { link: `${process.env.APP_URL}accounts/finalize-registration?token=${token}`, name: newUser.result.name })
-    let postRes
-    if (hooks.createAccount?.post) {
-      postRes = await hooks.createAccount.post(req.body, newAccount.result)
-    }
     return postRes || {
       status: 200,
       result: {
