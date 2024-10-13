@@ -1311,4 +1311,77 @@ describe('users test', () => {
     expect(res.body.result.success).toBe(true)
     await fetchSpy.mockRestore()
   })
+
+  test('success disconnect google provider  /v1/accounts/:accountId/users/:id/provider/:provider', async () => {
+    const account1 = new AccountTestModel({ name: 'accountExample1', urlFriendlyName: 'urlFriendlyNameExample1' })
+    await account1.save()
+
+    const hash1 = crypto.createHash('md5').update('user1Password').digest('hex')
+    const user1 = new UserTestModel({ email: 'user1@gmail.com', name: 'user1', password: hash1, accountId: account1._id, googleProfileId: '123123' })
+    await user1.save()
+
+    const token = jwt.sign({ type: 'disconnect', account: { _id: account1._id } }, secrets[0])
+
+    const res = await request(app)
+      .patch('/v1/accounts/' + account1._id + '/users/' + user1._id + '/provider/google')
+      .set('authorization', 'Bearer ' + token)
+      .send()
+
+    expect(res.body.status).toBe(200)
+  })
+
+  test('success disconnect microsoft provider  /v1/accounts/:accountId/users/:id/provider/:provider', async () => {
+    const account1 = new AccountTestModel({ name: 'accountExample1', urlFriendlyName: 'urlFriendlyNameExample1' })
+    await account1.save()
+
+    const hash1 = crypto.createHash('md5').update('user1Password').digest('hex')
+    const user1 = new UserTestModel({ email: 'user1@gmail.com', name: 'user1', password: hash1, accountId: account1._id, microsoftProfileId: '123123' })
+    await user1.save()
+
+    const token = jwt.sign({ type: 'disconnect', account: { _id: account1._id } }, secrets[0])
+
+    const res = await request(app)
+      .patch('/v1/accounts/' + account1._id + '/users/' + user1._id + '/provider/microsoft')
+      .set('authorization', 'Bearer ' + token)
+      .send()
+
+    expect(res.body.status).toBe(200)
+  })
+
+  test('success disconnect github provider  /v1/accounts/:accountId/users/:id/provider/:provider', async () => {
+    const account1 = new AccountTestModel({ name: 'accountExample1', urlFriendlyName: 'urlFriendlyNameExample1' })
+    await account1.save()
+
+    const hash1 = crypto.createHash('md5').update('user1Password').digest('hex')
+    const user1 = new UserTestModel({ email: 'user1@gmail.com', name: 'user1', password: hash1, accountId: account1._id, githubProfileId: '123123' })
+    await user1.save()
+
+    const token = jwt.sign({ type: 'disconnect', account: { _id: account1._id } }, secrets[0])
+
+    const res = await request(app)
+      .patch('/v1/accounts/' + account1._id + '/users/' + user1._id + '/provider/github')
+      .set('authorization', 'Bearer ' + token)
+      .send()
+
+    expect(res.body.status).toBe(200)
+  })
+
+  test('disconnect error mising password github provider  /v1/accounts/:accountId/users/:id/provider/:provider', async () => {
+    const account1 = new AccountTestModel({ name: 'accountExample1', urlFriendlyName: 'urlFriendlyNameExample1' })
+    await account1.save()
+
+    const user1 = new UserTestModel({ email: 'user1@gmail.com', name: 'user1', accountId: account1._id, githubProfileId: '123123' })
+    await user1.save()
+
+    const token = jwt.sign({ type: 'disconnect', account: { _id: account1._id } }, secrets[0])
+
+    const res = await request(app)
+      .patch('/v1/accounts/' + account1._id + '/users/' + user1._id + '/provider/github')
+      .set('authorization', 'Bearer ' + token)
+      .send()
+
+    expect(res.body.status).toBe(405)
+    expect(res.body.error.name).toBe('METHOD_NOT_ALLOWED')
+    expect(res.body.error.message).toBe('Password is requird')
+  })
 })
