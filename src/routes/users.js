@@ -355,4 +355,29 @@ export default async ({
       }
     }
   })
+
+  apiServer.patch('/v1/accounts/:accountId/users/:id/provider/:provider', async req => {
+    allowAccessTo(req, secrets, [{ type: 'disconnect' }])
+    const user = await readOne(UserModel, { id: req.params.id, accountId: req.params.accountId })
+    switch (req.params.provider) {
+      case 'google':
+        user.result.googleProfileId = null
+        break
+      case 'microsoft':
+        user.result.microsoftProfileId = null
+        break
+      case 'github':
+        user.result.githubProfileId = null
+        break
+    }
+    if (!user.result.password && !user.result.googleProfileId && !user.result.microsoftProfileId && !user.result.githubProfileId) {
+      throw new MethodNotAllowedError('Password is required')
+    }
+    const updatedUser = await patchOne(UserModel, { id: req.params.id, accountId: req.params.accountId }, { ...user.result })
+    updatedUser.result.password = !!updatedUser.result.password
+    updatedUser.result.googleProfileId = !!updatedUser.result.googleProfileId
+    updatedUser.result.microsoftProfileId = !!updatedUser.result.microsoftProfileId
+    updatedUser.result.githubProfileId = !!updatedUser.result.githubProfileId
+    return updatedUser
+  })
 }
