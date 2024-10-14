@@ -90,7 +90,7 @@ export default async ({
         }
       }
       const token = jwt.sign(payload, secrets[0], { expiresIn: '24h' })
-      const mail = await sendUserEmail(getUser.result.email, process.env.BLUEFOX_TEMPLATE_ID_ACCOUNT_CREATE_PASSWORD, { link: `${process.env.APP_URL}accounts/create-password?token=${token}`, userName: getUser.result.name, accountName: getAccount.result.name })
+      const mail = await sendUserEmail(getUser.result.email, process.env.BLUEFOX_TEMPLATE_ID_ACCOUNT_CREATE_PASSWORD, { link: `${process.env.APP_URL}accounts/create-password?token=${token}`, name: getUser.result.name, accountName: getAccount.result.name })
       return {
         status: 200,
         result: {
