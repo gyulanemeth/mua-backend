@@ -371,7 +371,7 @@ export default async ({
         break
     }
     if (!user.result.password && !user.result.googleProfileId && !user.result.microsoftProfileId && !user.result.githubProfileId) {
-      throw new MethodNotAllowedError('Password is requird')
+      throw new MethodNotAllowedError('Password is required')
     }
     const updatedUser = await patchOne(UserModel, { id: req.params.id, accountId: req.params.accountId }, { ...user.result })
     updatedUser.result.password = !!updatedUser.result.password

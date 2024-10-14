@@ -1382,6 +1382,6 @@ describe('users test', () => {
 
     expect(res.body.status).toBe(405)
     expect(res.body.error.name).toBe('METHOD_NOT_ALLOWED')
-    expect(res.body.error.message).toBe('Password is requird')
+    expect(res.body.error.message).toBe('Password is required')
   })
 })
