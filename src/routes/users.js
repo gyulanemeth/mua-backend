@@ -158,7 +158,7 @@ export default async ({
   apiServer.patch('/v1/accounts/:accountId/users/:id/email-confirm', async req => {
     const data = await allowAccessTo(req, secrets, [{ type: 'verfiy-email', user: { _id: req.params.id }, account: { _id: req.params.accountId } }])
     const getUserData = await readOne(UserModel, { id: req.params.id, accountId: req.params.accountId })
-    const user = await patchOne(UserModel, { id: req.params.id }, { email: data.newEmail, googleProfileId: undefined, microsoftProfileId: undefined, githubProfileId: undefined })
+    const user = await patchOne(UserModel, { id: req.params.id }, { email: data.newEmail, googleProfileId: null, microsoftProfileId: null, githubProfileId: null })
     hooks.updateUserEmail.post({ accountId: req.params.accountId, oldEmail: getUserData.result.email, newEmail: data.newEmail })
     const payload = {
       type: 'user',
