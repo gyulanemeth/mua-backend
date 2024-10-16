@@ -808,7 +808,7 @@ describe('System admin login test ', () => {
 
     expect(response.status).toBe(302)
 
-    expect(response.header.location).toContain(`${process.env.APP_URL}accounts/login/${account1.urlFriendlyName}?loginToken`)
+    expect(response.header.location).toContain(`${process.env.APP_URL}provider-auth?loginToken`)
     mockAuthenticate.mockRestore()
   })
 
@@ -831,7 +831,7 @@ describe('System admin login test ', () => {
 
     expect(response.status).toBe(302)
 
-    expect(response.header.location).toContain(`${process.env.APP_URL}accounts/login/${account1.urlFriendlyName}?failed=AUTHENTICATION_ERROR`)
+    expect(response.header.location).toContain(`${process.env.APP_URL}provider-auth?failed=AUTHENTICATION_ERROR`)
     mockAuthenticate.mockRestore()
   })
 
@@ -857,7 +857,7 @@ describe('System admin login test ', () => {
 
     expect(response.status).toBe(302)
 
-    expect(response.header.location).toContain(`${process.env.APP_URL}accounts/login/${account1.urlFriendlyName}?loginToken`)
+    expect(response.header.location).toContain(`${process.env.APP_URL}provider-auth?loginToken`)
     mockAuthenticate.mockRestore()
   })
 
@@ -883,7 +883,7 @@ describe('System admin login test ', () => {
 
     expect(response.status).toBe(302)
 
-    expect(response.header.location).toContain(`${process.env.APP_URL}accounts/login/${account1.urlFriendlyName}?loginToken`)
+    expect(response.header.location).toContain(`${process.env.APP_URL}provider-auth?loginToken`)
     mockAuthenticate.mockRestore()
   })
 
@@ -909,7 +909,7 @@ describe('System admin login test ', () => {
 
     expect(response.status).toBe(302)
 
-    expect(response.header.location).toContain(`${process.env.APP_URL}accounts/${account1.urlFriendlyName}/me?success=true`)
+    expect(response.header.location).toContain(`${process.env.APP_URL}provider-auth?success=true`)
     mockAuthenticate.mockRestore()
   })
 
@@ -935,7 +935,7 @@ describe('System admin login test ', () => {
 
     expect(response.status).toBe(302)
 
-    expect(response.header.location).toContain(`${process.env.APP_URL}accounts/${account1.urlFriendlyName}/me?failed=NOT_FOUND`)
+    expect(response.header.location).toContain(`${process.env.APP_URL}provider-auth?failed=NOT_FOUND`)
     mockAuthenticate.mockRestore()
   })
 
@@ -961,7 +961,7 @@ describe('System admin login test ', () => {
 
     expect(response.status).toBe(302)
 
-    expect(response.header.location).toContain(`${process.env.APP_URL}accounts/${account1.urlFriendlyName}/me?success=true`)
+    expect(response.header.location).toContain(`${process.env.APP_URL}provider-auth?success=true`)
     mockAuthenticate.mockRestore()
   })
 
@@ -987,7 +987,7 @@ describe('System admin login test ', () => {
 
     expect(response.status).toBe(302)
 
-    expect(response.header.location).toContain(`${process.env.APP_URL}accounts/${account1.urlFriendlyName}/me?success=true`)
+    expect(response.header.location).toContain(`${process.env.APP_URL}provider-auth?success=true`)
     mockAuthenticate.mockRestore()
   })
 
@@ -1013,7 +1013,7 @@ describe('System admin login test ', () => {
 
     expect(response.status).toBe(302)
 
-    expect(response.header.location).toContain(`${process.env.APP_URL}accounts/create-account?userData`)
+    expect(response.header.location).toContain(`${process.env.APP_URL}provider-auth?userData`)
     mockAuthenticate.mockRestore()
   })
 
@@ -1039,7 +1039,7 @@ describe('System admin login test ', () => {
 
     expect(response.status).toBe(302)
 
-    expect(response.header.location).toContain(`${process.env.APP_URL}accounts/${account1.urlFriendlyName}/me?loginToken`)
+    expect(response.header.location).toContain(`${process.env.APP_URL}provider-auth?loginToken`)
     mockAuthenticate.mockRestore()
   })
 
@@ -1065,7 +1065,7 @@ describe('System admin login test ', () => {
 
     expect(response.status).toBe(302)
 
-    expect(response.header.location).toContain(`${process.env.APP_URL}accounts/login/${account1.urlFriendlyName}?failed=NOT_FOUND`)
+    expect(response.header.location).toContain(`${process.env.APP_URL}provider-auth?failed=NOT_FOUND`)
     mockAuthenticate.mockRestore()
   })
 
@@ -1091,7 +1091,7 @@ describe('System admin login test ', () => {
 
     expect(response.status).toBe(302)
 
-    expect(response.header.location).toContain(`${process.env.APP_URL}accounts/${account1.urlFriendlyName}/me?loginToken`)
+    expect(response.header.location).toContain(`${process.env.APP_URL}provider-auth?loginToken`)
     mockAuthenticate.mockRestore()
   })
 
@@ -1117,7 +1117,7 @@ describe('System admin login test ', () => {
 
     expect(response.status).toBe(302)
 
-    expect(response.header.location).toContain(`${process.env.APP_URL}accounts/${account1.urlFriendlyName}/me?loginToken`)
+    expect(response.header.location).toContain(`${process.env.APP_URL}provider-auth?loginToken`)
     mockAuthenticate.mockRestore()
   })
 
@@ -1142,7 +1142,7 @@ describe('System admin login test ', () => {
 
     expect(response.status).toBe(302)
 
-    expect(response.header.location).toContain(`${process.env.APP_URL}accounts/login/${account1.urlFriendlyName}?failed=AUTHENTICATION_ERROR`)
+    expect(response.header.location).toContain(`${process.env.APP_URL}provider-auth?failed=AUTHENTICATION_ERROR`)
     mockAuthenticate.mockRestore()
   })
 
@@ -1167,7 +1167,7 @@ describe('System admin login test ', () => {
 
     expect(response.status).toBe(302)
 
-    expect(response.header.location).toContain(`${process.env.APP_URL}accounts/login/${account1.urlFriendlyName}?failed=AUTHENTICATION_ERROR`)
+    expect(response.header.location).toContain(`${process.env.APP_URL}provider-auth?failed=AUTHENTICATION_ERROR`)
     mockAuthenticate.mockRestore()
   })
 
@@ -1192,7 +1192,7 @@ describe('System admin login test ', () => {
 
     expect(response.status).toBe(302)
 
-    expect(response.header.location).toContain(`${process.env.APP_URL}accounts/login?failed=AUTHENTICATION_ERROR`)
+    expect(response.header.location).toContain(`${process.env.APP_URL}provider-auth?failed=AUTHENTICATION_ERROR`)
     mockAuthenticate.mockRestore()
   })
 })
