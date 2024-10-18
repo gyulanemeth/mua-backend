@@ -87,9 +87,9 @@ export default ({
           _id: data.account._id
         }
       }, secrets[0], { expiresIn: '24h' })
-      return `${process.env.APP_URL}accounts/login/${data.account.urlFriendlyName}?loginToken=${token}`
+      return `${process.env.APP_URL}provider-auth?loginToken=${token}`
     } catch (error) {
-      return `${process.env.APP_URL}accounts/login/${data.account.urlFriendlyName}?failed=${error.name}`
+      return `${process.env.APP_URL}provider-auth?failed=${error.name}`
     }
   }
 
@@ -108,9 +108,9 @@ export default ({
     }
     try {
       await patchOne(UserModel, { id: data.user._id, accountId: data.account._id, email: user.email }, userBody)
-      return `${process.env.APP_URL}accounts/${data.account.urlFriendlyName}/me?success=true`
+      return `${process.env.APP_URL}provider-auth?success=true`
     } catch (error) {
-      return `${process.env.APP_URL}accounts/${data.account.urlFriendlyName}/me?failed=${error.name}`
+      return `${process.env.APP_URL}provider-auth?failed=${error.name}`
     }
   }
 
@@ -147,9 +147,9 @@ export default ({
         }
       }
       const token = jwt.sign(payload, secrets[0], { expiresIn: '24h' })
-      return `${process.env.APP_URL}accounts/${payload.type ? data.account.urlFriendlyName + '/me?loginToken' : 'create-account?userData'}=${token}`
+      return `${process.env.APP_URL}provider-auth?${payload.type ? 'loginToken' : 'userData'}=${token}`
     } catch (error) {
-      return `${process.env.APP_URL}accounts/login/${data.account.urlFriendlyName}?failed=${error.name}`
+      return `${process.env.APP_URL}provider-auth?failed=${error.name}`
     }
   }
 
@@ -161,7 +161,7 @@ export default ({
           const state = req.query.state
           const data = JSON.parse(Buffer.from(state, 'base64').toString())
           if (err || !user) {
-            redirect = `${process.env.APP_URL}accounts/login/${data.account?.urlFriendlyName}?failed=AUTHENTICATION_ERROR`
+            redirect = `${process.env.APP_URL}provider-auth?failed=AUTHENTICATION_ERROR`
             return resolve()
           }
           if (data.type === 'login') {
@@ -176,7 +176,7 @@ export default ({
       })
       return { redirect }
     } catch (error) {
-      redirect = `${process.env.APP_URL}accounts/login?failed=AUTHENTICATION_ERROR`
+      redirect = `${process.env.APP_URL}provider-auth?failed=AUTHENTICATION_ERROR`
       return { redirect }
     }
   }
