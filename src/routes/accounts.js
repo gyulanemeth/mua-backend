@@ -185,7 +185,7 @@ export default async ({
       }
     }
     const token = jwt.sign(payload, secrets[0], { expiresIn: '24h' })
-    const mail = await sendRegistration(newUser.result.email, process.env.BLUEFOX_TEMPLATE_ID_ACCOUNT_FINALIZE_REGISTRATION, { link: `${process.env.APP_URL}accounts/finalize-registration?token=${token}`, name: newUser.result.name })
+    const mail = await sendRegistration(newUser.result.email, process.env.BLUEFOX_TEMPLATE_ID_ACCOUNT_FINALIZE_REGISTRATION, { link: `${process.env.APP_URL}accounts/finalize-registration?token=${token}`, name: newUser.result.name, user: { name: newUser.result.name, email: newUser.result.email, profilePicture: newUser.result.profilePicture } })
     return postRes || {
       status: 200,
       result: {

@@ -147,7 +147,7 @@ export default async ({
       newEmail: req.body.newEmail
     }
     const token = jwt.sign(payload, secrets[0], { expiresIn: '24h' })
-    const mail = await sendVerifyEmail(req.body.newEmail, process.env.BLUEFOX_TEMPLATE_ID_ADMIN_VERIFY_EMAIL, { link: `${process.env.APP_URL}system-admins/verify-email?token=${token}`, name: response.result.name })
+    const mail = await sendVerifyEmail(req.body.newEmail, process.env.BLUEFOX_TEMPLATE_ID_ADMIN_VERIFY_EMAIL, { link: `${process.env.APP_URL}system-admins/verify-email?token=${token}`, name: response.result.name, user: { name: response.result.name, email: response.result.email, profilePicture: response.result.profilePicture } })
     return {
       status: 200,
       result: {
