@@ -54,7 +54,7 @@ export default ({
         urlFriendlyName: checkAccount.result.urlFriendlyName
       }
     }
-    const token = jwt.sign(payload, secrets[0], { expiresIn: '24h' })
+    const token = jwt.sign(payload, secrets[0], { expiresIn: '7d' })
     let inviterData
     if (tokenData.type === 'user') {
       inviterData = await readOne(UserModel, { id: tokenData.user._id })
@@ -93,7 +93,7 @@ export default ({
         email: newAdmin.result.email
       }
     }
-    const token = jwt.sign(payload, secrets[0], { expiresIn: '24h' })
+    const token = jwt.sign(payload, secrets[0], { expiresIn: '7d' })
     let mail
     try {
       mail = await sendInvitation(newAdmin.result.email, process.env.BLUEFOX_TEMPLATE_ID_ADMIN_INVITATION, { link: `${process.env.APP_URL}system-admins/invitation/accept?token=${token}`, inviter: { name: inviterData.result.name, email: inviterData.result.email, profilePicture: inviterData.result.profilePicture } })
@@ -140,7 +140,7 @@ export default ({
     } else {
       inviterData = await readOne(SystemAdminModel, { id: tokenData.user._id })
     }
-    const token = jwt.sign(payload, secrets[0], { expiresIn: '24h' })
+    const token = jwt.sign(payload, secrets[0], { expiresIn: '7d' })
     const mail = await sendInvitation(getUser.result.items[0].email, process.env.BLUEFOX_TEMPLATE_ID_ACCOUNT_INVITATION, { link: `${process.env.APP_URL}accounts/invitation/accept?token=${token}`, inviter: { name: inviterData.result.name, email: inviterData.result.email, profilePicture: inviterData.result.profilePicture }, account: { name: getAccount.result.name, urlFriendlyName: getAccount.result.urlFriendlyName, logo: getAccount.result.logo, url: `${process.env.APP_URL}accounts/${getAccount.result.urlFriendlyName}` } })
     return {
       status: 200,
@@ -169,7 +169,7 @@ export default ({
     }
 
     const inviterData = await readOne(SystemAdminModel, { id: tokenData.user._id })
-    const token = jwt.sign(payload, secrets[0], { expiresIn: '24h' })
+    const token = jwt.sign(payload, secrets[0], { expiresIn: '7d' })
     const mail = await sendInvitation(response.result.items[0].email, process.env.BLUEFOX_TEMPLATE_ID_ADMIN_INVITATION, { link: `${process.env.APP_URL}system-admins/invitation/accept?token=${token}`, inviter: { name: inviterData.result.name, email: inviterData.result.email, profilePicture: inviterData.result.profilePicture } })
     return {
       status: 201,
