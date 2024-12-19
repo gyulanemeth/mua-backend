@@ -24,7 +24,7 @@ To set up the `mua-backend`, you need to provide the following parameters:
 
 1. `API Server`
 
-An instance created using the Express Async API library.
+An instance created using the [express-async-api library](https://www.npmjs.com/package/express-async-api).
 
 2. `Models`
 
