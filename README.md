@@ -48,6 +48,51 @@ MuaBackend({
 })
 
 ```
+3. Add to `.env` file
+
+```bash
+NODE_ENV=development
+SECRETS=testsecret1 testsecret2
+
+APP_URL=<app_url>
+
+BLUEFOX_TRANSACTIONAL_EMAIL_API_URL=<emailfox_transactional_url>
+
+BLUEFOX_API_KEY=<bluefox_email_api_key>
+
+BLUEFOX_TEMPLATE_ID_ADMIN_VERIFY_EMAIL=<bluefox_template_id>
+BLUEFOX_TEMPLATE_ID_ADMIN_FORGOT_PASSWORD=<bluefox_template_id>
+BLUEFOX_TEMPLATE_ID_ADMIN_INVITATION=<bluefox_template_id>
+BLUEFOX_TEMPLATE_ID_ACCOUNT_FINALIZE_REGISTRATION=<bluefox_template_id>
+BLUEFOX_TEMPLATE_ID_ACCOUNT_FORGOT_PASSWORD=<bluefox_template_id>
+BLUEFOX_TEMPLATE_ID_ACCOUNT_INVITATION=<bluefox_template_id>
+BLUEFOX_TEMPLATE_ID_ACCOUNT_LOGIN_SELECT=<bluefox_template_id>
+BLUEFOX_TEMPLATE_ID_ACCOUNT_VERIFY_EMAIL=<bluefox_template_id>
+BLUEFOX_TEMPLATE_ID_ACCOUNT_CREATE_PASSWORD=<bluefox_template_id>
+
+TEST_STATIC_SERVER_URL=<test_static_server_url>
+CDN_BASE_URL=<cdn_base_url>
+
+AWS_BUCKET_PATH=<aws.bucket.path>
+AWS_BUCKET_NAME=<your_aws_bucket_name>
+AWS_FOLDER_NAME=<your_aws_folder_name>
+AWS_REGION=<your_aws_region>
+AWS_ACCESS_KEY_ID=<your_aws_access_key_id>
+AWS_SECRET_ACCESS_KEY=<your_aws_secret_access_key>
+
+ALPHA_MODE=false
+MAX_FILE_SIZE=5242880
+
+GOOGLE_CLIENT_ID=<your_google_client_id>
+GOOGLE_CLIENT_SECRET=<your_google_secret_access_key>
+
+MICROSOFT_CLIENT_ID=<your_microsoft_client_id>
+MICROSOFT_CLIENT_SECRET=<your_microsoft_secret_access_key>
+
+GITHUB_CLIENT_ID=<your_github_client_id>
+GITHUB_CLIENT_SECRET=<your_github_secret_access_key>
+
+```
 
 ## API Routes
 
