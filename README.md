@@ -7,7 +7,7 @@ This backend simplifies the creation and management of accounts, users, and syst
 
 
 ## Features
-- **Slack-like Workspace Management**: Users can log into separate workspaces with independent or shared credentials.
+- **Slack-like Workspace Management**: Users can log into separate workspaces, each with its own independent credentials.
 - **Route Auto-Generation**: Automatically generates routes for account, user, and system admin management.
 - **Flexible API Integration**: Built to work with an API server created using the Express Async API.
 
