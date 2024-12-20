@@ -1255,7 +1255,6 @@ describe('users test', () => {
       .set('authorization', 'Bearer ' + token)
       .attach('profilePicture', path.join(__dirname, '..', 'helpers/testPics', 'test.png'))
 
-    console.log(res.body, '/////////////////')
     expect(res.body.status).toBe(413)
     expect(res.body.error.message).toBe('File size limit exceeded. Maximum file size allowed is 0.02mb')
   })
