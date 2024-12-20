@@ -29,9 +29,55 @@ To set up the `mua-backend`, you need to provide the following parameters:
 2. `Models`
 
 - **AccountModel**: The model for managing workspace accounts.
+```javascript
+
+const AccountSchema = new mongoose.Schema({
+  name: { type: String },
+  urlFriendlyName: { type: String, unique: true },
+  logo: { type: String },
+  deleted: { type: Boolean }
+}, { timestamps: true })
+
+export default mongoose.model('Account', AccountSchema)
+
+```
 - **UserModel**: The model for managing users.
+
+```javascript
+
+const UserSchema = new mongoose.Schema({
+  name: { type: String },
+  email: { type: String, lowercase: true, required: true, match: /.+[\\@].+\..+/ },
+  password: { type: String },
+  googleProfileId: { type: String },
+  microsoftProfileId: { type: String },
+  githubProfileId: { type: String },
+  role: { type: String, default: 'user', enum: ['user', 'admin'] },
+  accountId: { type: Schema.Types.ObjectId, ref: 'Account', required: true },
+  profilePicture: { type: String },
+  verified: { type: Boolean, default: false },
+  deleted: { type: Boolean }
+}, { timestamps: true })
+
+export default mongoose.model('User', UserSchema)
+
+```
 - **SystemAdminModel**: The model for managing system administrators.
 
+```javascript
+
+const SystemAdminSchema = new mongoose.Schema({
+  name: { type: String },
+  email: { type: String, lowercase: true, required: true, match: /.+[\\@].+\..+/, unique: true },
+  password: { type: String },
+  profilePicture: { type: String }
+}, { timestamps: true });
+
+export default mongoose.model('SystemAdmin', SystemAdminSchema)
+
+```
+
+3. Integration Example
 
 ```javascript
 
@@ -44,55 +90,94 @@ MuaBackend({
   apiServer,  
   AccountModel,
   UserModel,
-  SystemAdminModel  
+  SystemAdminModel,
+  hooks: {} // optional  
 })
 
 ```
-3. Add to `.env` file
+4. Add to `.env` file
 
 ```bash
-NODE_ENV=development
-SECRETS=testsecret1 testsecret2
+NODE_ENV=development # Environment mode (e.g., development, production)
+SECRETS=testsecret1 testsecret2 # Space-separated list of secrets used for token encryption
 
-APP_URL=<app_url>
+APP_URL=<app_url> # The base URL of your application
 
-BLUEFOX_TRANSACTIONAL_EMAIL_API_URL=<emailfox_transactional_url>
+BLUEFOX_TRANSACTIONAL_EMAIL_API_URL=<emailfox_transactional_url> # URL for the Bluefox transactional email API
+BLUEFOX_API_KEY=<bluefox_email_api_key> # API key for Bluefox email service
 
-BLUEFOX_API_KEY=<bluefox_email_api_key>
+BLUEFOX_TEMPLATE_ID_ADMIN_VERIFY_EMAIL=<bluefox_template_id> # Bluefox Template ID for admin email verification
+BLUEFOX_TEMPLATE_ID_ADMIN_FORGOT_PASSWORD=<bluefox_template_id> # Bluefox Template ID for admin forgot password
+BLUEFOX_TEMPLATE_ID_ADMIN_INVITATION=<bluefox_template_id> # Bluefox Template ID for admin invitation
+BLUEFOX_TEMPLATE_ID_ACCOUNT_FINALIZE_REGISTRATION=<bluefox_template_id> # Bluefox Template ID for account registration finalization
+BLUEFOX_TEMPLATE_ID_ACCOUNT_FORGOT_PASSWORD=<bluefox_template_id> # Bluefox Template ID for account forgot password
+BLUEFOX_TEMPLATE_ID_ACCOUNT_INVITATION=<bluefox_template_id> # Bluefox Template ID for account invitation
+BLUEFOX_TEMPLATE_ID_ACCOUNT_LOGIN_SELECT=<bluefox_template_id> # Bluefox Template ID for account login selection
+BLUEFOX_TEMPLATE_ID_ACCOUNT_VERIFY_EMAIL=<bluefox_template_id> # Bluefox Template ID for account email verification
+BLUEFOX_TEMPLATE_ID_ACCOUNT_CREATE_PASSWORD=<bluefox_template_id> # Bluefox Template ID for account password creation
 
-BLUEFOX_TEMPLATE_ID_ADMIN_VERIFY_EMAIL=<bluefox_template_id>
-BLUEFOX_TEMPLATE_ID_ADMIN_FORGOT_PASSWORD=<bluefox_template_id>
-BLUEFOX_TEMPLATE_ID_ADMIN_INVITATION=<bluefox_template_id>
-BLUEFOX_TEMPLATE_ID_ACCOUNT_FINALIZE_REGISTRATION=<bluefox_template_id>
-BLUEFOX_TEMPLATE_ID_ACCOUNT_FORGOT_PASSWORD=<bluefox_template_id>
-BLUEFOX_TEMPLATE_ID_ACCOUNT_INVITATION=<bluefox_template_id>
-BLUEFOX_TEMPLATE_ID_ACCOUNT_LOGIN_SELECT=<bluefox_template_id>
-BLUEFOX_TEMPLATE_ID_ACCOUNT_VERIFY_EMAIL=<bluefox_template_id>
-BLUEFOX_TEMPLATE_ID_ACCOUNT_CREATE_PASSWORD=<bluefox_template_id>
+TEST_STATIC_SERVER_URL=<test_static_server_url> # URL for testing static server
+CDN_BASE_URL=<cdn_base_url> # Base URL for your CDN
 
-TEST_STATIC_SERVER_URL=<test_static_server_url>
-CDN_BASE_URL=<cdn_base_url>
+AWS_BUCKET_PATH=<aws.bucket.path> # Path to the AWS bucket
+AWS_BUCKET_NAME=<your_aws_bucket_name> # Name of the AWS S3 bucket
+AWS_FOLDER_NAME=<your_aws_folder_name> # Folder name in the AWS S3 bucket
+AWS_REGION=<your_aws_region> # AWS region for the S3 bucket
+AWS_ACCESS_KEY_ID=<your_aws_access_key_id> # AWS access key ID
+AWS_SECRET_ACCESS_KEY=<your_aws_secret_access_key> # AWS secret access key
 
-AWS_BUCKET_PATH=<aws.bucket.path>
-AWS_BUCKET_NAME=<your_aws_bucket_name>
-AWS_FOLDER_NAME=<your_aws_folder_name>
-AWS_REGION=<your_aws_region>
-AWS_ACCESS_KEY_ID=<your_aws_access_key_id>
-AWS_SECRET_ACCESS_KEY=<your_aws_secret_access_key>
+ALPHA_MODE=false # Enable alpha mode (true/false)
+MAX_FILE_SIZE=5242880 # Maximum file upload size in bytes (e.g., 5MB)
 
-ALPHA_MODE=false
-MAX_FILE_SIZE=5242880
+GOOGLE_CLIENT_ID=<your_google_client_id> # Google OAuth client ID
+GOOGLE_CLIENT_SECRET=<your_google_client_secret> # Google OAuth client secret
 
-GOOGLE_CLIENT_ID=<your_google_client_id>
-GOOGLE_CLIENT_SECRET=<your_google_secret_access_key>
+MICROSOFT_CLIENT_ID=<your_microsoft_client_id> # Microsoft OAuth client ID
+MICROSOFT_CLIENT_SECRET=<your_microsoft_client_secret> # Microsoft OAuth client secret
 
-MICROSOFT_CLIENT_ID=<your_microsoft_client_id>
-MICROSOFT_CLIENT_SECRET=<your_microsoft_secret_access_key>
-
-GITHUB_CLIENT_ID=<your_github_client_id>
-GITHUB_CLIENT_SECRET=<your_github_secret_access_key>
+GITHUB_CLIENT_ID=<your_github_client_id> # GitHub OAuth client ID
+GITHUB_CLIENT_SECRET=<your_github_client_secret> # GitHub OAuth client secret
 
 ```
+
+### Customization
+
+The `mua-backend` allows users to customize behavior after specific actions, such as creating or deleting accounts. Pass a `hooks` object with functions to override default behaviors:
+
+```javascript
+
+MuaBackend({
+  apiServer,
+  AccountModel,
+  UserModel,
+  SystemAdminModel,
+  hooks: {
+    deleteAccount: {
+      post: (params) => {
+        // Custom logic after deleting an account
+      },
+    },
+    createAccount: {
+      post: (params) => {
+        // Custom logic after creating an account
+      },
+    },
+    createNewUser: {
+      post: (params) => {
+        // Custom logic after creating a new user
+      },
+    },
+    updateUserEmail: {
+      post: (params) => {
+        // Custom logic after updating a user's email
+      },
+    },
+  },
+})
+
+```
+
+Each hook accepts an object with a `post` method that executes custom logic after the associated action is completed.
 
 ## API Routes
 
