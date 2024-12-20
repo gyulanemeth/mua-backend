@@ -28,6 +28,8 @@ To set up the `mua-backend`, you need to provide the following parameters:
 
 2. `Models`
 
+- To ensure smooth integration and customization, it's essential that you pass the following models to the `mua-backend`. These models define the mandatory properties that are needed for managing accounts, users, and system administrators. You can extend these models by adding additional properties as needed.
+
 - **AccountModel**: The model for managing workspace accounts.
 ```javascript
 
