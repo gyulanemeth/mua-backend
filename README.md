@@ -97,6 +97,8 @@ MuaBackend({
 ```
 4. Add to `.env` file
 
+You need to provide the following environment variables in a .env file for Mua to function properly.
+
 ```bash
 NODE_ENV=development # Environment mode (e.g., development, production)
 SECRETS=testsecret1 testsecret2 # Space-separated list of secrets used for token encryption
@@ -116,7 +118,6 @@ BLUEFOX_TEMPLATE_ID_ACCOUNT_LOGIN_SELECT=<bluefox_template_id> # Bluefox Templat
 BLUEFOX_TEMPLATE_ID_ACCOUNT_VERIFY_EMAIL=<bluefox_template_id> # Bluefox Template ID for account email verification
 BLUEFOX_TEMPLATE_ID_ACCOUNT_CREATE_PASSWORD=<bluefox_template_id> # Bluefox Template ID for account password creation
 
-TEST_STATIC_SERVER_URL=<test_static_server_url> # URL for testing static server
 CDN_BASE_URL=<cdn_base_url> # Base URL for your CDN
 
 AWS_BUCKET_PATH=<aws.bucket.path> # Path to the AWS bucket
@@ -181,7 +182,7 @@ Each hook accepts an object with a `post` method that executes custom logic afte
 
 ## API Routes
 
-The following table outlines the automatically generated routes and their purposes:
+Developers using mus can rely on the seamless integration with the mua-frontend, so they don't need to concern themselves with these routes. The table below outlines the automatically generated routes and their purposes:
 
 ### Accounts routes
 
