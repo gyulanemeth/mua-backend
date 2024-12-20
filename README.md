@@ -184,7 +184,7 @@ Each hook accepts an object with a `post` method that executes custom logic afte
 
 ## API Routes
 
-Developers using mus can rely on the seamless integration with the mua-frontend, so they don't need to concern themselves with these routes. The table below outlines the automatically generated routes and their purposes:
+Developers using mua can rely on the seamless integration with the mua-frontend, so they don't need to concern themselves with these routes. The table below outlines the automatically generated routes and their purposes:
 
 ### Accounts routes
 
