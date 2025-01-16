@@ -159,7 +159,9 @@ export default async ({
     const data = await allowAccessTo(req, secrets, [{ type: 'verfiy-email', user: { _id: req.params.id }, account: { _id: req.params.accountId } }])
     const getUserData = await readOne(UserModel, { id: req.params.id, accountId: req.params.accountId })
     const user = await patchOne(UserModel, { id: req.params.id }, { email: data.newEmail, googleProfileId: null, microsoftProfileId: null, githubProfileId: null })
-    hooks.updateUserEmail.post({ accountId: req.params.accountId, oldEmail: getUserData.result.email, newEmail: data.newEmail })
+    if (hooks.updateUserEmail?.post) {
+      hooks.updateUserEmail.post({ accountId: req.params.accountId, oldEmail: getUserData.result.email, newEmail: data.newEmail })
+    }
     const payload = {
       type: 'user',
       user: {
@@ -283,7 +285,9 @@ export default async ({
     }
     const hash = crypto.createHash('md5').update(req.body.password).digest('hex')
     const newUser = await createOne(UserModel, req.params, { name: req.body.name, email: req.body.email, password: hash, accountId: req.params.accountId, verified: true })
-    hooks.createNewUser.post({ accountId: req.params.accountId, name: newUser.result.name, email: newUser.result.email })
+    if (hooks.createNewUser?.post) {
+      hooks.createNewUser.post({ accountId: req.params.accountId, name: newUser.result.name, email: newUser.result.email })
+    }
     return newUser
   })
 

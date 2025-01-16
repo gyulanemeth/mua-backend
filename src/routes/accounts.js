@@ -150,7 +150,9 @@ export default async ({
       userData.verified = true
     }
     const newUser = await createOne(UserModel, req.params, userData)
-    hooks.createNewUser.post({ accountId: newAccount.result._id, name: newUser.result.name, email: newUser.result.email })
+    if (hooks.createNewUser?.post) {
+      hooks.createNewUser.post({ accountId: newAccount.result._id, name: newUser.result.name, email: newUser.result.email })
+    }
     let postRes
     if (hooks.createAccount?.post) {
       postRes = await hooks.createAccount.post(req.body, newAccount.result)
