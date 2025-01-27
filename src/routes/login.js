@@ -279,7 +279,7 @@ export default ({
     }
     const ids = findUserIds.result.items.map(item => item.accountId.toString())
 
-    const getAccounts = await list(AccountModel, {}, { filter: { _id: { $in: ids } } })
+    const getAccounts = await list(AccountModel, {}, { filter: { _id: { $in: ids } }, select: { creditPackages: 0 } })
     const payload = {
       type: 'login',
       user: {
