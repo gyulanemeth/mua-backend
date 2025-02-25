@@ -650,6 +650,43 @@ describe('System admin login test ', () => {
     mockAuthenticate.mockRestore()
   })
 
+  test('login with provider', async () => {
+    process.env.GOOGLE_CLIENT_ID = 'googleClientId'
+    process.env.GOOGLE_CLIENT_SECRET = 'googleSecret'
+    process.env.MICROSOFT_CLIENT_ID = 'microsoftClientId'
+    process.env.MICROSOFT_CLIENT_SECRET = 'microsoftSecret'
+    process.env.GITHUB_CLIENT_ID = 'githubClientId'
+    process.env.GITHUB_CLIENT_SECRET = 'githubSecret'
+
+    const mockAuthenticate = vi.spyOn(passport, 'authenticate').mockImplementation((provider, options) => {
+      return (req, res, next) => {
+        res.redirect(`https://test/provider/google/callback?state=${options.state}`)
+        res.setHeader('Location', `https://test/provider/google/callback?state=${options.state}`)
+        res.end()
+      }
+    })
+
+    const response = await request(app)
+      .post('/v1/system-admins/login/provider', req)
+      .send()
+
+    expect(mockAuthenticate).toHaveBeenCalledWith('google', expect.anything())
+
+    expect(response.body.result.redirectUrl).toContain('https://test/provider/google/callback')
+    mockAuthenticate.mockRestore()
+  })
+
+  test('admin link with wrong provider', async () => {
+    delete process.env.GOOGLE_CLIENT_ID
+    delete process.env.GOOGLE_CLIENT_SECRET
+
+    const response = await request(app)
+      .post('/v1/system-admins/test123/link', req)
+      .send()
+
+    expect(response.body.error.message).toBe('Unsupported provider')
+  })
+
   test('login with wrong provider', async () => {
     process.env.GOOGLE_CLIENT_ID = 'googleClientId'
     process.env.GOOGLE_CLIENT_SECRET = 'googleSecret'
@@ -686,6 +723,29 @@ describe('System admin login test ', () => {
 
     const response = await request(app)
       .post(`/v1/accounts/${account1._id}/users/${user1._id}/link/provider/google`, req)
+      .send()
+
+    expect(mockAuthenticate).toHaveBeenCalledWith('google', expect.anything())
+
+    expect(response.body.result.redirectUrl).toContain('https://test/provider/google/callback')
+    mockAuthenticate.mockRestore()
+  })
+
+  test('admin link with provider', async () => {
+    const mockAuthenticate = vi.spyOn(passport, 'authenticate').mockImplementation((provider, options) => {
+      return (req, res, next) => {
+        res.redirect(`https://test/provider/${provider}/callback?state=${options.state}`)
+        res.setHeader('Location', `https://test/provider/${provider}/callback?state=${options.state}`)
+        res.end()
+      }
+    })
+
+    const hash1 = crypto.createHash('md5').update('user1Password').digest('hex')
+    const user1 = new SystemAdminTestModel({ email: 'user1@gmail.com', name: 'user1', password: hash1 })
+    await user1.save()
+
+    const response = await request(app)
+      .post(`/v1/system-admins/${user1._id}/link`, req)
       .send()
 
     expect(mockAuthenticate).toHaveBeenCalledWith('google', expect.anything())
@@ -786,6 +846,41 @@ describe('System admin login test ', () => {
     expect(response.body.error.message).toBe('Unsupported provider')
   })
 
+  test('admin link with wrong provider', async () => {
+    delete process.env.GOOGLE_CLIENT_ID
+    delete process.env.GOOGLE_CLIENT_SECRET
+
+    const response = await request(app)
+      .post('/v1/system-admins/login/provider', req)
+      .send({})
+
+    expect(response.body.error.message).toBe('Unsupported provider')
+  })
+
+  test('admin login with google callback', async () => {
+    const user1 = new SystemAdminTestModel({ email: 'user1@gmail.com', name: 'user1', googleProfileId: 'id123123' })
+    await user1.save()
+
+    const state = Buffer.from(JSON.stringify({ type: 'login' })).toString('base64')
+
+    const mockAuthenticate = vi.spyOn(passport, 'authenticate').mockImplementation((provider, options, callback) => {
+      return (req, res, next) => {
+        const user = { id: 'id123123', email: user1.email, name: user1.name, profilePicture: user1.profilePicture }
+        callback(null, user)
+      }
+    })
+
+    const response = await request(app)
+      .get('/v1/system-admins/provider/google/callback?state=' + state, req)
+      .send()
+
+    expect(response.status).toBe(302)
+    console.log(response.header.location)
+
+    expect(response.header.location).toContain(`${process.env.APP_URL}provider-auth?adminLoginToken`)
+    mockAuthenticate.mockRestore()
+  })
+
   test('login with google callback', async () => {
     const account1 = new AccountTestModel({ name: 'accountExample1', urlFriendlyName: 'urlFriendlyNameExample1' })
     await account1.save()
@@ -809,6 +904,26 @@ describe('System admin login test ', () => {
     expect(response.status).toBe(302)
 
     expect(response.header.location).toContain(`${process.env.APP_URL}provider-auth?loginToken`)
+    mockAuthenticate.mockRestore()
+  })
+
+  test('admin login with google callback error AUTHENTICATION_ERROR', async () => {
+    const state = Buffer.from(JSON.stringify({ type: 'login' })).toString('base64')
+
+    const mockAuthenticate = vi.spyOn(passport, 'authenticate').mockImplementation((provider, options, callback) => {
+      return (req, res, next) => {
+        const user = { id: 'id123123', email: 'test@gmail.com', name: 'name', profilePicture: 'http://test.com' }
+        callback(null, user)
+      }
+    })
+
+    const response = await request(app)
+      .get('/v1/system-admins/provider/google/callback?state=' + state, req)
+      .send()
+
+    expect(response.status).toBe(302)
+
+    expect(response.header.location).toContain(`${process.env.APP_URL}provider-auth?failed=AUTHENTICATION_ERROR`)
     mockAuthenticate.mockRestore()
   })
 
@@ -910,6 +1025,75 @@ describe('System admin login test ', () => {
     expect(response.status).toBe(302)
 
     expect(response.header.location).toContain(`${process.env.APP_URL}provider-auth?success=true`)
+    mockAuthenticate.mockRestore()
+  })
+
+  test('admin link with google provider callback', async () => {
+    const user1 = new SystemAdminTestModel({ email: 'user1@gmail.com', name: 'user1' })
+    await user1.save()
+
+    const state = Buffer.from(JSON.stringify({ type: 'link', user: { _id: user1._id, email: user1.email } })).toString('base64')
+
+    const mockAuthenticate = vi.spyOn(passport, 'authenticate').mockImplementation((provider, options, callback) => {
+      return (req, res, next) => {
+        const user = { id: 'id123123', email: user1.email, name: user1.name, profilePicture: user1.profilePicture }
+        callback(null, user)
+      }
+    })
+
+    const response = await request(app)
+      .get('/v1/system-admins/provider/google/callback?state=' + state, req)
+      .send()
+
+    expect(response.status).toBe(302)
+
+    expect(response.header.location).toContain(`${process.env.APP_URL}provider-auth?success=true`)
+    mockAuthenticate.mockRestore()
+  })
+
+  test('admin link with google provider callback error not found', async () => {
+    const user1 = new SystemAdminTestModel({ email: 'user122@gmail.com', name: 'user1' })
+    await user1.save()
+
+    const state = Buffer.from(JSON.stringify({ type: 'link', user: { _id: user1._id, email: user1.email } })).toString('base64')
+
+    const mockAuthenticate = vi.spyOn(passport, 'authenticate').mockImplementation((provider, options, callback) => {
+      return (req, res, next) => {
+        const user = { id: 'id123123', email: 'user1@gmail.com', name: user1.name, profilePicture: user1.profilePicture }
+        callback(null, user)
+      }
+    })
+
+    const response = await request(app)
+      .get('/v1/system-admins/provider/google/callback?state=' + state, req)
+      .send()
+
+    expect(response.status).toBe(302)
+
+    expect(response.header.location).toContain(`${process.env.APP_URL}provider-auth?failed=NOT_FOUND`)
+    mockAuthenticate.mockRestore()
+  })
+
+  test('admin link with google provider callback error not found', async () => {
+    const user1 = new SystemAdminTestModel({ email: 'user122@gmail.com', name: 'user1' })
+    await user1.save()
+
+    const state = Buffer.from(JSON.stringify({ type: 'link', user: { _id: user1._id, email: user1.email } })).toString('base64')
+
+    const mockAuthenticate = vi.spyOn(passport, 'authenticate').mockImplementation((provider, options, callback) => {
+      return (req, res, next) => {
+        const user = { id: 'id123123', email: 'user1@gmail.com', name: user1.name, profilePicture: user1.profilePicture }
+        callback(null, user)
+      }
+    })
+
+    const response = await request(app)
+      .get('/v1/system-admins/provider/google/callback?state=' + state, req)
+      .send()
+
+    expect(response.status).toBe(302)
+
+    expect(response.header.location).toContain(`${process.env.APP_URL}provider-auth?failed=NOT_FOUND`)
     mockAuthenticate.mockRestore()
   })
 
@@ -1171,6 +1355,28 @@ describe('System admin login test ', () => {
     mockAuthenticate.mockRestore()
   })
 
+  test('admin err failed error provider callback', async () => {
+    const user1 = new SystemAdminTestModel({ email: 'user1@gmail.com', name: 'user1' })
+    await user1.save()
+
+    const state = Buffer.from(JSON.stringify({ type: 'create', user: { _id: user1._id, email: user1.name } })).toString('base64')
+
+    const mockAuthenticate = vi.spyOn(passport, 'authenticate').mockImplementation((provider, options, callback) => {
+      return (req, res, next) => {
+        callback(new Error('test'), false)
+      }
+    })
+
+    const response = await request(app)
+      .get('/v1/system-admins/provider/google/callback?state=' + state, req)
+      .send()
+
+    expect(response.status).toBe(302)
+
+    expect(response.header.location).toContain(`${process.env.APP_URL}provider-auth?failed=AUTHENTICATION_ERROR`)
+    mockAuthenticate.mockRestore()
+  })
+
   test('passport error provider callback', async () => {
     const account1 = new AccountTestModel({ name: 'accountExample1', urlFriendlyName: 'urlFriendlyNameExample1' })
     await account1.save()
@@ -1188,6 +1394,28 @@ describe('System admin login test ', () => {
 
     const response = await request(app)
       .get('/v1/accounts/provider/github/callback?state=' + state, req)
+      .send()
+
+    expect(response.status).toBe(302)
+
+    expect(response.header.location).toContain(`${process.env.APP_URL}provider-auth?failed=AUTHENTICATION_ERROR`)
+    mockAuthenticate.mockRestore()
+  })
+
+  test('admin passport error provider callback', async () => {
+    const user1 = new SystemAdminTestModel({ email: 'user1@gmail.com', name: 'user1' })
+    await user1.save()
+
+    const state = Buffer.from(JSON.stringify({ type: 'create', user: { _id: user1._id, email: user1.name } })).toString('base64')
+
+    const mockAuthenticate = vi.spyOn(passport, 'authenticate').mockImplementation((provider, options, callback) => {
+      return (req, res, next) => {
+        throw Error('test')
+      }
+    })
+
+    const response = await request(app)
+      .get('/v1/system-admins/provider/google/callback?state=' + state, req)
       .send()
 
     expect(response.status).toBe(302)

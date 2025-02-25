@@ -93,6 +93,29 @@ export default ({
     }
   }
 
+  async function providerLoginAdminCallback (admin) {
+    const adminParams = {
+      email: admin.email
+    }
+    adminParams.googleProfileId = admin.id
+    try {
+      const findAdmin = await list(SystemAdminModel, adminParams)
+      if (findAdmin.result.count !== 1) {
+        throw new AuthenticationError('Authentication failed')
+      }
+      const token = jwt.sign({
+        type: 'login',
+        user: {
+          _id: findAdmin.result.items[0]._id,
+          email: findAdmin.result.items[0].email
+        }
+      }, secrets[0], { expiresIn: '24h' })
+      return `${process.env.APP_URL}provider-auth?adminLoginToken=${token}`
+    } catch (error) {
+      return `${process.env.APP_URL}provider-auth?failed=${error.name}`
+    }
+  }
+
   async function providerLinkCallback (provider, user, data) {
     const userBody = {}
     switch (provider) {
@@ -108,6 +131,17 @@ export default ({
     }
     try {
       await patchOne(UserModel, { id: data.user._id, accountId: data.account._id, email: user.email }, userBody)
+      return `${process.env.APP_URL}provider-auth?success=true`
+    } catch (error) {
+      return `${process.env.APP_URL}provider-auth?failed=${error.name}`
+    }
+  }
+
+  async function providerLinkAdminCallback (admin, data) {
+    const adminBody = {}
+    adminBody.googleProfileId = admin.id
+    try {
+      await patchOne(SystemAdminModel, { id: data.user._id, email: admin.email }, adminBody)
       return `${process.env.APP_URL}provider-auth?success=true`
     } catch (error) {
       return `${process.env.APP_URL}provider-auth?failed=${error.name}`
@@ -170,6 +204,32 @@ export default ({
             redirect = await providerLinkCallback(provider, user, data)
           } else if (data.type === 'create') {
             redirect = await providerCreateCallback(provider, user, data)
+          }
+          resolve()
+        })(req)
+      })
+      return { redirect }
+    } catch (error) {
+      redirect = `${process.env.APP_URL}provider-auth?failed=AUTHENTICATION_ERROR`
+      return { redirect }
+    }
+  }
+
+  async function providerAdminCallback (req, provider) {
+    let redirect
+    try {
+      await new Promise((resolve) => {
+        passport.authenticate(provider, { session: false }, async (err, user) => {
+          const state = req.query.state
+          const data = JSON.parse(Buffer.from(state, 'base64').toString())
+          if (err || !user) {
+            redirect = `${process.env.APP_URL}provider-auth?failed=AUTHENTICATION_ERROR`
+            return resolve()
+          }
+          if (data.type === 'login') {
+            redirect = await providerLoginAdminCallback(user, data)
+          } else if (data.type === 'link') {
+            redirect = await providerLinkAdminCallback(user, data)
           }
           resolve()
         })(req)
@@ -437,8 +497,68 @@ export default ({
     }
   })
 
+  apiServer.post('/v1/system-admins/login/provider', async req => {
+    if (!process.env.GOOGLE_CLIENT_ID || !process.env.GOOGLE_CLIENT_SECRET) {
+      throw new ValidationError('Unsupported provider')
+    }
+
+    const state = Buffer.from(JSON.stringify({ type: 'login' })).toString('base64')
+    let url
+    const mockRes = {
+      redirect: (value) => {
+        url = value
+      },
+      statusCode: 200,
+      setHeader: (header, value) => {
+        if (header === 'Location') {
+          url = value
+        }
+      },
+      end: () => { }
+    }
+    passport.authenticate('google', { scope: ['profile', 'email'], state })(req, mockRes, (ele) => { console.log(ele) })
+    return {
+      status: 200,
+      result: {
+        redirectUrl: url
+      }
+    }
+  })
+
+  apiServer.post('/v1/system-admins/:id/link', async req => {
+    if (!process.env.GOOGLE_CLIENT_ID || !process.env.GOOGLE_CLIENT_SECRET) {
+      throw new ValidationError('Unsupported provider')
+    }
+    const getAdmin = await readOne(SystemAdminModel, { id: req.params.id }, { select: { password: 0, googleProfileId: 0 } })
+    const state = Buffer.from(JSON.stringify({ type: 'link', admin: getAdmin.result })).toString('base64')
+    let url
+    const mockRes = {
+      redirect: (value) => {
+        url = value
+      },
+      statusCode: 200,
+      setHeader: (header, value) => {
+        if (header === 'Location') {
+          url = value
+        }
+      },
+      end: () => { }
+    }
+    passport.authenticate('google', { scope: ['profile', 'email'], state })(req, mockRes, (ele) => { console.log(ele) })
+    return {
+      status: 200,
+      result: {
+        redirectUrl: url
+      }
+    }
+  })
+
   apiServer.get('/v1/accounts/provider/google/callback', async req => {
     return providerCallback(req, 'google')
+  })
+
+  apiServer.get('/v1/system-admins/provider/google/callback', async req => {
+    return providerAdminCallback(req, 'google')
   })
 
   apiServer.get('/v1/accounts/provider/microsoft/callback', async req => {
