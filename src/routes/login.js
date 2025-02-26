@@ -403,7 +403,7 @@ export default ({
       },
       end: () => { }
     }
-    passport.authenticate(req.params.provider, { scope: ['profile', 'email'], state })(req, mockRes, (ele) => { console.log(ele) })
+    passport.authenticate(req.params.provider, { scope: ['profile', 'email'], state, callbackURL: process.env.PROVIDER_USER_CALL_BACK_URL })(req, mockRes, (ele) => { console.log(ele) })
     return {
       status: 200,
       result: {
@@ -442,7 +442,7 @@ export default ({
       },
       end: () => { }
     }
-    passport.authenticate(req.params.provider, { scope: ['profile', 'email'], state })(req, mockRes, (ele) => { console.log(ele) })
+    passport.authenticate(req.params.provider, { scope: ['profile', 'email'], state, callbackURL: process.env.PROVIDER_USER_CALL_BACK_URL })(req, mockRes, (ele) => { console.log(ele) })
     return {
       status: 200,
       result: {
@@ -488,7 +488,7 @@ export default ({
       },
       end: () => { }
     }
-    passport.authenticate(req.params.provider, { scope: ['profile', 'email'], state })(req, mockRes, (ele) => { console.log(ele) })
+    passport.authenticate(req.params.provider, { scope: ['profile', 'email'], state, callbackURL: process.env.PROVIDER_USER_CALL_BACK_URL })(req, mockRes, (ele) => { console.log(ele) })
     return {
       status: 200,
       result: {
@@ -516,7 +516,7 @@ export default ({
       },
       end: () => { }
     }
-    passport.authenticate('google', { scope: ['profile', 'email'], state })(req, mockRes, (ele) => { console.log(ele) })
+    passport.authenticate('google', { scope: ['profile', 'email'], state, callbackURL: process.env.PROVIDER_ADMIN_CALL_BACK_URL })(req, mockRes, (ele) => { console.log(ele) })
     return {
       status: 200,
       result: {
@@ -544,7 +544,7 @@ export default ({
       },
       end: () => { }
     }
-    passport.authenticate('google', { scope: ['profile', 'email'], state })(req, mockRes, (ele) => { console.log(ele) })
+    passport.authenticate('google', { scope: ['profile', 'email'], state, callbackURL: process.env.PROVIDER_ADMIN_CALL_BACK_URL })(req, mockRes, (ele) => { console.log(ele) })
     return {
       status: 200,
       result: {
