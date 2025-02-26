@@ -93,13 +93,13 @@ export default ({
     }
   }
 
-  async function providerLoginAdminCallback (admin) {
-    const adminParams = {
-      email: admin.email
+  async function providerLoginAdminCallback (user) {
+    const userParams = {
+      email: user.email
     }
-    adminParams.googleProfileId = admin.id
+    userParams.googleProfileId = user.id
     try {
-      const findAdmin = await list(SystemAdminModel, adminParams)
+      const findAdmin = await list(SystemAdminModel, userParams)
       if (findAdmin.result.count !== 1) {
         throw new AuthenticationError('Authentication failed')
       }
@@ -191,7 +191,7 @@ export default ({
     let redirect
     try {
       await new Promise((resolve) => {
-        passport.authenticate(provider, { session: false }, async (err, user) => {
+        passport.authenticate(provider, { session: false, callbackURL: process.env.PROVIDER_USER_CALL_BACK_URL }, async (err, user) => {
           const state = req.query.state
           const data = JSON.parse(Buffer.from(state, 'base64').toString())
           if (err || !user) {
@@ -219,7 +219,7 @@ export default ({
     let redirect
     try {
       await new Promise((resolve) => {
-        passport.authenticate(provider, { session: false }, async (err, user) => {
+        passport.authenticate(provider, { session: false, callbackURL: process.env.PROVIDER_ADMIN_CALL_BACK_URL }, async (err, user, info) => {
           const state = req.query.state
           const data = JSON.parse(Buffer.from(state, 'base64').toString())
           if (err || !user) {
@@ -530,7 +530,7 @@ export default ({
       throw new ValidationError('Unsupported provider')
     }
     const getAdmin = await readOne(SystemAdminModel, { id: req.params.id }, { select: { password: 0, googleProfileId: 0 } })
-    const state = Buffer.from(JSON.stringify({ type: 'link', admin: getAdmin.result })).toString('base64')
+    const state = Buffer.from(JSON.stringify({ type: 'link', user: getAdmin.result })).toString('base64')
     let url
     const mockRes = {
       redirect: (value) => {
