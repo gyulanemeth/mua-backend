@@ -5,6 +5,8 @@ import account from './routes/accounts.js'
 import users from './routes/users.js'
 import systemAdmins from './routes/systemAdmins.js'
 import systemStats from './routes/stats.js'
+import captchaHandler from './helpers/captcha.js'
+import captcha from './routes/captcha.js'
 
 import passport from 'passport'
 import { Strategy as GoogleStrategy } from 'passport-google-oauth20'
@@ -65,4 +67,7 @@ export default ({
   forgotPassword({ apiServer, UserModel, AccountModel, SystemAdminModel })
   account({ apiServer, UserModel, AccountModel, hooks })
   systemStats({ apiServer, UserModel, AccountModel })
+  captcha({ apiServer })
 }
+
+export { captchaHandler }
