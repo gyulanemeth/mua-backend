@@ -193,8 +193,9 @@ export default ({
     }
     const hash = crypto.createHash('md5').update(req.body.newPassword).digest('hex')
     const updatedUser = await patchOne(UserModel, { id: data.user._id }, { password: hash, name: req.body.name })
-    hooks.createNewUser.post({ accountId: req.params.id, name: updatedUser.result.name, email: updatedUser.result.email })
-
+    if (hooks.createNewUser?.post) {
+      hooks.createNewUser.post({ accountId: req.params.id, name: updatedUser.result.name, email: updatedUser.result.email })
+    }
     const payload = {
       type: 'login',
       user: {
