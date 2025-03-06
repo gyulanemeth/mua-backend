@@ -5,6 +5,7 @@ import jwt from 'jsonwebtoken'
 import { list, patchOne, readOne } from 'mongoose-crudl'
 import allowAccessTo from 'bearer-jwt-auth'
 import { ValidationError, AuthenticationError } from 'standard-api-errors'
+import captcha from '../helpers/captcha.js'
 
 export default ({ apiServer, UserModel, SystemAdminModel, AccountModel }) => {
   const secrets = process.env.SECRETS.split(' ')
@@ -32,6 +33,10 @@ export default ({ apiServer, UserModel, SystemAdminModel, AccountModel }) => {
   }
 
   apiServer.post('/v1/accounts/:id/forgot-password/send', async req => {
+    const validationResult = captcha.validate(secrets, { text: req.body.captchaText, probe: req.body.captchaProbe })
+    if (!validationResult) {
+      throw new ValidationError('Invalid CAPTCHA. Please try again.')
+    }
     const response = await list(UserModel, { email: req.body.email, accountId: req.params.id }, { select: { password: 0, googleProfileId: 0, microsoftProfileId: 0, githubProfileId: 0 } })
     if (response.result.count === 0) {
       throw new AuthenticationError('Email Authentication Error ')
@@ -61,6 +66,10 @@ export default ({ apiServer, UserModel, SystemAdminModel, AccountModel }) => {
   })
 
   apiServer.post('/v1/system-admins/forgot-password/send', async req => {
+    const validationResult = captcha.validate(secrets, { text: req.body.captchaText, probe: req.body.captchaProbe })
+    if (!validationResult) {
+      throw new ValidationError('Invalid CAPTCHA. Please try again.')
+    }
     const response = await list(SystemAdminModel, req.body, { select: { password: 0 } })
     if (response.result.count === 0) {
       throw new AuthenticationError('Check user name')
@@ -85,6 +94,10 @@ export default ({ apiServer, UserModel, SystemAdminModel, AccountModel }) => {
 
   apiServer.post('/v1/accounts/:id/forgot-password/reset', async req => {
     const data = allowAccessTo(req, secrets, [{ type: 'forgot-password' }])
+    const validationResult = captcha.validate(secrets, { text: req.body.captchaText, probe: req.body.captchaProbe })
+    if (!validationResult) {
+      throw new ValidationError('Invalid CAPTCHA. Please try again.')
+    }
     const response = await list(UserModel, { email: data.user.email, accountId: req.params.id }, { select: { password: 0, googleProfileId: 0, microsoftProfileId: 0, githubProfileId: 0 } })
     if (response.result.count === 0) {
       throw new AuthenticationError('Email Authentication Error ')
@@ -117,6 +130,10 @@ export default ({ apiServer, UserModel, SystemAdminModel, AccountModel }) => {
     const data = allowAccessTo(req, secrets, [{ type: 'forgot-password' }])
     if (req.body.newPassword !== req.body.newPasswordAgain) {
       throw new ValidationError("Validation error passwords didn't match ")
+    }
+    const validationResult = captcha.validate(secrets, { text: req.body.captchaText, probe: req.body.captchaProbe })
+    if (!validationResult) {
+      throw new ValidationError('Invalid CAPTCHA. Please try again.')
     }
     const hash = crypto.createHash('md5').update(req.body.newPassword).digest('hex')
     const updatedAdmin = await patchOne(SystemAdminModel, { id: data.user._id, email: data.user.email }, { password: hash })

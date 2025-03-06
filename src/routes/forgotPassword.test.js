@@ -4,7 +4,7 @@ import crypto from 'crypto'
 import jwt from 'jsonwebtoken'
 import mongoose from 'mongoose'
 import request from 'supertest'
-
+import captcha from '../helpers/captcha.js'
 import createMongooseMemoryServer from 'mongoose-memory'
 
 import forgotPassword from './forgotPassword.js'
@@ -116,12 +116,45 @@ describe('Accounts forgot-password test', () => {
 
     const token = jwt.sign({ type: 'admin' }, secrets[0])
 
+    const captchaData = captcha.generate(secrets)
+
     const res = await request(app)
       .post('/v1/accounts/' + account1._id + '/forgot-password/send')
       .set('authorization', 'Bearer ' + token)
-      .send({ email: user1.email })
+      .send({ email: user1.email, captchaText: captchaData.text, captchaProbe: captchaData.probe })
     expect(res.body.status).toBe(200)
     expect(res.body.result.success).toBe(true)
+    await fetchSpy.mockRestore()
+  })
+
+  test('error captcha send forget password  /v1/accounts/:accountId/forgot-password/send', async () => {
+    const fetchSpy = vi.spyOn(global, 'fetch')
+    fetchSpy.mockResolvedValue({
+      ok: true,
+      headers: { get: () => 'application/json' },
+      json: () => Promise.resolve({ result: { success: true }, status: 200 })
+    })
+
+    const account1 = new AccountTestModel({ name: 'accountExample1', urlFriendlyName: 'urlFriendlyNameExample1' })
+    await account1.save()
+
+    const hash1 = crypto.createHash('md5').update('user1Password').digest('hex')
+    const user1 = new UserTestModel({ email: 'user1@gmail.com', name: 'user1', password: hash1, accountId: account1._id })
+    await user1.save()
+
+    const hash2 = crypto.createHash('md5').update('user2Password').digest('hex')
+    const user2 = new UserTestModel({ email: 'user2@gmail.com', name: 'user2', password: hash2, accountId: account1._id })
+    await user2.save()
+
+    const token = jwt.sign({ type: 'admin' }, secrets[0])
+
+    const captchaData = captcha.generate(secrets)
+
+    const res = await request(app)
+      .post('/v1/accounts/' + account1._id + '/forgot-password/send')
+      .set('authorization', 'Bearer ' + token)
+      .send({ email: user1.email, captchaText: 'test', captchaProbe: captchaData.probe })
+    expect(res.body.status).toBe(400)
     await fetchSpy.mockRestore()
   })
 
@@ -145,11 +178,12 @@ describe('Accounts forgot-password test', () => {
     await user2.save()
 
     const token = jwt.sign({ type: 'admin' }, secrets[0])
+    const captchaData = captcha.generate(secrets)
 
     const res = await request(app)
       .post('/v1/accounts/' + account1._id + '/forgot-password/send')
       .set('authorization', 'Bearer ' + token)
-      .send({ email: user1.email })
+      .send({ email: user1.email, captchaText: captchaData.text, captchaProbe: captchaData.probe })
     expect(res.body.status).toBe(400)
     await fetchSpy.mockRestore()
   })
@@ -166,11 +200,12 @@ describe('Accounts forgot-password test', () => {
     await user2.save()
 
     const token = jwt.sign({ type: 'admin' }, secrets[0])
+    const captchaData = captcha.generate(secrets)
 
     const res = await request(app)
       .post('/v1/accounts/' + account1._id + '/forgot-password/send')
       .set('authorization', 'Bearer ' + token)
-      .send({ email: 'user3@gmail.com' })
+      .send({ email: 'user3@gmail.com', captchaText: captchaData.text, captchaProbe: captchaData.probe })
     expect(res.body.status).toBe(401)
   })
 
@@ -186,10 +221,11 @@ describe('Accounts forgot-password test', () => {
     const hash2 = crypto.createHash('md5').update('user2Password').digest('hex')
     const user2 = new UserTestModel({ email: 'user2@gmail.com', name: 'user2', password: hash2, accountId: account1._id })
     await user2.save()
+    const captchaData = captcha.generate(secrets)
 
     const res = await request(app)
       .post('/v1/accounts/' + id + '/forgot-password/send')
-      .send({ email: user1.email })
+      .send({ email: user1.email, captchaText: captchaData.text, captchaProbe: captchaData.probe })
     expect(res.body.status).toBe(401)
   })
 
@@ -206,11 +242,12 @@ describe('Accounts forgot-password test', () => {
     await user2.save()
 
     const token = jwt.sign({ type: 'forgot-password', user: { _id: user2._id, email: user2.email } }, secrets[0])
+    const captchaData = captcha.generate(secrets)
 
     const res = await request(app)
       .post('/v1/accounts/' + account1._id + '/forgot-password/reset')
       .set('authorization', 'Bearer ' + token)
-      .send({ newPassword: 'userNewPassword', newPasswordAgain: 'userNewPassword' })
+      .send({ newPassword: 'userNewPassword', newPasswordAgain: 'userNewPassword', captchaText: captchaData.text, captchaProbe: captchaData.probe })
     expect(res.body.status).toBe(200)
   })
 
@@ -227,11 +264,12 @@ describe('Accounts forgot-password test', () => {
     await user2.save()
 
     const token = jwt.sign({ type: 'forgot-password', user: { _id: user2._id, email: user2.email } }, secrets[0])
+    const captchaData = captcha.generate(secrets)
 
     const res = await request(app)
       .post('/v1/accounts/' + account1._id + '/forgot-password/reset')
       .set('authorization', 'Bearer ' + token)
-      .send({ newPassword: 'userNewPassword', newPasswordAgain: 'userWrongNewPassword' })
+      .send({ newPassword: 'userNewPassword', newPasswordAgain: 'userWrongNewPassword', captchaText: captchaData.text, captchaProbe: captchaData.probe })
     expect(res.body.status).toBe(400)
   })
 
@@ -248,11 +286,12 @@ describe('Accounts forgot-password test', () => {
     await user2.save()
 
     const token = jwt.sign({ type: 'value', user: { _id: user2._id, email: user2.email } }, secrets[0])
+    const captchaData = captcha.generate(secrets)
 
     const res = await request(app)
       .post('/v1/accounts/' + account1._id + '/forgot-password/reset')
       .set('authorization', 'Bearer ' + token)
-      .send({ password: 'userNewPassword', passwordAgain: 'userNewPassword' })
+      .send({ password: 'userNewPassword', passwordAgain: 'userNewPassword', captchaText: captchaData.text, captchaProbe: captchaData.probe })
     expect(res.body.status).toBe(403)
   })
 
@@ -267,13 +306,35 @@ describe('Accounts forgot-password test', () => {
     const hash2 = crypto.createHash('md5').update('user2Password').digest('hex')
     const user2 = new UserTestModel({ email: 'user2@gmail.com', name: 'user2', password: hash2, accountId: account1._id })
     await user2.save()
+    const captchaData = captcha.generate(secrets)
 
     const token = jwt.sign({ type: 'forgot-password', user: { _id: user1._id, email: 'user4@gmail.com' } }, secrets[0])
     const res = await request(app)
       .post('/v1/accounts/' + account1._id + '/forgot-password/reset')
       .set('authorization', 'Bearer ' + token)
-      .send({ password: 'userNewPassword', passwordAgain: 'userNewPassword' })
+      .send({ password: 'userNewPassword', passwordAgain: 'userNewPassword', captchaText: captchaData.text, captchaProbe: captchaData.probe })
     expect(res.body.status).toBe(401)
+  })
+
+  test('reset forget password captcha error  /v1/accounts/:accountId/forgot-password/reset', async () => {
+    const account1 = new AccountTestModel({ name: 'accountExample1', urlFriendlyName: 'urlFriendlyNameExample1' })
+    await account1.save()
+
+    const hash1 = crypto.createHash('md5').update('user1Password').digest('hex')
+    const user1 = new UserTestModel({ email: 'user1@gmail.com', name: 'user1', password: hash1, accountId: account1._id })
+    await user1.save()
+
+    const hash2 = crypto.createHash('md5').update('user2Password').digest('hex')
+    const user2 = new UserTestModel({ email: 'user2@gmail.com', name: 'user2', password: hash2, accountId: account1._id })
+    await user2.save()
+    const captchaData = captcha.generate(secrets)
+
+    const token = jwt.sign({ type: 'forgot-password', user: { _id: user1._id, email: 'user4@gmail.com' } }, secrets[0])
+    const res = await request(app)
+      .post('/v1/accounts/' + account1._id + '/forgot-password/reset')
+      .set('authorization', 'Bearer ' + token)
+      .send({ password: 'userNewPassword', passwordAgain: 'userNewPassword', captchaText: 'test', captchaProbe: captchaData.probe })
+    expect(res.body.status).toBe(400)
   })
 })
 
@@ -353,27 +414,51 @@ describe('System admins forgot-password test', () => {
     const hash2 = crypto.createHash('md5').update('user2Password').digest('hex')
     const user2 = new SystemAdminTestModel({ email: 'user2@gmail.com', name: 'user2', password: hash2 })
     await user2.save()
+    const captchaData = captcha.generate(secrets)
 
     const res = await request(app)
       .post('/v1/system-admins/forgot-password/send')
-      .send({ email: user2.email })
+      .send({ email: user2.email, captchaText: captchaData.text, captchaProbe: captchaData.probe })
 
     expect(res.body.status).toBe(200)
     expect(res.body.result.success).toBe(true)
+  })
+
+  test('error captcha send forget password  /v1/system-admins/forgot-password/send', async () => {
+    const fetchSpy = vi.spyOn(global, 'fetch')
+    fetchSpy.mockResolvedValue({
+      ok: true,
+      headers: { get: () => 'application/json' },
+      json: () => Promise.resolve({ result: { success: true }, status: 200 })
+    })
+
+    const hash1 = crypto.createHash('md5').update('user1Password').digest('hex')
+    const user1 = new SystemAdminTestModel({ email: 'user1@gmail.com', name: 'user1', password: hash1 })
+    await user1.save()
+
+    const hash2 = crypto.createHash('md5').update('user2Password').digest('hex')
+    const user2 = new SystemAdminTestModel({ email: 'user2@gmail.com', name: 'user2', password: hash2 })
+    await user2.save()
+    const captchaData = captcha.generate(secrets)
+
+    const res = await request(app)
+      .post('/v1/system-admins/forgot-password/send')
+      .send({ email: user2.email, captchaText: 'test', captchaProbe: captchaData.probe })
+
+    expect(res.body.status).toBe(400)
   })
 
   test('send forget password error user not found  /v1/system-admins/forgot-password/send', async () => {
     const hash1 = crypto.createHash('md5').update('user1Password').digest('hex')
     const user1 = new SystemAdminTestModel({ email: 'user1@gmail.com', name: 'user1', password: hash1 })
     await user1.save()
+    const captchaData = captcha.generate(secrets)
 
     const res = await request(app)
       .post('/v1/system-admins/forgot-password/send')
-      .send({ email: 'user2@gmail.com' })
+      .send({ email: 'user2@gmail.com', captchaText: captchaData.text, captchaProbe: captchaData.probe })
     expect(res.body.status).toBe(401)
   })
-
-  // forget password  reset tests
 
   test('success reset forget password  /v1/system-admins/forgot-password/reset', async () => {
     const hash1 = crypto.createHash('md5').update('user1Password').digest('hex')
@@ -385,12 +470,32 @@ describe('System admins forgot-password test', () => {
     await user2.save()
 
     const token = jwt.sign({ type: 'forgot-password', user: { _id: user2._id, email: user2.email } }, secrets[0])
+    const captchaData = captcha.generate(secrets)
 
     const res = await request(app)
       .post('/v1/system-admins/forgot-password/reset')
       .set('authorization', 'Bearer ' + token)
-      .send({ newPassword: 'userNewPassword', newPasswordAgain: 'userNewPassword' })
+      .send({ newPassword: 'userNewPassword', newPasswordAgain: 'userNewPassword', captchaText: captchaData.text, captchaProbe: captchaData.probe })
     expect(res.body.status).toBe(200)
+  })
+
+  test('captcha error reset forget password  /v1/system-admins/forgot-password/reset', async () => {
+    const hash1 = crypto.createHash('md5').update('user1Password').digest('hex')
+    const user1 = new SystemAdminTestModel({ email: 'user1@gmail.com', name: 'user1', password: hash1 })
+    await user1.save()
+
+    const hash2 = crypto.createHash('md5').update('user2Password').digest('hex')
+    const user2 = new SystemAdminTestModel({ email: 'user2@gmail.com', name: 'user2', password: hash2 })
+    await user2.save()
+
+    const token = jwt.sign({ type: 'forgot-password', user: { _id: user2._id, email: user2.email } }, secrets[0])
+    const captchaData = captcha.generate(secrets)
+
+    const res = await request(app)
+      .post('/v1/system-admins/forgot-password/reset')
+      .set('authorization', 'Bearer ' + token)
+      .send({ newPassword: 'userNewPassword', newPasswordAgain: 'userNewPassword', captchaText: 'test', captchaProbe: captchaData.probe })
+    expect(res.body.status).toBe(400)
   })
 
   test(' reset forget password validation error  /v1/system-admins/forgot-password/reset', async () => {
@@ -403,11 +508,12 @@ describe('System admins forgot-password test', () => {
     await user2.save()
 
     const token = jwt.sign({ type: 'forgot-password', user: { _id: user2._id, email: user2.email } }, secrets[0])
+    const captchaData = captcha.generate(secrets)
 
     const res = await request(app)
       .post('/v1/system-admins/forgot-password/reset')
       .set('authorization', 'Bearer ' + token)
-      .send({ newPassword: 'userNewPassword', newPasswordAgain: 'userWrongNewPassword' })
+      .send({ newPassword: 'userNewPassword', newPasswordAgain: 'userWrongNewPassword', captchaText: captchaData.text, captchaProbe: captchaData.probe })
     expect(res.body.status).toBe(400)
   })
 
@@ -421,11 +527,12 @@ describe('System admins forgot-password test', () => {
     await user2.save()
 
     const token = jwt.sign({ type: 'value', user: { _id: user2._id, email: user2.email } }, secrets[0])
+    const captchaData = captcha.generate(secrets)
 
     const res = await request(app)
       .post('/v1/system-admins/forgot-password/reset')
       .set('authorization', 'Bearer ' + token)
-      .send({ newPassword: 'userNewPassword', newPasswordAgain: 'userNewPassword' })
+      .send({ newPassword: 'userNewPassword', newPasswordAgain: 'userNewPassword', captchaText: captchaData.text, captchaProbe: captchaData.probe })
     expect(res.body.status).toBe(403)
   })
 
@@ -434,10 +541,12 @@ describe('System admins forgot-password test', () => {
     const user1 = new SystemAdminTestModel({ email: 'user1@gmail.com', name: 'user1', password: hash1 })
     await user1.save()
     const token = jwt.sign({ type: 'forgot-password', user: { _id: user1._id, email: 'user4@gmail.com' } }, secrets[0])
+    const captchaData = captcha.generate(secrets)
+
     const res = await request(app)
       .post('/v1/system-admins/forgot-password/reset')
       .set('authorization', 'Bearer ' + token)
-      .send({ newPassword: 'userNewPassword', newPasswordAgain: 'userNewPassword' })
+      .send({ newPassword: 'userNewPassword', newPasswordAgain: 'userNewPassword', captchaText: captchaData.text, captchaProbe: captchaData.probe })
     expect(res.body.status).toBe(404)
   })
 })
