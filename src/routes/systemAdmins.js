@@ -204,4 +204,12 @@ export default async ({
       }
     }
   })
+
+  apiServer.patch('/v1/system-admins/:id/provider/google', async req => {
+    allowAccessTo(req, secrets, [{ type: 'disconnect' }])
+    const updatedUser = await patchOne(SystemAdminModel, { id: req.params.id }, { googleProfileId: null })
+    updatedUser.result.password = !!updatedUser.result.password
+    updatedUser.result.googleProfileId = !!updatedUser.result.googleProfileId
+    return updatedUser
+  })
 }

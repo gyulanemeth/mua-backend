@@ -120,6 +120,27 @@ describe('/v1/system-admins/ ', () => {
     expect(res.body.result.count).toBe(3)
   })
 
+  test('success disconnect admin from google', async () => {
+    const hash1 = crypto.createHash('md5').update('user1Password').digest('hex')
+    const user1 = new SystemAdminTestModel({ email: 'user1@gmail.com', name: 'user1', password: hash1, googleProfileId: '123132' })
+    await user1.save()
+
+    const hash2 = crypto.createHash('md5').update('user2Password').digest('hex')
+    const user2 = new SystemAdminTestModel({ email: 'user2@gmail.com', name: 'user2', password: hash2 })
+    await user2.save()
+
+    const user3 = new SystemAdminTestModel({ email: 'user3@gmail.com', name: 'user3' })
+    await user3.save()
+
+    const token = jwt.sign({ type: 'disconnect' }, secrets[0])
+
+    const res = await request(app)
+      .patch(`/v1/system-admins/${user1._id}/provider/google`).set('authorization', 'Bearer ' + token).send()
+
+    expect(res.body.status).toBe(200)
+    expect(res.body.result.googleProfileId).toBe(false)
+  })
+
   test('unAuthorized header  /v1/system-admins/', async () => {
     const hash1 = crypto.createHash('md5').update('user1Password').digest('hex')
     const user1 = new SystemAdminTestModel({ email: 'user1@gmail.com', name: 'user1', password: hash1 })
