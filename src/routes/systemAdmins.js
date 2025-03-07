@@ -15,7 +15,7 @@ export default async ({
   const secrets = process.env.SECRETS.split(' ')
   const s3 = await aws()
   const sendVerifyEmail = async (email, transactionalId, data) => {
-    const response = await fetch(process.env.BLUEFOX_TRANSACTIONAL_EMAIL_API_URLL, {
+    const response = await fetch(process.env.BLUEFOX_TRANSACTIONAL_EMAIL_API_URL, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
