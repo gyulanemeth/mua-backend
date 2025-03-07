@@ -4,8 +4,9 @@ import jwt from 'jsonwebtoken'
 import mime from 'mime-types'
 
 import allowAccessTo from 'bearer-jwt-auth'
-import { ConflictError, AuthenticationError, NotFoundError, ValidationError } from 'standard-api-errors'
+import { ConflictError, NotFoundError, ValidationError } from 'standard-api-errors'
 import { list, readOne, deleteOne, deleteMany, patchOne, createOne } from 'mongoose-crudl'
+import captcha from '../helpers/captcha.js'
 
 import aws from '../helpers/awsBucket.js'
 
@@ -118,12 +119,9 @@ export default async ({
   })
 
   apiServer.post('/v1/accounts/create', async req => {
-    if (process.env.ALPHA_MODE === 'true') {
-      try {
-        allowAccessTo(req, secrets, [{ type: 'admin' }])
-      } catch (error) {
-        throw new AuthenticationError('NOT ALLOWED IN ALPHA MODE')
-      }
+    const validationResult = captcha.validate(secrets, { text: req.body.captchaText, probe: req.body.captchaProbe })
+    if (!validationResult) {
+      throw new ValidationError('Invalid CAPTCHA. Please try again.')
     }
     const response = await list(AccountModel, { urlFriendlyName: req.body.account.urlFriendlyName }, req.query)
     if (response.result.count > 0) {
@@ -149,7 +147,16 @@ export default async ({
       userData.role = 'admin'
       userData.verified = true
     }
-    const newUser = await createOne(UserModel, req.params, userData)
+    let newUser
+    try {
+      newUser = await createOne(UserModel, req.params, userData)
+    } catch (error) {
+      const deletedAccount = await deleteOne(AccountModel, { id: newAccount.result._id })
+      if (hooks.deleteAccount?.post) {
+        await hooks.deleteAccount.post(req.params, req.body, deletedAccount.result)
+      }
+      throw error
+    }
     hooks.createNewUser.post({ accountId: newAccount.result._id, name: newUser.result.name, email: newUser.result.email })
     let postRes
     if (hooks.createAccount?.post) {

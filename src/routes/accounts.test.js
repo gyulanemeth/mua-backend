@@ -4,6 +4,7 @@ import crypto from 'crypto'
 import jwt from 'jsonwebtoken'
 import mongoose from 'mongoose'
 import request from 'supertest'
+import captcha from '../helpers/captcha.js'
 
 import createMongooseMemoryServer from 'mongoose-memory'
 
@@ -65,7 +66,6 @@ describe('accounts test', () => {
     process.env.AWS_REGION = '<your_aws_region>'
     process.env.AWS_ACCESS_KEY_ID = '<your_aws_access_key_id>'
     process.env.AWS_SECRET_ACCESS_KEY = '<your_aws_secret_access_key>'
-    process.env.ALPHA_MODE = 'false'
     process.env.MAX_FILE_SIZE = '5242880'
     originalEnv = process.env
     secrets = process.env.SECRETS.split(' ')
@@ -516,8 +516,6 @@ describe('accounts test', () => {
   })
 
   test('success create account   /v1/accounts/create', async () => {
-    process.env.ALPHA_MODE = false
-
     const fetchSpy = vi.spyOn(global, 'fetch')
     fetchSpy.mockResolvedValue({
       ok: true,
@@ -525,9 +523,13 @@ describe('accounts test', () => {
       json: () => Promise.resolve({ result: { success: true }, status: 200 })
     })
 
+    const captchaData = captcha.generate(secrets)
+
     const res = await request(app)
       .post('/v1/accounts/create')
       .send({
+        captchaText: captchaData.text,
+        captchaProbe: captchaData.probe,
         user: { name: 'user1', email: 'user1@gmail.com', password: 'userPassword' },
         account: { name: 'account1', urlFriendlyName: 'account1UrlFriendlyName' }
       })
@@ -537,8 +539,6 @@ describe('accounts test', () => {
   })
 
   test('error create account without password, google, microsoft or github  /v1/accounts/create', async () => {
-    process.env.ALPHA_MODE = false
-
     const fetchSpy = vi.spyOn(global, 'fetch')
     fetchSpy.mockResolvedValue({
       ok: true,
@@ -546,9 +546,13 @@ describe('accounts test', () => {
       json: () => Promise.resolve({ result: { success: true }, status: 200 })
     })
 
+    const captchaData = captcha.generate(secrets)
+
     const res = await request(app)
       .post('/v1/accounts/create')
       .send({
+        captchaText: captchaData.text,
+        captchaProbe: captchaData.probe,
         user: { name: 'user1', email: 'user1@gmail.com' },
         account: { name: 'account1', urlFriendlyName: 'account1UrlFriendlyName' }
       })
@@ -560,8 +564,6 @@ describe('accounts test', () => {
   })
 
   test('success create account with google, microsoft or github  /v1/accounts/create', async () => {
-    process.env.ALPHA_MODE = false
-
     const fetchSpy = vi.spyOn(global, 'fetch')
     fetchSpy.mockResolvedValue({
       ok: true,
@@ -569,35 +571,14 @@ describe('accounts test', () => {
       json: () => Promise.resolve({ result: { success: true }, status: 200 })
     })
 
+    const captchaData = captcha.generate(secrets)
+
     const res = await request(app)
       .post('/v1/accounts/create')
       .send({
+        captchaText: captchaData.text,
+        captchaProbe: captchaData.probe,
         user: { name: 'user1', email: 'user1@gmail.com', googleProfileId: 'test123' },
-        account: { name: 'account1', urlFriendlyName: 'account1UrlFriendlyName' }
-      })
-
-    expect(res.body.status).toBe(200)
-    await fetchSpy.mockRestore()
-  })
-
-  test('success create account alpha   /v1/accounts/create', async () => {
-    process.env.ALPHA_MODE = true
-
-    const fetchSpy = vi.spyOn(global, 'fetch')
-    fetchSpy.mockResolvedValue({
-      ok: true,
-      headers: { get: () => 'application/json' },
-      json: () => Promise.resolve({ result: { success: true }, status: 200 })
-    })
-
-    // in alpah version just system admin can create account
-    const token = jwt.sign({ type: 'admin' }, secrets[0])
-
-    const res = await request(app)
-      .post('/v1/accounts/create')
-      .set('authorization', 'Bearer ' + token)
-      .send({
-        user: { name: 'user1', email: 'user1@gmail.com', password: 'userPassword' },
         account: { name: 'account1', urlFriendlyName: 'account1UrlFriendlyName' }
       })
 
@@ -612,14 +593,13 @@ describe('accounts test', () => {
       headers: { get: () => 'application/json' },
       json: () => Promise.resolve({ error: { name: 'error', message: 'error test' }, status: 400 })
     })
-
-    // in alpah version just system admin can create account
-    const token = jwt.sign({ type: 'admin' }, secrets[0])
+    const captchaData = captcha.generate(secrets)
 
     const res = await request(app)
       .post('/v1/accounts/create')
-      .set('authorization', 'Bearer ' + token)
       .send({
+        captchaText: captchaData.text,
+        captchaProbe: captchaData.probe,
         user: { name: 'user1', email: 'user1@gmail.com', password: 'userPassword' },
         account: { name: 'account1', urlFriendlyName: 'account1UrlFriendlyName' }
       })
@@ -628,33 +608,51 @@ describe('accounts test', () => {
     await fetchSpy.mockRestore()
   })
 
-  test('error create account alpha non-admin   /v1/accounts/create', async () => {
-    process.env.ALPHA_MODE = true
-
+  test('error captcha', async () => {
     const res = await request(app)
       .post('/v1/accounts/create')
       .send({
         user: { name: 'user1', email: 'user1@gmail.com', password: 'userPassword' },
         account: { name: 'account1', urlFriendlyName: 'account1UrlFriendlyName' }
       })
-
-    expect(res.body.status).toBe(401)
+    expect(res.body.status).toBe(400)
   })
 
   test('create account urlFriendlyName exist   /v1/accounts/create', async () => {
-    process.env.ALPHA_MODE = false
-
     const account1 = new AccountTestModel({ name: 'accountExample1', urlFriendlyName: 'urlFriendlyNameExample1' })
     await account1.save()
+
+    const captchaData = captcha.generate(secrets)
 
     const res = await request(app)
       .post('/v1/accounts/create')
       .send({
+        captchaText: captchaData.text,
+        captchaProbe: captchaData.probe,
         user: { name: 'user1', email: 'user1@gmail.com', password: 'userPassword' },
         account: { name: 'account1', urlFriendlyName: 'urlFriendlyNameExample1' }
       })
 
     expect(res.body.status).toBe(409)
+  })
+
+  test('create account user invaid email error   /v1/accounts/create', async () => {
+    const account1 = new AccountTestModel({ name: 'accountExample1', urlFriendlyName: 'urlFriendlyNameExample1' })
+    await account1.save()
+
+    const captchaData = captcha.generate(secrets)
+
+    const res = await request(app)
+      .post('/v1/accounts/create')
+      .send({
+        captchaText: captchaData.text,
+        captchaProbe: captchaData.probe,
+        user: { name: 'user1', email: 'user1@z', password: 'userPassword' },
+        account: { name: 'account1', urlFriendlyName: 'urlFriendlyNameExample12' }
+      })
+
+    expect(res.body.status).toBe(400)
+    expect(await AccountTestModel.count()).toBe(1)
   })
 
   test('success check-availability   /v1/accounts/check-availability', async () => {
