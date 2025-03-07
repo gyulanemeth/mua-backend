@@ -8,7 +8,7 @@ export default async ({ apiServer }) => {
     return {
       status: 200,
       result: {
-        text: res.probe,
+        probe: res.probe,
         data: res.data
       }
     }
