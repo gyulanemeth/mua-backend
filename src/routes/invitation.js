@@ -4,7 +4,6 @@ import jwt from 'jsonwebtoken'
 import { list, readOne, patchOne, createOne, deleteOne } from 'mongoose-crudl'
 import { MethodNotAllowedError, ValidationError, AuthenticationError } from 'standard-api-errors'
 import allowAccessTo from 'bearer-jwt-auth'
-import captcha from '../helpers/captcha.js'
 
 export default ({
   apiServer, UserModel, AccountModel, SystemAdminModel, hooks = {
@@ -217,10 +216,6 @@ export default ({
 
   apiServer.post('/v1/system-admins/invitation/accept', async req => {
     const data = allowAccessTo(req, secrets, [{ type: 'invitation' }])
-    const validationResult = captcha.validate(secrets, { text: req.body.captchaText, probe: req.body.captchaProbe })
-    if (!validationResult) {
-      throw new ValidationError('Invalid CAPTCHA. Please try again.')
-    }
     const response = await list(SystemAdminModel, { id: data.user._id, email: data.user.email }, req.query)
     if (response.result.count === 0) {
       throw new AuthenticationError('Check user name')
