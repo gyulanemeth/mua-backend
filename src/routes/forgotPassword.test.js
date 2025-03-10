@@ -242,12 +242,11 @@ describe('Accounts forgot-password test', () => {
     await user2.save()
 
     const token = jwt.sign({ type: 'forgot-password', user: { _id: user2._id, email: user2.email } }, secrets[0])
-    const captchaData = captcha.generate(secrets)
 
     const res = await request(app)
       .post('/v1/accounts/' + account1._id + '/forgot-password/reset')
       .set('authorization', 'Bearer ' + token)
-      .send({ newPassword: 'userNewPassword', newPasswordAgain: 'userNewPassword', captchaText: captchaData.text, captchaProbe: captchaData.probe })
+      .send({ newPassword: 'userNewPassword', newPasswordAgain: 'userNewPassword' })
     expect(res.body.status).toBe(200)
   })
 
@@ -264,12 +263,11 @@ describe('Accounts forgot-password test', () => {
     await user2.save()
 
     const token = jwt.sign({ type: 'forgot-password', user: { _id: user2._id, email: user2.email } }, secrets[0])
-    const captchaData = captcha.generate(secrets)
 
     const res = await request(app)
       .post('/v1/accounts/' + account1._id + '/forgot-password/reset')
       .set('authorization', 'Bearer ' + token)
-      .send({ newPassword: 'userNewPassword', newPasswordAgain: 'userWrongNewPassword', captchaText: captchaData.text, captchaProbe: captchaData.probe })
+      .send({ newPassword: 'userNewPassword', newPasswordAgain: 'userWrongNewPassword' })
     expect(res.body.status).toBe(400)
   })
 
@@ -286,12 +284,11 @@ describe('Accounts forgot-password test', () => {
     await user2.save()
 
     const token = jwt.sign({ type: 'value', user: { _id: user2._id, email: user2.email } }, secrets[0])
-    const captchaData = captcha.generate(secrets)
 
     const res = await request(app)
       .post('/v1/accounts/' + account1._id + '/forgot-password/reset')
       .set('authorization', 'Bearer ' + token)
-      .send({ password: 'userNewPassword', passwordAgain: 'userNewPassword', captchaText: captchaData.text, captchaProbe: captchaData.probe })
+      .send({ password: 'userNewPassword', passwordAgain: 'userNewPassword' })
     expect(res.body.status).toBe(403)
   })
 
@@ -306,35 +303,13 @@ describe('Accounts forgot-password test', () => {
     const hash2 = crypto.createHash('md5').update('user2Password').digest('hex')
     const user2 = new UserTestModel({ email: 'user2@gmail.com', name: 'user2', password: hash2, accountId: account1._id })
     await user2.save()
-    const captchaData = captcha.generate(secrets)
 
     const token = jwt.sign({ type: 'forgot-password', user: { _id: user1._id, email: 'user4@gmail.com' } }, secrets[0])
     const res = await request(app)
       .post('/v1/accounts/' + account1._id + '/forgot-password/reset')
       .set('authorization', 'Bearer ' + token)
-      .send({ password: 'userNewPassword', passwordAgain: 'userNewPassword', captchaText: captchaData.text, captchaProbe: captchaData.probe })
+      .send({ password: 'userNewPassword', passwordAgain: 'userNewPassword' })
     expect(res.body.status).toBe(401)
-  })
-
-  test('reset forget password captcha error  /v1/accounts/:accountId/forgot-password/reset', async () => {
-    const account1 = new AccountTestModel({ name: 'accountExample1', urlFriendlyName: 'urlFriendlyNameExample1' })
-    await account1.save()
-
-    const hash1 = crypto.createHash('md5').update('user1Password').digest('hex')
-    const user1 = new UserTestModel({ email: 'user1@gmail.com', name: 'user1', password: hash1, accountId: account1._id })
-    await user1.save()
-
-    const hash2 = crypto.createHash('md5').update('user2Password').digest('hex')
-    const user2 = new UserTestModel({ email: 'user2@gmail.com', name: 'user2', password: hash2, accountId: account1._id })
-    await user2.save()
-    const captchaData = captcha.generate(secrets)
-
-    const token = jwt.sign({ type: 'forgot-password', user: { _id: user1._id, email: 'user4@gmail.com' } }, secrets[0])
-    const res = await request(app)
-      .post('/v1/accounts/' + account1._id + '/forgot-password/reset')
-      .set('authorization', 'Bearer ' + token)
-      .send({ password: 'userNewPassword', passwordAgain: 'userNewPassword', captchaText: 'test', captchaProbe: captchaData.probe })
-    expect(res.body.status).toBe(400)
   })
 })
 
@@ -479,25 +454,6 @@ describe('System admins forgot-password test', () => {
     expect(res.body.status).toBe(200)
   })
 
-  test('captcha error reset forget password  /v1/system-admins/forgot-password/reset', async () => {
-    const hash1 = crypto.createHash('md5').update('user1Password').digest('hex')
-    const user1 = new SystemAdminTestModel({ email: 'user1@gmail.com', name: 'user1', password: hash1 })
-    await user1.save()
-
-    const hash2 = crypto.createHash('md5').update('user2Password').digest('hex')
-    const user2 = new SystemAdminTestModel({ email: 'user2@gmail.com', name: 'user2', password: hash2 })
-    await user2.save()
-
-    const token = jwt.sign({ type: 'forgot-password', user: { _id: user2._id, email: user2.email } }, secrets[0])
-    const captchaData = captcha.generate(secrets)
-
-    const res = await request(app)
-      .post('/v1/system-admins/forgot-password/reset')
-      .set('authorization', 'Bearer ' + token)
-      .send({ newPassword: 'userNewPassword', newPasswordAgain: 'userNewPassword', captchaText: 'test', captchaProbe: captchaData.probe })
-    expect(res.body.status).toBe(400)
-  })
-
   test(' reset forget password validation error  /v1/system-admins/forgot-password/reset', async () => {
     const hash1 = crypto.createHash('md5').update('user1Password').digest('hex')
     const user1 = new SystemAdminTestModel({ email: 'user1@gmail.com', name: 'user1', password: hash1 })
@@ -508,12 +464,11 @@ describe('System admins forgot-password test', () => {
     await user2.save()
 
     const token = jwt.sign({ type: 'forgot-password', user: { _id: user2._id, email: user2.email } }, secrets[0])
-    const captchaData = captcha.generate(secrets)
 
     const res = await request(app)
       .post('/v1/system-admins/forgot-password/reset')
       .set('authorization', 'Bearer ' + token)
-      .send({ newPassword: 'userNewPassword', newPasswordAgain: 'userWrongNewPassword', captchaText: captchaData.text, captchaProbe: captchaData.probe })
+      .send({ newPassword: 'userNewPassword', newPasswordAgain: 'userWrongNewPassword' })
     expect(res.body.status).toBe(400)
   })
 

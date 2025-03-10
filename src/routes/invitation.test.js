@@ -8,7 +8,6 @@ import request from 'supertest'
 import createMongooseMemoryServer from 'mongoose-memory'
 
 import invitation from './invitation.js'
-import captcha from '../helpers/captcha.js'
 const mongooseMemoryServer = createMongooseMemoryServer(mongoose)
 
 const AccountTestModel = mongoose.model('AccountTest', new mongoose.Schema({
@@ -683,31 +682,12 @@ describe('Accounts invitation test', () => {
     await user2.save()
 
     const token = jwt.sign({ type: 'invitation', user: { _id: user2._id, email: user2.email } }, secrets[0])
-    const captchaData = captcha.generate(secrets)
 
     const res = await request(app)
       .post('/v1/system-admins/invitation/accept')
       .set('authorization', 'Bearer ' + token)
-      .send({ newPassword: 'userPasswordUpdated', newPasswordAgain: 'userPasswordUpdated', captchaText: captchaData.text, captchaProbe: captchaData.probe })
+      .send({ newPassword: 'userPasswordUpdated', newPasswordAgain: 'userPasswordUpdated' })
     expect(res.body.status).toBe(200)
-  })
-
-  test('error captcha accept invitation  /v1/system-admins/invitation/accept', async () => {
-    const hash1 = crypto.createHash('md5').update('user1Password').digest('hex')
-    const user1 = new SystemAdminTestModel({ email: 'user1@gmail.com', name: 'user1', password: hash1 })
-    await user1.save()
-
-    const user2 = new SystemAdminTestModel({ email: 'user2@gmail.com' })
-    await user2.save()
-
-    const token = jwt.sign({ type: 'invitation', user: { _id: user2._id, email: user2.email } }, secrets[0])
-    const captchaData = captcha.generate(secrets)
-
-    const res = await request(app)
-      .post('/v1/system-admins/invitation/accept')
-      .set('authorization', 'Bearer ' + token)
-      .send({ newPassword: 'userPasswordUpdated', newPasswordAgain: 'userPasswordUpdated', captchaText: 'test', captchaProbe: captchaData.probe })
-    expect(res.body.status).toBe(400)
   })
 
   test('send invitation error user exist  /v1/system-admins/invitation/accept', async () => {
@@ -720,12 +700,11 @@ describe('Accounts invitation test', () => {
     await user2.save()
 
     const token = jwt.sign({ type: 'invitation', user: { _id: user2._id, email: user2.email } }, secrets[0])
-    const captchaData = captcha.generate(secrets)
 
     const res = await request(app)
       .post('/v1/system-admins/invitation/accept')
       .set('authorization', 'Bearer ' + token)
-      .send({ newPassword: 'userPasswordUpdated', newPasswordAgain: 'userPasswordUpdated', captchaText: captchaData.text, captchaProbe: captchaData.probe })
+      .send({ newPassword: 'userPasswordUpdated', newPasswordAgain: 'userPasswordUpdated' })
 
     expect(res.body.status).toBe(405)
   })
@@ -774,12 +753,11 @@ describe('Accounts invitation test', () => {
     await user2.save()
 
     const token = jwt.sign({ type: 'invitation', user: { _id: user1._id, email: 'user4@gmail.com' } }, secrets[0])
-    const captchaData = captcha.generate(secrets)
 
     const res = await request(app)
       .post('/v1/system-admins/invitation/accept')
       .set('authorization', 'Bearer ' + token)
-      .send({ newPassword: 'userPasswordUpdated', newPasswordAgain: 'userPasswordUpdated', captchaText: captchaData.text, captchaProbe: captchaData.probe })
+      .send({ newPassword: 'userPasswordUpdated', newPasswordAgain: 'userPasswordUpdated' })
     expect(res.body.status).toBe(401)
   })
 })
@@ -1031,12 +1009,11 @@ describe('System admin invitation test', () => {
     await user2.save()
 
     const token = jwt.sign({ type: 'invitation', user: { _id: user2._id, email: user2.email } }, secrets[0])
-    const captchaData = captcha.generate(secrets)
 
     const res = await request(app)
       .post('/v1/system-admins/invitation/accept')
       .set('authorization', 'Bearer ' + token)
-      .send({ newPassword: 'userPasswordUpdated', newPasswordAgain: 'userPasswordUpdated', captchaText: captchaData.text, captchaProbe: captchaData.probe })
+      .send({ newPassword: 'userPasswordUpdated', newPasswordAgain: 'userPasswordUpdated' })
     expect(res.body.status).toBe(200)
   })
 
@@ -1050,12 +1027,11 @@ describe('System admin invitation test', () => {
     await user2.save()
 
     const token = jwt.sign({ type: 'invitation', user: { _id: user2._id, email: user2.email } }, secrets[0])
-    const captchaData = captcha.generate(secrets)
 
     const res = await request(app)
       .post('/v1/system-admins/invitation/accept')
       .set('authorization', 'Bearer ' + token)
-      .send({ newPassword: 'userPasswordUpdated', newPasswordAgain: 'userPasswordUpdated', captchaText: captchaData.text, captchaProbe: captchaData.probe })
+      .send({ newPassword: 'userPasswordUpdated', newPasswordAgain: 'userPasswordUpdated' })
 
     expect(res.body.status).toBe(405)
   })
@@ -1087,12 +1063,11 @@ describe('System admin invitation test', () => {
     await user2.save()
 
     const token = jwt.sign({ type: 'invitation', user: { _id: user2._id, email: user2.email } }, secrets[0])
-    const captchaData = captcha.generate(secrets)
 
     const res = await request(app)
       .post('/v1/system-admins/invitation/accept')
       .set('authorization', 'Bearer ' + token)
-      .send({ newPassword: 'userPasswordUpdated', newPasswordAgain: 'user222PasswordUpdated', captchaText: captchaData.text, captchaProbe: captchaData.probe })
+      .send({ newPassword: 'userPasswordUpdated', newPasswordAgain: 'user222PasswordUpdated' })
     expect(res.body.status).toBe(400)
   })
 
@@ -1105,12 +1080,11 @@ describe('System admin invitation test', () => {
     await user2.save()
 
     const token = jwt.sign({ type: 'invitation', user: { _id: user1._id, email: 'user4@gmail.com' } }, secrets[0])
-    const captchaData = captcha.generate(secrets)
 
     const res = await request(app)
       .post('/v1/system-admins/invitation/accept')
       .set('authorization', 'Bearer ' + token)
-      .send({ newPassword: 'userPasswordUpdated', newPasswordAgain: 'userPasswordUpdated', captchaText: captchaData.text, captchaProbe: captchaData.probe })
+      .send({ newPassword: 'userPasswordUpdated', newPasswordAgain: 'userPasswordUpdated' })
     expect(res.body.status).toBe(401)
   })
 })
