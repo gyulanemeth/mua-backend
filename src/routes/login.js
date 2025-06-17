@@ -333,13 +333,13 @@ export default ({
 
   apiServer.post('/v1/accounts/login', async req => {
     req.body.email = req.body.email.toLowerCase()
-    const findUserIds = await list(UserModel, { email: req.body.email }, { select: { accountId: 1 } })
+    const findUserIds = await list(UserModel, { email: req.body.email }, { select: { accountId: 1 }, limit: 'unlimited' })
     if (findUserIds.result.count === 0) {
       throw new AuthenticationError('Invalid email')
     }
     const ids = findUserIds.result.items.map(item => item.accountId.toString())
 
-    const getAccounts = await list(AccountModel, {}, { filter: { _id: { $in: ids } }, select: { name: 1, urlFriendlyName: 1, logo: 1, _id: 1, createdAt: 1, updatedAt: 1 } })
+    const getAccounts = await list(AccountModel, {}, { filter: { _id: { $in: ids } }, select: { name: 1, urlFriendlyName: 1, logo: 1, _id: 1, createdAt: 1, updatedAt: 1 }, limit: 'unlimited' })
     const payload = {
       type: 'login',
       user: {
