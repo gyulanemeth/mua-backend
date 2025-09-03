@@ -3,7 +3,7 @@ import jwt from 'jsonwebtoken'
 import allowAccessTo from 'bearer-jwt-auth'
 import { AuthenticationError, MethodNotAllowedError, ValidationError } from 'standard-api-errors'
 import passport from 'passport'
-import { verifyAndUpgradePassword } from '../helpers/verifyAndUpgradePassword.js'
+import verifyAndUpgradePassword from '../helpers/verifyAndUpgradePassword.js'
 
 export default ({
   apiServer, UserModel, AccountModel, SystemAdminModel

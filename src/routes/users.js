@@ -6,7 +6,7 @@ import mime from 'mime-types'
 
 import { list, readOne, deleteOne, patchOne, createOne } from 'mongoose-crudl'
 import { MethodNotAllowedError, ValidationError, AuthenticationError } from 'standard-api-errors'
-import { verifyAndUpgradePassword } from '../helpers/verifyAndUpgradePassword.js'
+import verifyAndUpgradePassword from '../helpers/verifyAndUpgradePassword.js'
 
 import aws from '../helpers/awsBucket.js'
 

@@ -2,7 +2,7 @@ import { describe, test, expect, beforeAll, afterEach, afterAll } from 'vitest'
 import crypto from 'crypto'
 import createMongooseMemoryServer from 'mongoose-memory'
 import mongoose from 'mongoose'
-import { verifyAndUpgradePassword } from './verifyAndUpgradePassword.js'
+import verifyAndUpgradePassword from './verifyAndUpgradePassword.js'
 
 const mongooseMemoryServer = createMongooseMemoryServer(mongoose)
 

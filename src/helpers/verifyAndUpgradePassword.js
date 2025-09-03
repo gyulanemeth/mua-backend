@@ -3,7 +3,7 @@ import bcrypt from 'bcrypt'
 
 import { patchOne } from 'mongoose-crudl'
 
-export async function verifyAndUpgradePassword (user, plainPassword, UserModel) {
+export default async (user, plainPassword, UserModel) => {
   if (!user) {
     return false
   }
