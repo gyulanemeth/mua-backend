@@ -7,6 +7,7 @@ import allowAccessTo from 'bearer-jwt-auth'
 
 export default ({
   apiServer, UserModel, AccountModel, SystemAdminModel, hooks = {
+    checkEmail: async (params) => {},
     createNewUser: { post: (params) => { } }
   }
 }) => {
@@ -192,6 +193,7 @@ export default ({
       throw new ValidationError("Validation error passwords didn't match ")
     }
     const hash = bcrypt.hashSync(req.body.newPassword, 10)
+    await hooks.checkEmail(data.user.email)
     const updatedUser = await patchOne(UserModel, { id: data.user._id }, { password: hash, name: req.body.name })
     hooks.createNewUser.post({ accountId: req.params.id, name: updatedUser.result.name, email: updatedUser.result.email })
 

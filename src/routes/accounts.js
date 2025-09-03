@@ -13,6 +13,7 @@ import aws from '../helpers/awsBucket.js'
 export default async ({
   apiServer, UserModel, AccountModel, hooks =
   {
+    checkEmail: async (params) => {},
     deleteAccount: { post: (params) => { } },
     createAccount: { post: (params) => { } },
     createNewUser: { post: (params) => { } }
@@ -149,6 +150,7 @@ export default async ({
     }
     let newUser
     try {
+      await hooks.checkEmail(req.body.user.email)
       newUser = await createOne(UserModel, req.params, userData)
     } catch (error) {
       const deletedAccount = await deleteOne(AccountModel, { id: newAccount.result._id })
