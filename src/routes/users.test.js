@@ -1,6 +1,6 @@
 import { describe, test, expect, beforeAll, afterEach, afterAll, vi } from 'vitest'
 import createApiServer from 'express-async-api'
-import crypto from 'crypto'
+import bcrypt from 'bcrypt'
 import jwt from 'jsonwebtoken'
 import mongoose from 'mongoose'
 import request from 'supertest'
@@ -114,7 +114,7 @@ describe('users test', () => {
     const account1 = new AccountTestModel({ name: 'accountExample1', urlFriendlyName: 'urlFriendlyNameExample1' })
     await account1.save()
 
-    const hash1 = crypto.createHash('md5').update('user1Password').digest('hex')
+    const hash1 = await bcrypt.hash('user1Password', 10)
     const user1 = new UserTestModel({ email: 'user1@gmail.com', name: 'user1', password: hash1, accountId: account1._id })
     await user1.save()
 
@@ -139,7 +139,7 @@ describe('users test', () => {
     const account1 = new AccountTestModel({ name: 'accountExample1', urlFriendlyName: 'urlFriendlyNameExample1' })
     await account1.save()
 
-    const hash1 = crypto.createHash('md5').update('user1Password').digest('hex')
+    const hash1 = await bcrypt.hash('user1Password', 10)
     const user1 = new UserTestModel({ email: 'user1@gmail.com', name: 'user1', password: hash1, accountId: account1._id })
     await user1.save()
 
@@ -162,7 +162,7 @@ describe('users test', () => {
     const account1 = new AccountTestModel({ name: 'accountExample1', urlFriendlyName: 'urlFriendlyNameExample1' })
     await account1.save()
 
-    const hash1 = crypto.createHash('md5').update('user1Password').digest('hex')
+    const hash1 = await bcrypt.hash('user1Password', 10)
     const user1 = new UserTestModel({ email: 'user1@gmail.com', name: 'user1', password: hash1, accountId: account1._id })
     await user1.save()
 
@@ -178,7 +178,7 @@ describe('users test', () => {
     const account1 = new AccountTestModel({ name: 'accountExample1', urlFriendlyName: 'urlFriendlyNameExample1' })
     await account1.save()
 
-    const hash1 = crypto.createHash('md5').update('user1Password').digest('hex')
+    const hash1 = await bcrypt.hash('user1Password', 10)
     const user1 = new UserTestModel({ email: 'user1@gmail.com', name: 'user1', password: hash1, accountId: account1._id })
     await user1.save()
 
@@ -196,7 +196,7 @@ describe('users test', () => {
     const account1 = new AccountTestModel({ name: 'accountExample1', urlFriendlyName: 'urlFriendlyNameExample1' })
     await account1.save()
 
-    const hash1 = crypto.createHash('md5').update('user1Password').digest('hex')
+    const hash1 = await bcrypt.hash('user1Password', 10)
     const user1 = new UserTestModel({ email: 'user1@gmail.com', name: 'user1', password: hash1, accountId: account1._id })
     await user1.save()
 
@@ -214,7 +214,7 @@ describe('users test', () => {
     const account1 = new AccountTestModel({ name: 'accountExample1', urlFriendlyName: 'urlFriendlyNameExample1' })
     await account1.save()
 
-    const hash1 = crypto.createHash('md5').update('user1Password').digest('hex')
+    const hash1 = await bcrypt.hash('user1Password', 10)
     const user1 = new UserTestModel({ email: 'user1@gmail.com', name: 'user1', password: hash1, accountId: account1._id })
     await user1.save()
 
@@ -232,7 +232,7 @@ describe('users test', () => {
     const account1 = new AccountTestModel({ name: 'accountExample1', urlFriendlyName: 'urlFriendlyNameExample1' })
     await account1.save()
 
-    const hash1 = crypto.createHash('md5').update('user1Password').digest('hex')
+    const hash1 = await bcrypt.hash('user1Password', 10)
     const user1 = new UserTestModel({ email: 'user1@gmail.com', name: 'user1', password: hash1, accountId: account1._id })
     await user1.save()
 
@@ -250,7 +250,7 @@ describe('users test', () => {
     const account1 = new AccountTestModel({ name: 'accountExample1', urlFriendlyName: 'urlFriendlyNameExample1' })
     await account1.save()
 
-    const hash1 = crypto.createHash('md5').update('user1Password').digest('hex')
+    const hash1 = await bcrypt.hash('user1Password', 10)
     const user1 = new UserTestModel({ email: 'user1@gmail.com', name: 'user1', password: hash1, accountId: account1._id })
     await user1.save()
 
@@ -292,7 +292,7 @@ describe('users test', () => {
     const account1 = new AccountTestModel({ name: 'accountExample1', urlFriendlyName: 'urlFriendlyNameExample1' })
     await account1.save()
 
-    const hash1 = crypto.createHash('md5').update('user1Password').digest('hex')
+    const hash1 = await bcrypt.hash('user1Password', 10)
     const user1 = new UserTestModel({ email: 'user1@gmail.com', name: 'user1', password: hash1, accountId: account1._id })
     await user1.save()
 
@@ -310,7 +310,7 @@ describe('users test', () => {
     const account1 = new AccountTestModel({ name: 'accountExample1', urlFriendlyName: 'urlFriendlyNameExample1' })
     await account1.save()
 
-    const hash1 = crypto.createHash('md5').update('user1Password').digest('hex')
+    const hash1 = await bcrypt.hash('user1Password', 10)
     const user1 = new UserTestModel({ email: 'user1@gmail.com', name: 'user1', password: hash1, accountId: account1._id })
     await user1.save()
 
@@ -328,7 +328,7 @@ describe('users test', () => {
     const account1 = new AccountTestModel({ name: 'accountExample1', urlFriendlyName: 'urlFriendlyNameExample1' })
     await account1.save()
 
-    const hash1 = crypto.createHash('md5').update('user1Password').digest('hex')
+    const hash1 = await bcrypt.hash('user1Password', 10)
     const user1 = new UserTestModel({ email: 'user1@gmail.com', name: 'user1', password: hash1, accountId: account1._id })
     await user1.save()
 
@@ -346,7 +346,7 @@ describe('users test', () => {
     const account1 = new AccountTestModel({ name: 'accountExample1', urlFriendlyName: 'urlFriendlyNameExample1' })
     await account1.save()
 
-    const hash1 = crypto.createHash('md5').update('user1Password').digest('hex')
+    const hash1 = await bcrypt.hash('user1Password', 10)
     const user1 = new UserTestModel({ email: 'user1@gmail.com', name: 'user1', password: hash1, accountId: account1._id })
     await user1.save()
 
@@ -364,7 +364,7 @@ describe('users test', () => {
     const account1 = new AccountTestModel({ name: 'accountExample1', urlFriendlyName: 'urlFriendlyNameExample1' })
     await account1.save()
 
-    const hash1 = crypto.createHash('md5').update('user1Password').digest('hex')
+    const hash1 = await bcrypt.hash('user1Password', 10)
     const user1 = new UserTestModel({ email: 'user1@gmail.com', name: 'user1', password: hash1, accountId: account1._id })
     await user1.save()
 
@@ -382,7 +382,7 @@ describe('users test', () => {
     const account1 = new AccountTestModel({ name: 'accountExample1', urlFriendlyName: 'urlFriendlyNameExample1' })
     await account1.save()
 
-    const hash1 = crypto.createHash('md5').update('user1Password').digest('hex')
+    const hash1 = await bcrypt.hash('user1Password', 10)
     const user1 = new UserTestModel({ email: 'user1@gmail.com', name: 'user1', password: hash1, accountId: account1._id })
     await user1.save()
 
@@ -400,7 +400,7 @@ describe('users test', () => {
     const account1 = new AccountTestModel({ name: 'accountExample1', urlFriendlyName: 'urlFriendlyNameExample1' })
     await account1.save()
 
-    const hash1 = crypto.createHash('md5').update('user1Password').digest('hex')
+    const hash1 = await bcrypt.hash('user1Password', 10)
     const user1 = new UserTestModel({ email: 'user1@gmail.com', name: 'user1', password: hash1, accountId: account1._id })
     await user1.save()
 
@@ -418,7 +418,7 @@ describe('users test', () => {
     const account1 = new AccountTestModel({ name: 'accountExample1', urlFriendlyName: 'urlFriendlyNameExample1' })
     await account1.save()
 
-    const hash1 = crypto.createHash('md5').update('user1Password').digest('hex')
+    const hash1 = await bcrypt.hash('user1Password', 10)
     const user1 = new UserTestModel({ email: 'user1@gmail.com', name: 'user1', password: hash1, accountId: account1._id })
     await user1.save()
 
@@ -436,7 +436,7 @@ describe('users test', () => {
     const account1 = new AccountTestModel({ name: 'accountExample1', urlFriendlyName: 'urlFriendlyNameExample1' })
     await account1.save()
 
-    const hash1 = crypto.createHash('md5').update('user1Password').digest('hex')
+    const hash1 = await bcrypt.hash('user1Password', 10)
     const user1 = new UserTestModel({ email: 'user1@gmail.com', name: 'user1', password: hash1, role: 'admin', accountId: account1._id })
     await user1.save()
 
@@ -453,11 +453,11 @@ describe('users test', () => {
     const account1 = new AccountTestModel({ name: 'accountExample1', urlFriendlyName: 'urlFriendlyNameExample1' })
     await account1.save()
 
-    const hash1 = crypto.createHash('md5').update('user1Password').digest('hex')
+    const hash1 = await bcrypt.hash('user1Password', 10)
     const user1 = new UserTestModel({ email: 'user1@gmail.com', name: 'user1', role: 'admin', password: hash1, accountId: account1._id })
     await user1.save()
 
-    const hash2 = crypto.createHash('md5').update('user2Password').digest('hex')
+    const hash2 = await bcrypt.hash('user2Password', 10)
     const user2 = new UserTestModel({ email: 'user2@gmail.com', name: 'user2', role: 'admin', password: hash2, accountId: account1._id })
     await user2.save()
 
@@ -475,7 +475,7 @@ describe('users test', () => {
     const account1 = new AccountTestModel({ name: 'accountExample1', urlFriendlyName: 'urlFriendlyNameExample1' })
     await account1.save()
 
-    const hash1 = crypto.createHash('md5').update('user1Password').digest('hex')
+    const hash1 = await bcrypt.hash('user1Password', 10)
     const user1 = new UserTestModel({ email: 'user1@gmail.com', name: 'user1', password: hash1, accountId: account1._id })
     await user1.save()
 
@@ -493,7 +493,7 @@ describe('users test', () => {
     const account1 = new AccountTestModel({ name: 'accountExample1', urlFriendlyName: 'urlFriendlyNameExample1' })
     await account1.save()
 
-    const hash1 = crypto.createHash('md5').update('user1Password').digest('hex')
+    const hash1 = await bcrypt.hash('user1Password', 10)
     const user1 = new UserTestModel({ email: 'user1@gmail.com', name: 'user1', password: hash1, accountId: account1._id })
     await user1.save()
 
@@ -511,7 +511,7 @@ describe('users test', () => {
     const account1 = new AccountTestModel({ name: 'accountExample1', urlFriendlyName: 'urlFriendlyNameExample1' })
     await account1.save()
 
-    const hash1 = crypto.createHash('md5').update('user1Password').digest('hex')
+    const hash1 = await bcrypt.hash('user1Password', 10)
     const user1 = new UserTestModel({ email: 'user1@gmail.com', name: 'user1', role: 'admin', password: hash1, accountId: account1._id })
     await user1.save()
 
@@ -529,7 +529,7 @@ describe('users test', () => {
     const account1 = new AccountTestModel({ name: 'accountExample1', urlFriendlyName: 'urlFriendlyNameExample1' })
     await account1.save()
 
-    const hash1 = crypto.createHash('md5').update('user1Password').digest('hex')
+    const hash1 = await bcrypt.hash('user1Password', 10)
     const user1 = new UserTestModel({ email: 'user1@gmail.com', name: 'user1', password: hash1, accountId: account1._id })
     await user1.save()
 
@@ -547,7 +547,7 @@ describe('users test', () => {
     const account1 = new AccountTestModel({ name: 'accountExample1', urlFriendlyName: 'urlFriendlyNameExample1' })
     await account1.save()
 
-    const hash1 = crypto.createHash('md5').update('user1Password').digest('hex')
+    const hash1 = await bcrypt.hash('user1Password', 10)
     const user1 = new UserTestModel({ email: 'user1@gmail.com', name: 'user1', password: hash1, accountId: account1._id })
     await user1.save()
 
@@ -565,11 +565,11 @@ describe('users test', () => {
     const account1 = new AccountTestModel({ name: 'accountExample1', urlFriendlyName: 'urlFriendlyNameExample1' })
     await account1.save()
 
-    const hash1 = crypto.createHash('md5').update('user1Password').digest('hex')
+    const hash1 = await bcrypt.hash('user1Password', 10)
     const user1 = new UserTestModel({ email: 'user1@gmail.com', name: 'user1', role: 'admin', password: hash1, accountId: account1._id })
     await user1.save()
 
-    const hash2 = crypto.createHash('md5').update('user2Password').digest('hex')
+    const hash2 = await bcrypt.hash('user2Password', 10)
     const user2 = new UserTestModel({ email: 'user2@gmail.com', name: 'user2', role: 'admin', password: hash2, accountId: account1._id })
     await user2.save()
 
@@ -587,7 +587,7 @@ describe('users test', () => {
     const account1 = new AccountTestModel({ name: 'accountExample1', urlFriendlyName: 'urlFriendlyNameExample1' })
     await account1.save()
 
-    const hash1 = crypto.createHash('md5').update('user1Password').digest('hex')
+    const hash1 = await bcrypt.hash('user1Password', 10)
     const user1 = new UserTestModel({ email: 'user1@gmail.com', name: 'user1', password: hash1, accountId: account1._id })
     await user1.save()
 
@@ -605,7 +605,7 @@ describe('users test', () => {
     const account1 = new AccountTestModel({ name: 'accountExample1', urlFriendlyName: 'urlFriendlyNameExample1' })
     await account1.save()
 
-    const hash1 = crypto.createHash('md5').update('user1Password').digest('hex')
+    const hash1 = await bcrypt.hash('user1Password', 10)
     const user1 = new UserTestModel({ email: 'user1@gmail.com', name: 'user1', password: hash1, accountId: account1._id })
     await user1.save()
 
@@ -623,7 +623,7 @@ describe('users test', () => {
     const account1 = new AccountTestModel({ name: 'accountExample1', urlFriendlyName: 'urlFriendlyNameExample1' })
     await account1.save()
 
-    const hash1 = crypto.createHash('md5').update('user1Password').digest('hex')
+    const hash1 = await bcrypt.hash('user1Password', 10)
     const user1 = new UserTestModel({ email: 'user1@gmail.com', name: 'user1', role: 'admin', password: hash1, accountId: account1._id })
     await user1.save()
 
@@ -641,7 +641,7 @@ describe('users test', () => {
     const account1 = new AccountTestModel({ name: 'accountExample1', urlFriendlyName: 'urlFriendlyNameExample1' })
     await account1.save()
 
-    const hash1 = crypto.createHash('md5').update('user1Password').digest('hex')
+    const hash1 = await bcrypt.hash('user1Password', 10)
     const user1 = new UserTestModel({ email: 'user1@gmail.com', name: 'user1', role: 'admin', password: hash1, accountId: account1._id })
     await user1.save()
 
@@ -659,7 +659,7 @@ describe('users test', () => {
     const account1 = new AccountTestModel({ name: 'accountExample1', urlFriendlyName: 'urlFriendlyNameExample1' })
     await account1.save()
 
-    const hash1 = crypto.createHash('md5').update('user1Password').digest('hex')
+    const hash1 = await bcrypt.hash('user1Password', 10)
     const user1 = new UserTestModel({ email: 'user1@gmail.com', name: 'user1', role: 'admin', password: hash1, accountId: account1._id })
     await user1.save()
 
@@ -677,7 +677,7 @@ describe('users test', () => {
     const account1 = new AccountTestModel({ name: 'accountExample1', urlFriendlyName: 'urlFriendlyNameExample1' })
     await account1.save()
 
-    const hash1 = crypto.createHash('md5').update('user1Password').digest('hex')
+    const hash1 = await bcrypt.hash('user1Password', 10)
     const user1 = new UserTestModel({ email: 'user1@gmail.com', name: 'user1', role: 'admin', password: hash1, accountId: account1._id })
     await user1.save()
 
@@ -695,7 +695,7 @@ describe('users test', () => {
     const account1 = new AccountTestModel({ name: 'accountExample1', urlFriendlyName: 'urlFriendlyNameExample1' })
     await account1.save()
 
-    const hash1 = crypto.createHash('md5').update('user1Password').digest('hex')
+    const hash1 = await bcrypt.hash('user1Password', 10)
     const user1 = new UserTestModel({ email: 'user1@gmail.com', name: 'user1', role: 'user', password: hash1, accountId: account1._id })
     await user1.save()
 
@@ -713,11 +713,11 @@ describe('users test', () => {
     const account1 = new AccountTestModel({ name: 'accountExample1', urlFriendlyName: 'urlFriendlyNameExample1' })
     await account1.save()
 
-    const hash1 = crypto.createHash('md5').update('user1Password').digest('hex')
+    const hash1 = await bcrypt.hash('user1Password', 10)
     const user1 = new UserTestModel({ email: 'user1@gmail.com', name: 'user1', role: 'user', password: hash1, accountId: account1._id })
     await user1.save()
 
-    const hash2 = crypto.createHash('md5').update('user1Password').digest('hex')
+    const hash2 = await bcrypt.hash('user1Password', 10)
     const user2 = new UserTestModel({ email: 'user2@gmail.com', name: 'user2', role: 'user', password: hash2, accountId: account1._id })
     await user2.save()
 
@@ -735,7 +735,7 @@ describe('users test', () => {
     const account1 = new AccountTestModel({ name: 'accountExample1', urlFriendlyName: 'urlFriendlyNameExample1' })
     await account1.save()
 
-    const hash1 = crypto.createHash('md5').update('user1Password').digest('hex')
+    const hash1 = await bcrypt.hash('user1Password', 10)
     const user1 = new UserTestModel({ email: 'user1@gmail.com', name: 'user1', role: 'admin', password: hash1, accountId: account1._id })
     await user1.save()
     const id = new mongoose.Types.ObjectId()
@@ -753,7 +753,7 @@ describe('users test', () => {
     const account1 = new AccountTestModel({ name: 'accountExample1', urlFriendlyName: 'urlFriendlyNameExample1' })
     await account1.save()
 
-    const hash1 = crypto.createHash('md5').update('user1Password').digest('hex')
+    const hash1 = await bcrypt.hash('user1Password', 10)
     const user1 = new UserTestModel({ email: 'user1@gmail.com', name: 'user1', role: 'admin', password: hash1, accountId: account1._id })
     await user1.save()
 
@@ -772,7 +772,7 @@ describe('users test', () => {
     const account1 = new AccountTestModel({ name: 'accountExample1', urlFriendlyName: 'urlFriendlyNameExample1' })
     await account1.save()
 
-    const hash1 = crypto.createHash('md5').update('user1Password').digest('hex')
+    const hash1 = await bcrypt.hash('user1Password', 10)
     const user1 = new UserTestModel({ email: 'user1@gmail.com', name: 'user1', password: hash1, accountId: account1._id })
     await user1.save()
 
@@ -790,7 +790,7 @@ describe('users test', () => {
     const account1 = new AccountTestModel({ name: 'accountExample1', urlFriendlyName: 'urlFriendlyNameExample1' })
     await account1.save()
 
-    const hash1 = crypto.createHash('md5').update('user1Password').digest('hex')
+    const hash1 = await bcrypt.hash('user1Password', 10)
     const user1 = new UserTestModel({ email: 'user1@gmail.com', name: 'user1', password: hash1, accountId: account1._id })
     await user1.save()
 
@@ -808,7 +808,7 @@ describe('users test', () => {
     const account1 = new AccountTestModel({ name: 'accountExample1', urlFriendlyName: 'urlFriendlyNameExample1' })
     await account1.save()
 
-    const hash1 = crypto.createHash('md5').update('user1Password').digest('hex')
+    const hash1 = await bcrypt.hash('user1Password', 10)
     const user1 = new UserTestModel({ email: 'user1@gmail.com', name: 'user1', password: hash1, accountId: account1._id })
     await user1.save()
 
@@ -837,7 +837,7 @@ describe('users test', () => {
     const account1 = new AccountTestModel({ name: 'accountExample1', urlFriendlyName: 'urlFriendlyNameExample1' })
     await account1.save()
 
-    const hash1 = crypto.createHash('md5').update('user1Password').digest('hex')
+    const hash1 = await bcrypt.hash('user1Password', 10)
     const user1 = new UserTestModel({ email: 'user1@gmail.com', name: 'user1', password: hash1, accountId: account1._id })
     await user1.save()
 
@@ -855,7 +855,7 @@ describe('users test', () => {
     const account1 = new AccountTestModel({ name: 'accountExample1', urlFriendlyName: 'urlFriendlyNameExample1' })
     await account1.save()
 
-    const hash1 = crypto.createHash('md5').update('user1Password').digest('hex')
+    const hash1 = await bcrypt.hash('user1Password', 10)
     const user1 = new UserTestModel({ email: 'user1@gmail.com', name: 'user1', password: hash1, accountId: account1._id })
     await user1.save()
 
@@ -873,7 +873,7 @@ describe('users test', () => {
     const account1 = new AccountTestModel({ name: 'accountExample1', urlFriendlyName: 'urlFriendlyNameExample1' })
     await account1.save()
 
-    const hash1 = crypto.createHash('md5').update('user1Password').digest('hex')
+    const hash1 = await bcrypt.hash('user1Password', 10)
     const user1 = new UserTestModel({ email: 'user1@gmail.com', name: 'user1', password: hash1, accountId: account1._id })
     await user1.save()
 
@@ -891,7 +891,7 @@ describe('users test', () => {
     const account1 = new AccountTestModel({ name: 'accountExample1', urlFriendlyName: 'urlFriendlyNameExample1' })
     await account1.save()
 
-    const hash1 = crypto.createHash('md5').update('user1Password').digest('hex')
+    const hash1 = await bcrypt.hash('user1Password', 10)
     const user1 = new UserTestModel({ email: 'user1@gmail.com', name: 'user1', password: hash1, accountId: account1._id })
     await user1.save()
 
@@ -909,7 +909,7 @@ describe('users test', () => {
     const account1 = new AccountTestModel({ name: 'accountExample1', urlFriendlyName: 'urlFriendlyNameExample1' })
     await account1.save()
 
-    const hash1 = crypto.createHash('md5').update('user1Password').digest('hex')
+    const hash1 = await bcrypt.hash('user1Password', 10)
     const user1 = new UserTestModel({ email: 'user1@gmail.com', name: 'user1', password: hash1, accountId: account1._id })
     await user1.save()
 
@@ -927,7 +927,7 @@ describe('users test', () => {
     const account1 = new AccountTestModel({ name: 'accountExample1', urlFriendlyName: 'urlFriendlyNameExample1' })
     await account1.save()
 
-    const hash1 = crypto.createHash('md5').update('user1Password').digest('hex')
+    const hash1 = await bcrypt.hash('user1Password', 10)
     const user1 = new UserTestModel({ email: 'user1@gmail.com', name: 'user1', password: hash1, accountId: account1._id })
     await user1.save()
 
@@ -945,7 +945,7 @@ describe('users test', () => {
     const account1 = new AccountTestModel({ name: 'accountExample1', urlFriendlyName: 'urlFriendlyNameExample1' })
     await account1.save()
 
-    const hash1 = crypto.createHash('md5').update('user1Password').digest('hex')
+    const hash1 = await bcrypt.hash('user1Password', 10)
     const user1 = new UserTestModel({ email: 'user1@gmail.com', name: 'user1', password: hash1, accountId: account1._id })
     await user1.save()
 
@@ -963,7 +963,7 @@ describe('users test', () => {
     const account1 = new AccountTestModel({ name: 'accountExample1', urlFriendlyName: 'urlFriendlyNameExample1' })
     await account1.save()
 
-    const hash1 = crypto.createHash('md5').update('user1Password').digest('hex')
+    const hash1 = await bcrypt.hash('user1Password', 10)
     const user1 = new UserTestModel({ email: 'user1@gmail.com', name: 'user1', password: hash1, accountId: account1._id })
     await user1.save()
 
@@ -981,7 +981,7 @@ describe('users test', () => {
     const account1 = new AccountTestModel({ name: 'accountExample1', urlFriendlyName: 'urlFriendlyNameExample1' })
     await account1.save()
 
-    const hash1 = crypto.createHash('md5').update('user1Password').digest('hex')
+    const hash1 = await bcrypt.hash('user1Password', 10)
     const user1 = new UserTestModel({ email: 'user1@gmail.com', name: 'user1', password: hash1, accountId: account1._id })
     await user1.save()
 
@@ -1020,11 +1020,11 @@ describe('users test', () => {
     const account1 = new AccountTestModel({ name: 'accountExample1', urlFriendlyName: 'urlFriendlyNameExample1' })
     await account1.save()
 
-    const hash1 = crypto.createHash('md5').update('user1Password').digest('hex')
+    const hash1 = await bcrypt.hash('user1Password', 10)
     const user1 = new UserTestModel({ email: 'user1@gmail.com', name: 'user1', password: hash1, accountId: account1._id })
     await user1.save()
 
-    const hash2 = crypto.createHash('md5').update('user2Password').digest('hex')
+    const hash2 = await bcrypt.hash('user2Password', 10)
     const user2 = new UserTestModel({ email: 'user2@gmail.com', name: 'user2', password: hash2, accountId: account1._id })
     await user2.save()
 
@@ -1052,7 +1052,7 @@ describe('users test', () => {
     const user1 = new UserTestModel({ email: 'user1@gmail.com', name: 'user1', accountId: account1._id })
     await user1.save()
 
-    const hash2 = crypto.createHash('md5').update('user2Password').digest('hex')
+    const hash2 = await bcrypt.hash('user2Password', 10)
     const user2 = new UserTestModel({ email: 'user2@gmail.com', name: 'user2', password: hash2, accountId: account1._id })
     await user2.save()
 
@@ -1070,11 +1070,11 @@ describe('users test', () => {
     const account1 = new AccountTestModel({ name: 'accountExample1', urlFriendlyName: 'urlFriendlyNameExample1' })
     await account1.save()
 
-    const hash1 = crypto.createHash('md5').update('user1Password').digest('hex')
+    const hash1 = await bcrypt.hash('user1Password', 10)
     const user1 = new UserTestModel({ email: 'user1@gmail.com', name: 'user1', password: hash1, accountId: account1._id })
     await user1.save()
 
-    const hash2 = crypto.createHash('md5').update('user2Password').digest('hex')
+    const hash2 = await bcrypt.hash('user2Password', 10)
     const user2 = new UserTestModel({ email: 'user2@gmail.com', name: 'user2', password: hash2, accountId: account1._id })
     await user2.save()
 
@@ -1090,11 +1090,11 @@ describe('users test', () => {
     const account1 = new AccountTestModel({ name: 'accountExample1', urlFriendlyName: 'urlFriendlyNameExample1' })
     await account1.save()
 
-    const hash1 = crypto.createHash('md5').update('user1Password').digest('hex')
+    const hash1 = await bcrypt.hash('user1Password', 10)
     const user1 = new UserTestModel({ email: 'user1@gmail.com', name: 'user1', password: hash1, accountId: account1._id })
     await user1.save()
 
-    const hash2 = crypto.createHash('md5').update('user2Password').digest('hex')
+    const hash2 = await bcrypt.hash('user2Password', 10)
     const user2 = new UserTestModel({ email: 'user2@gmail.com', name: 'user2', password: hash2, accountId: account1._id })
     await user2.save()
 
@@ -1110,11 +1110,11 @@ describe('users test', () => {
     const account1 = new AccountTestModel({ name: 'accountExample1', urlFriendlyName: 'urlFriendlyNameExample1' })
     await account1.save()
 
-    const hash1 = crypto.createHash('md5').update('user1Password').digest('hex')
+    const hash1 = await bcrypt.hash('user1Password', 10)
     const user1 = new UserTestModel({ email: 'user1@gmail.com', name: 'user1', password: hash1, accountId: account1._id })
     await user1.save()
 
-    const hash2 = crypto.createHash('md5').update('user2Password').digest('hex')
+    const hash2 = await bcrypt.hash('user2Password', 10)
     const user2 = new UserTestModel({ email: 'user2@gmail.com', name: 'user2', password: hash2, accountId: account1._id })
     await user2.save()
 
@@ -1133,11 +1133,11 @@ describe('users test', () => {
     const account1 = new AccountTestModel({ name: 'accountExample1', urlFriendlyName: 'urlFriendlyNameExample1' })
     await account1.save()
 
-    const hash1 = crypto.createHash('md5').update('user1Password').digest('hex')
+    const hash1 = await bcrypt.hash('user1Password', 10)
     const user1 = new UserTestModel({ email: 'user1@gmail.com', name: 'user1', password: hash1, accountId: account1._id })
     await user1.save()
 
-    const hash2 = crypto.createHash('md5').update('user2Password').digest('hex')
+    const hash2 = await bcrypt.hash('user2Password', 10)
     const user2 = new UserTestModel({ email: 'user2@gmail.com', name: 'user2', password: hash2, accountId: account1._id })
     await user2.save()
 
@@ -1153,11 +1153,11 @@ describe('users test', () => {
     const account1 = new AccountTestModel({ name: 'accountExample1', urlFriendlyName: 'urlFriendlyNameExample1' })
     await account1.save()
 
-    const hash1 = crypto.createHash('md5').update('user1Password').digest('hex')
+    const hash1 = await bcrypt.hash('user1Password', 10)
     const user1 = new UserTestModel({ email: 'user1@gmail.com', name: 'user1', password: hash1, accountId: account1._id })
     await user1.save()
 
-    const hash2 = crypto.createHash('md5').update('user2Password').digest('hex')
+    const hash2 = await bcrypt.hash('user2Password', 10)
     const user2 = new UserTestModel({ email: 'user2@gmail.com', name: 'user2', password: hash2, accountId: account1._id })
     await user2.save()
 
@@ -1174,11 +1174,11 @@ describe('users test', () => {
     const account1 = new AccountTestModel({ name: 'accountExample1', urlFriendlyName: 'urlFriendlyNameExample1' })
     await account1.save()
 
-    const hash1 = crypto.createHash('md5').update('user1Password').digest('hex')
+    const hash1 = await bcrypt.hash('user1Password', 10)
     const user1 = new UserTestModel({ email: 'user1@gmail.com', name: 'user1', password: hash1, accountId: account1._id })
     await user1.save()
 
-    const hash2 = crypto.createHash('md5').update('user2Password').digest('hex')
+    const hash2 = await bcrypt.hash('user2Password', 10)
     const user2 = new UserTestModel({ email: 'user2@gmail.com', name: 'user2', password: hash2, accountId: account1._id })
     await user2.save()
 
@@ -1196,7 +1196,7 @@ describe('users test', () => {
     const account1 = new AccountTestModel({ name: 'accountExample1', urlFriendlyName: 'urlFriendlyNameExample1' })
     await account1.save()
 
-    const hash1 = crypto.createHash('md5').update('user1Password').digest('hex')
+    const hash1 = await bcrypt.hash('user1Password', 10)
     const user1 = new UserTestModel({ email: 'user1@gmail.com', name: 'user1', password: hash1, accountId: account1._id })
     await user1.save()
 
@@ -1224,7 +1224,7 @@ describe('users test', () => {
     const account1 = new AccountTestModel({ name: 'accountExample1', urlFriendlyName: 'urlFriendlyNameExample1' })
     await account1.save()
 
-    const hash1 = crypto.createHash('md5').update('user1Password').digest('hex')
+    const hash1 = await bcrypt.hash('user1Password', 10)
     const user1 = new UserTestModel({ email: 'user1@gmail.com', name: 'user1', password: hash1, accountId: account1._id })
     await user1.save()
 
@@ -1265,7 +1265,7 @@ describe('users test', () => {
     const account1 = new AccountTestModel({ name: 'accountExample1', urlFriendlyName: 'urlFriendlyNameExample1' })
     await account1.save()
 
-    const hash1 = crypto.createHash('md5').update('user1Password').digest('hex')
+    const hash1 = await bcrypt.hash('user1Password', 10)
     const user1 = new UserTestModel({ email: 'user1@gmail.com', name: 'user1', password: hash1, accountId: account1._id })
     await user1.save()
 
@@ -1301,7 +1301,7 @@ describe('users test', () => {
     const user1 = new UserTestModel({ email: 'user1@gmail.com', name: 'user1', googleProfileId: 'googleProfileId', accountId: account1._id })
     await user1.save()
 
-    const hash = crypto.createHash('md5').update('passTest').digest('hex')
+    const hash = await bcrypt.hash('passTest', 10)
     const token = jwt.sign({ type: 'create-password', account: { _id: account1._id }, user: { _id: user1._id }, newPassword: hash }, secrets[0])
     const res = await request(app)
       .patch('/v1/accounts/' + account1._id + '/users/' + user1._id + '/create-password')
@@ -1316,7 +1316,7 @@ describe('users test', () => {
     const account1 = new AccountTestModel({ name: 'accountExample1', urlFriendlyName: 'urlFriendlyNameExample1' })
     await account1.save()
 
-    const hash1 = crypto.createHash('md5').update('user1Password').digest('hex')
+    const hash1 = await bcrypt.hash('user1Password', 10)
     const user1 = new UserTestModel({ email: 'user1@gmail.com', name: 'user1', password: hash1, accountId: account1._id, googleProfileId: '123123' })
     await user1.save()
 
@@ -1334,7 +1334,7 @@ describe('users test', () => {
     const account1 = new AccountTestModel({ name: 'accountExample1', urlFriendlyName: 'urlFriendlyNameExample1' })
     await account1.save()
 
-    const hash1 = crypto.createHash('md5').update('user1Password').digest('hex')
+    const hash1 = await bcrypt.hash('user1Password', 10)
     const user1 = new UserTestModel({ email: 'user1@gmail.com', name: 'user1', password: hash1, accountId: account1._id, microsoftProfileId: '123123' })
     await user1.save()
 
@@ -1352,7 +1352,7 @@ describe('users test', () => {
     const account1 = new AccountTestModel({ name: 'accountExample1', urlFriendlyName: 'urlFriendlyNameExample1' })
     await account1.save()
 
-    const hash1 = crypto.createHash('md5').update('user1Password').digest('hex')
+    const hash1 = await bcrypt.hash('user1Password', 10)
     const user1 = new UserTestModel({ email: 'user1@gmail.com', name: 'user1', password: hash1, accountId: account1._id, githubProfileId: '123123' })
     await user1.save()
 

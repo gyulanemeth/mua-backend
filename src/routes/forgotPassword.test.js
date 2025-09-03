@@ -1,6 +1,6 @@
 import { describe, test, expect, beforeAll, afterEach, afterAll, vi } from 'vitest'
 import createApiServer from 'express-async-api'
-import crypto from 'crypto'
+import bcrypt from 'bcrypt'
 import jwt from 'jsonwebtoken'
 import mongoose from 'mongoose'
 import request from 'supertest'
@@ -106,11 +106,11 @@ describe('Accounts forgot-password test', () => {
     const account1 = new AccountTestModel({ name: 'accountExample1', urlFriendlyName: 'urlFriendlyNameExample1' })
     await account1.save()
 
-    const hash1 = crypto.createHash('md5').update('user1Password').digest('hex')
+    const hash1 = await bcrypt.hash('user1Password', 10)
     const user1 = new UserTestModel({ email: 'user1@gmail.com', name: 'user1', password: hash1, accountId: account1._id })
     await user1.save()
 
-    const hash2 = crypto.createHash('md5').update('user2Password').digest('hex')
+    const hash2 = await bcrypt.hash('user2Password', 10)
     const user2 = new UserTestModel({ email: 'user2@gmail.com', name: 'user2', password: hash2, accountId: account1._id })
     await user2.save()
 
@@ -138,11 +138,11 @@ describe('Accounts forgot-password test', () => {
     const account1 = new AccountTestModel({ name: 'accountExample1', urlFriendlyName: 'urlFriendlyNameExample1' })
     await account1.save()
 
-    const hash1 = crypto.createHash('md5').update('user1Password').digest('hex')
+    const hash1 = await bcrypt.hash('user1Password', 10)
     const user1 = new UserTestModel({ email: 'user1@gmail.com', name: 'user1', password: hash1, accountId: account1._id })
     await user1.save()
 
-    const hash2 = crypto.createHash('md5').update('user2Password').digest('hex')
+    const hash2 = await bcrypt.hash('user2Password', 10)
     const user2 = new UserTestModel({ email: 'user2@gmail.com', name: 'user2', password: hash2, accountId: account1._id })
     await user2.save()
 
@@ -169,11 +169,11 @@ describe('Accounts forgot-password test', () => {
     const account1 = new AccountTestModel({ name: 'accountExample1', urlFriendlyName: 'urlFriendlyNameExample1' })
     await account1.save()
 
-    const hash1 = crypto.createHash('md5').update('user1Password').digest('hex')
+    const hash1 = await bcrypt.hash('user1Password', 10)
     const user1 = new UserTestModel({ email: 'user1@gmail.com', name: 'user1', password: hash1, accountId: account1._id })
     await user1.save()
 
-    const hash2 = crypto.createHash('md5').update('user2Password').digest('hex')
+    const hash2 = await bcrypt.hash('user2Password', 10)
     const user2 = new UserTestModel({ email: 'user2@gmail.com', name: 'user2', password: hash2, accountId: account1._id })
     await user2.save()
 
@@ -191,11 +191,11 @@ describe('Accounts forgot-password test', () => {
     const account1 = new AccountTestModel({ name: 'accountExample1', urlFriendlyName: 'urlFriendlyNameExample1' })
     await account1.save()
 
-    const hash1 = crypto.createHash('md5').update('user1Password').digest('hex')
+    const hash1 = await bcrypt.hash('user1Password', 10)
     const user1 = new UserTestModel({ email: 'user1@gmail.com', name: 'user1', password: hash1, accountId: account1._id })
     await user1.save()
 
-    const hash2 = crypto.createHash('md5').update('user2Password').digest('hex')
+    const hash2 = await bcrypt.hash('user2Password', 10)
     const user2 = new UserTestModel({ email: 'user2@gmail.com', name: 'user2', password: hash2, accountId: account1._id })
     await user2.save()
 
@@ -214,11 +214,11 @@ describe('Accounts forgot-password test', () => {
     const account1 = new AccountTestModel({ name: 'accountExample1', urlFriendlyName: 'urlFriendlyNameExample1' })
     await account1.save()
 
-    const hash1 = crypto.createHash('md5').update('user1Password').digest('hex')
+    const hash1 = await bcrypt.hash('user1Password', 10)
     const user1 = new UserTestModel({ email: 'user1@gmail.com', name: 'user1', password: hash1, accountId: account1._id })
     await user1.save()
 
-    const hash2 = crypto.createHash('md5').update('user2Password').digest('hex')
+    const hash2 = await bcrypt.hash('user2Password', 10)
     const user2 = new UserTestModel({ email: 'user2@gmail.com', name: 'user2', password: hash2, accountId: account1._id })
     await user2.save()
     const captchaData = captcha.generate(secrets)
@@ -233,11 +233,11 @@ describe('Accounts forgot-password test', () => {
     const account1 = new AccountTestModel({ name: 'accountExample1', urlFriendlyName: 'urlFriendlyNameExample1' })
     await account1.save()
 
-    const hash1 = crypto.createHash('md5').update('user1Password').digest('hex')
+    const hash1 = await bcrypt.hash('user1Password', 10)
     const user1 = new UserTestModel({ email: 'user1@gmail.com', name: 'user1', password: hash1, accountId: account1._id })
     await user1.save()
 
-    const hash2 = crypto.createHash('md5').update('user2Password').digest('hex')
+    const hash2 = await bcrypt.hash('user2Password', 10)
     const user2 = new UserTestModel({ email: 'user2@gmail.com', name: 'user2', password: hash2, accountId: account1._id })
     await user2.save()
 
@@ -254,11 +254,11 @@ describe('Accounts forgot-password test', () => {
     const account1 = new AccountTestModel({ name: 'accountExample1', urlFriendlyName: 'urlFriendlyNameExample1' })
     await account1.save()
 
-    const hash1 = crypto.createHash('md5').update('user1Password').digest('hex')
+    const hash1 = await bcrypt.hash('user1Password', 10)
     const user1 = new UserTestModel({ email: 'user1@gmail.com', name: 'user1', password: hash1, accountId: account1._id })
     await user1.save()
 
-    const hash2 = crypto.createHash('md5').update('user2Password').digest('hex')
+    const hash2 = await bcrypt.hash('user2Password', 10)
     const user2 = new UserTestModel({ email: 'user2@gmail.com', name: 'user2', password: hash2, accountId: account1._id })
     await user2.save()
 
@@ -275,11 +275,11 @@ describe('Accounts forgot-password test', () => {
     const account1 = new AccountTestModel({ name: 'accountExample1', urlFriendlyName: 'urlFriendlyNameExample1' })
     await account1.save()
 
-    const hash1 = crypto.createHash('md5').update('user1Password').digest('hex')
+    const hash1 = await bcrypt.hash('user1Password', 10)
     const user1 = new UserTestModel({ email: 'user1@gmail.com', name: 'user1', password: hash1, accountId: account1._id })
     await user1.save()
 
-    const hash2 = crypto.createHash('md5').update('user2Password').digest('hex')
+    const hash2 = await bcrypt.hash('user2Password', 10)
     const user2 = new UserTestModel({ email: 'user2@gmail.com', name: 'user2', password: hash2, accountId: account1._id })
     await user2.save()
 
@@ -296,11 +296,11 @@ describe('Accounts forgot-password test', () => {
     const account1 = new AccountTestModel({ name: 'accountExample1', urlFriendlyName: 'urlFriendlyNameExample1' })
     await account1.save()
 
-    const hash1 = crypto.createHash('md5').update('user1Password').digest('hex')
+    const hash1 = await bcrypt.hash('user1Password', 10)
     const user1 = new UserTestModel({ email: 'user1@gmail.com', name: 'user1', password: hash1, accountId: account1._id })
     await user1.save()
 
-    const hash2 = crypto.createHash('md5').update('user2Password').digest('hex')
+    const hash2 = await bcrypt.hash('user2Password', 10)
     const user2 = new UserTestModel({ email: 'user2@gmail.com', name: 'user2', password: hash2, accountId: account1._id })
     await user2.save()
 
@@ -382,11 +382,11 @@ describe('System admins forgot-password test', () => {
       json: () => Promise.resolve({ result: { success: true }, status: 200 })
     })
 
-    const hash1 = crypto.createHash('md5').update('user1Password').digest('hex')
+    const hash1 = await bcrypt.hash('user1Password', 10)
     const user1 = new SystemAdminTestModel({ email: 'user1@gmail.com', name: 'user1', password: hash1 })
     await user1.save()
 
-    const hash2 = crypto.createHash('md5').update('user2Password').digest('hex')
+    const hash2 = await bcrypt.hash('user2Password', 10)
     const user2 = new SystemAdminTestModel({ email: 'user2@gmail.com', name: 'user2', password: hash2 })
     await user2.save()
     const captchaData = captcha.generate(secrets)
@@ -407,11 +407,11 @@ describe('System admins forgot-password test', () => {
       json: () => Promise.resolve({ result: { success: true }, status: 200 })
     })
 
-    const hash1 = crypto.createHash('md5').update('user1Password').digest('hex')
+    const hash1 = await bcrypt.hash('user1Password', 10)
     const user1 = new SystemAdminTestModel({ email: 'user1@gmail.com', name: 'user1', password: hash1 })
     await user1.save()
 
-    const hash2 = crypto.createHash('md5').update('user2Password').digest('hex')
+    const hash2 = await bcrypt.hash('user2Password', 10)
     const user2 = new SystemAdminTestModel({ email: 'user2@gmail.com', name: 'user2', password: hash2 })
     await user2.save()
     const captchaData = captcha.generate(secrets)
@@ -424,7 +424,7 @@ describe('System admins forgot-password test', () => {
   })
 
   test('send forget password error user not found  /v1/system-admins/forgot-password/send', async () => {
-    const hash1 = crypto.createHash('md5').update('user1Password').digest('hex')
+    const hash1 = await bcrypt.hash('user1Password', 10)
     const user1 = new SystemAdminTestModel({ email: 'user1@gmail.com', name: 'user1', password: hash1 })
     await user1.save()
     const captchaData = captcha.generate(secrets)
@@ -436,11 +436,11 @@ describe('System admins forgot-password test', () => {
   })
 
   test('success reset forget password  /v1/system-admins/forgot-password/reset', async () => {
-    const hash1 = crypto.createHash('md5').update('user1Password').digest('hex')
+    const hash1 = await bcrypt.hash('user1Password', 10)
     const user1 = new SystemAdminTestModel({ email: 'user1@gmail.com', name: 'user1', password: hash1 })
     await user1.save()
 
-    const hash2 = crypto.createHash('md5').update('user2Password').digest('hex')
+    const hash2 = await bcrypt.hash('user2Password', 10)
     const user2 = new SystemAdminTestModel({ email: 'user2@gmail.com', name: 'user2', password: hash2 })
     await user2.save()
 
@@ -455,11 +455,11 @@ describe('System admins forgot-password test', () => {
   })
 
   test(' reset forget password validation error  /v1/system-admins/forgot-password/reset', async () => {
-    const hash1 = crypto.createHash('md5').update('user1Password').digest('hex')
+    const hash1 = await bcrypt.hash('user1Password', 10)
     const user1 = new SystemAdminTestModel({ email: 'user1@gmail.com', name: 'user1', password: hash1 })
     await user1.save()
 
-    const hash2 = crypto.createHash('md5').update('user2Password').digest('hex')
+    const hash2 = await bcrypt.hash('user2Password', 10)
     const user2 = new SystemAdminTestModel({ email: 'user2@gmail.com', name: 'user2', password: hash2 })
     await user2.save()
 
@@ -473,11 +473,11 @@ describe('System admins forgot-password test', () => {
   })
 
   test('reset forget password unAuthorized header  /v1/system-admins/forgot-password/reset', async () => {
-    const hash1 = crypto.createHash('md5').update('user1Password').digest('hex')
+    const hash1 = await bcrypt.hash('user1Password', 10)
     const user1 = new SystemAdminTestModel({ email: 'user1@gmail.com', name: 'user1', password: hash1 })
     await user1.save()
 
-    const hash2 = crypto.createHash('md5').update('user2Password').digest('hex')
+    const hash2 = await bcrypt.hash('user2Password', 10)
     const user2 = new SystemAdminTestModel({ email: 'user2@gmail.com', name: 'user2', password: hash2 })
     await user2.save()
 
@@ -492,7 +492,7 @@ describe('System admins forgot-password test', () => {
   })
 
   test('reset forget password user email does not exist  /v1/system-admins/forgot-password/reset', async () => {
-    const hash1 = crypto.createHash('md5').update('user1Password').digest('hex')
+    const hash1 = await bcrypt.hash('user1Password', 10)
     const user1 = new SystemAdminTestModel({ email: 'user1@gmail.com', name: 'user1', password: hash1 })
     await user1.save()
     const token = jwt.sign({ type: 'forgot-password', user: { _id: user1._id, email: 'user4@gmail.com' } }, secrets[0])

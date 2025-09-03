@@ -1,4 +1,4 @@
-import crypto from 'crypto'
+import bcrypt from 'bcrypt'
 
 import jwt from 'jsonwebtoken'
 import svgCaptcha from 'svg-captcha'
@@ -7,7 +7,7 @@ export default {
   generate: (secrets, expiresIn = 60) => {
     const captcha = svgCaptcha.create()
 
-    const hash = crypto.createHash('md5').update(captcha.text).digest('hex')
+    const hash = bcrypt.hashSync(captcha.text, 10)
 
     const probe = jwt.sign({ hash }, secrets[0], { expiresIn })
 
@@ -28,9 +28,7 @@ export default {
     if (!probeData) {
       return false
     }
-
-    const hash = crypto.createHash('md5').update(text).digest('hex')
-
-    return hash === probeData.hash
+    const hash = bcrypt.compareSync(text, probeData.hash)
+    return hash
   }
 }

@@ -3,7 +3,7 @@ import { vi, describe, test, expect } from 'vitest'
 import captcha from './captcha.js'
 
 describe('captcha', () => {
-  test('validation successful with the first secret', () => {
+  test('validation successful with the first secret', async () => {
     const secrets = ['asdf1234', '4321fdsa']
     const captchaData = captcha.generate(secrets)
 
@@ -12,7 +12,7 @@ describe('captcha', () => {
     expect(validationResult).toBe(true)
   })
 
-  test('validation successful with the second secret', () => {
+  test('validation successful with the second secret', async () => {
     const secrets = ['asdf1234', '4321fdsa']
     const captchaData = captcha.generate(secrets)
 
@@ -23,7 +23,7 @@ describe('captcha', () => {
     expect(validationResult).toBe(true)
   })
 
-  test('validation unsuccessful: expired probe', () => {
+  test('validation unsuccessful: expired probe', async () => {
     vi.useFakeTimers()
     const secrets = ['asdf1234', '4321fdsa']
     const captchaData = captcha.generate(secrets, 10)
@@ -36,7 +36,7 @@ describe('captcha', () => {
     vi.useRealTimers()
   })
 
-  test('validation unsuccessful: wrong text', () => {
+  test('validation unsuccessful: wrong text', async () => {
     vi.useFakeTimers()
     const secrets = ['asdf1234', '4321fdsa']
     const captchaData = captcha.generate(secrets, 10)

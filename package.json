@@ -1,6 +1,6 @@
 {
   "name": "mua-backend",
-  "version": "0.3.15",
+  "version": "0.4.0",
   "description": "",
   "type": "module",
   "main": "src/index.js",
@@ -23,6 +23,7 @@
   "dependencies": {
     "@aws-sdk/client-ses": "^3.131.0",
     "aws-sdk": "^2.1216.0",
+    "bcrypt": "^6.0.0",
     "bearer-jwt-auth": "^1.0.1",
     "dotenv": "^16.0.1",
     "express-async-api": "^0.7.0",

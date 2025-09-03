@@ -1,4 +1,4 @@
-import crypto from 'crypto'
+import bcrypt from 'bcrypt'
 
 import jwt from 'jsonwebtoken'
 import mime from 'mime-types'
@@ -137,7 +137,7 @@ export default async ({
       accountId: newAccount.result._id
     }
     if (req.body.user.password) {
-      const hash = crypto.createHash('md5').update(req.body.user.password).digest('hex')
+      const hash = bcrypt.hashSync(req.body.user.password, 10)
       userData.password = hash
     } else {
       userData.googleProfileId = req.body.user.googleProfileId

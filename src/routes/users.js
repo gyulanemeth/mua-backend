@@ -1,4 +1,4 @@
-import crypto from 'crypto'
+import bcrypt from 'bcrypt'
 
 import jwt from 'jsonwebtoken'
 import allowAccessTo from 'bearer-jwt-auth'
@@ -6,6 +6,7 @@ import mime from 'mime-types'
 
 import { list, readOne, deleteOne, patchOne, createOne } from 'mongoose-crudl'
 import { MethodNotAllowedError, ValidationError, AuthenticationError } from 'standard-api-errors'
+import { verifyAndUpgradePassword } from '../helpers/verifyAndUpgradePassword.js'
 
 import aws from '../helpers/awsBucket.js'
 
@@ -48,7 +49,7 @@ export default async ({
 
   apiServer.patch('/v1/accounts/:accountId/users/:id/create-password', async req => {
     const tokenData = await allowAccessTo(req, secrets, [{ type: 'create-password', user: { _id: req.params.id }, account: { _id: req.params.accountId } }])
-    const hash = crypto.createHash('md5').update(tokenData.newPassword).digest('hex')
+    const hash = bcrypt.hashSync(tokenData.newPassword, 10)
     const user = await patchOne(UserModel, { id: req.params.id, accountId: req.params.accountId }, { password: hash }, { password: 0, googleProfileId: 0, microsoftProfileId: 0, githubProfileId: 0 })
     const payload = {
       type: 'user',
@@ -99,11 +100,11 @@ export default async ({
         }
       }
     }
-    const hash = crypto.createHash('md5').update(req.body.newPassword).digest('hex')
-    const oldHash = crypto.createHash('md5').update(req.body.oldPassword).digest('hex')
-    if (oldHash !== getUser.result.password) {
+    const checkPass = await verifyAndUpgradePassword(getUser.result, req.body.oldPassword, UserModel)
+    if (!checkPass) {
       throw new ValidationError("Validation error passwords didn't match ")
     }
+    const hash = bcrypt.hashSync(req.body.newPassword, 10)
     const user = await patchOne(UserModel, { id: req.params.id, accountId: req.params.accountId }, { password: hash }, { password: 0, googleProfileId: 0, microsoftProfileId: 0, githubProfileId: 0 })
     return user
   })
@@ -197,9 +198,9 @@ export default async ({
 
   apiServer.post('/v1/accounts/permission/:permissionFor', async req => {
     const tokenData = allowAccessTo(req, secrets, [{ type: 'user' }])
-    const hash = crypto.createHash('md5').update(req.body.password).digest('hex')
-    const findUser = await list(UserModel, { email: tokenData.user.email, password: hash })
-    if (findUser.result.count === 0) {
+    const findUser = await list(UserModel, { email: tokenData.user.email })
+    const checkPass = await verifyAndUpgradePassword(findUser.result.items[0], req.body.password, UserModel)
+    if (!checkPass) {
       throw new AuthenticationError('Invalid password')
     }
     const payload = {
@@ -281,7 +282,7 @@ export default async ({
     if (checkUser.result.count !== 0) {
       throw new MethodNotAllowedError('User exist')
     }
-    const hash = crypto.createHash('md5').update(req.body.password).digest('hex')
+    const hash = bcrypt.hashSync(req.body.password, 10)
     const newUser = await createOne(UserModel, req.params, { name: req.body.name, email: req.body.email, password: hash, accountId: req.params.accountId, verified: true })
     hooks.createNewUser.post({ accountId: req.params.accountId, name: newUser.result.name, email: newUser.result.email })
     return newUser
