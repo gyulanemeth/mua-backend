@@ -43,6 +43,7 @@ export default ({
     if (checkUser.result.count !== 0) {
       throw new MethodNotAllowedError('User exist')
     }
+    await hooks.checkEmail(req.body.email)
     const newUser = await createOne(UserModel, req.params, { email: req.body.email, accountId: req.params.id, verified: true })
     const payload = {
       type: 'invitation',
@@ -84,6 +85,7 @@ export default ({
     if (response.result.count !== 0) {
       throw new MethodNotAllowedError('User exist')
     }
+    await hooks.checkEmail(req.body.email)
     const newAdmin = await createOne(SystemAdminModel, req.body, req.query)
     const inviterData = await readOne(SystemAdminModel, { id: tokenData.user._id })
 
@@ -193,7 +195,6 @@ export default ({
       throw new ValidationError("Validation error passwords didn't match ")
     }
     const hash = bcrypt.hashSync(req.body.newPassword, 10)
-    await hooks.checkEmail(data.user.email)
     const updatedUser = await patchOne(UserModel, { id: data.user._id }, { password: hash, name: req.body.name })
     hooks.createNewUser.post({ accountId: req.params.id, name: updatedUser.result.name, email: updatedUser.result.email })
 
