@@ -4,7 +4,7 @@ export default async ({ apiServer }) => {
   const secrets = process.env.SECRETS.split(' ')
 
   apiServer.get('/v1/captcha', async req => {
-    const res = captcha.generate(secrets)
+    const res = await captcha.generate(secrets)
     return {
       status: 200,
       result: {

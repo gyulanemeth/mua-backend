@@ -120,7 +120,7 @@ export default async ({
   })
 
   apiServer.post('/v1/accounts/create', async req => {
-    const validationResult = captcha.validate(secrets, { text: req.body.captchaText, probe: req.body.captchaProbe })
+    const validationResult = await captcha.validate(secrets, { text: req.body.captchaText, probe: req.body.captchaProbe })
     if (!validationResult) {
       throw new ValidationError('Invalid CAPTCHA. Please try again.')
     }

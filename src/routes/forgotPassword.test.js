@@ -116,7 +116,7 @@ describe('Accounts forgot-password test', () => {
 
     const token = jwt.sign({ type: 'admin' }, secrets[0])
 
-    const captchaData = captcha.generate(secrets)
+    const captchaData = await captcha.generate(secrets)
 
     const res = await request(app)
       .post('/v1/accounts/' + account1._id + '/forgot-password/send')
@@ -148,7 +148,7 @@ describe('Accounts forgot-password test', () => {
 
     const token = jwt.sign({ type: 'admin' }, secrets[0])
 
-    const captchaData = captcha.generate(secrets)
+    const captchaData = await captcha.generate(secrets)
 
     const res = await request(app)
       .post('/v1/accounts/' + account1._id + '/forgot-password/send')
@@ -178,7 +178,7 @@ describe('Accounts forgot-password test', () => {
     await user2.save()
 
     const token = jwt.sign({ type: 'admin' }, secrets[0])
-    const captchaData = captcha.generate(secrets)
+    const captchaData = await captcha.generate(secrets)
 
     const res = await request(app)
       .post('/v1/accounts/' + account1._id + '/forgot-password/send')
@@ -200,7 +200,7 @@ describe('Accounts forgot-password test', () => {
     await user2.save()
 
     const token = jwt.sign({ type: 'admin' }, secrets[0])
-    const captchaData = captcha.generate(secrets)
+    const captchaData = await captcha.generate(secrets)
 
     const res = await request(app)
       .post('/v1/accounts/' + account1._id + '/forgot-password/send')
@@ -221,7 +221,7 @@ describe('Accounts forgot-password test', () => {
     const hash2 = await bcrypt.hash('user2Password', 10)
     const user2 = new UserTestModel({ email: 'user2@gmail.com', name: 'user2', password: hash2, accountId: account1._id })
     await user2.save()
-    const captchaData = captcha.generate(secrets)
+    const captchaData = await captcha.generate(secrets)
 
     const res = await request(app)
       .post('/v1/accounts/' + id + '/forgot-password/send')
@@ -389,7 +389,7 @@ describe('System admins forgot-password test', () => {
     const hash2 = await bcrypt.hash('user2Password', 10)
     const user2 = new SystemAdminTestModel({ email: 'user2@gmail.com', name: 'user2', password: hash2 })
     await user2.save()
-    const captchaData = captcha.generate(secrets)
+    const captchaData = await captcha.generate(secrets)
 
     const res = await request(app)
       .post('/v1/system-admins/forgot-password/send')
@@ -414,7 +414,7 @@ describe('System admins forgot-password test', () => {
     const hash2 = await bcrypt.hash('user2Password', 10)
     const user2 = new SystemAdminTestModel({ email: 'user2@gmail.com', name: 'user2', password: hash2 })
     await user2.save()
-    const captchaData = captcha.generate(secrets)
+    const captchaData = await captcha.generate(secrets)
 
     const res = await request(app)
       .post('/v1/system-admins/forgot-password/send')
@@ -427,7 +427,7 @@ describe('System admins forgot-password test', () => {
     const hash1 = await bcrypt.hash('user1Password', 10)
     const user1 = new SystemAdminTestModel({ email: 'user1@gmail.com', name: 'user1', password: hash1 })
     await user1.save()
-    const captchaData = captcha.generate(secrets)
+    const captchaData = await captcha.generate(secrets)
 
     const res = await request(app)
       .post('/v1/system-admins/forgot-password/send')
@@ -445,7 +445,7 @@ describe('System admins forgot-password test', () => {
     await user2.save()
 
     const token = jwt.sign({ type: 'forgot-password', user: { _id: user2._id, email: user2.email } }, secrets[0])
-    const captchaData = captcha.generate(secrets)
+    const captchaData = await captcha.generate(secrets)
 
     const res = await request(app)
       .post('/v1/system-admins/forgot-password/reset')
@@ -482,7 +482,7 @@ describe('System admins forgot-password test', () => {
     await user2.save()
 
     const token = jwt.sign({ type: 'value', user: { _id: user2._id, email: user2.email } }, secrets[0])
-    const captchaData = captcha.generate(secrets)
+    const captchaData = await captcha.generate(secrets)
 
     const res = await request(app)
       .post('/v1/system-admins/forgot-password/reset')
@@ -496,7 +496,7 @@ describe('System admins forgot-password test', () => {
     const user1 = new SystemAdminTestModel({ email: 'user1@gmail.com', name: 'user1', password: hash1 })
     await user1.save()
     const token = jwt.sign({ type: 'forgot-password', user: { _id: user1._id, email: 'user4@gmail.com' } }, secrets[0])
-    const captchaData = captcha.generate(secrets)
+    const captchaData = await captcha.generate(secrets)
 
     const res = await request(app)
       .post('/v1/system-admins/forgot-password/reset')

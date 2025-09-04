@@ -523,7 +523,7 @@ describe('accounts test', () => {
       json: () => Promise.resolve({ result: { success: true }, status: 200 })
     })
 
-    const captchaData = captcha.generate(secrets)
+    const captchaData = await captcha.generate(secrets)
 
     const res = await request(app)
       .post('/v1/accounts/create')
@@ -546,7 +546,7 @@ describe('accounts test', () => {
       json: () => Promise.resolve({ result: { success: true }, status: 200 })
     })
 
-    const captchaData = captcha.generate(secrets)
+    const captchaData = await captcha.generate(secrets)
 
     const res = await request(app)
       .post('/v1/accounts/create')
@@ -571,7 +571,7 @@ describe('accounts test', () => {
       json: () => Promise.resolve({ result: { success: true }, status: 200 })
     })
 
-    const captchaData = captcha.generate(secrets)
+    const captchaData = await captcha.generate(secrets)
 
     const res = await request(app)
       .post('/v1/accounts/create')
@@ -593,7 +593,7 @@ describe('accounts test', () => {
       headers: { get: () => 'application/json' },
       json: () => Promise.resolve({ error: { name: 'error', message: 'error test' }, status: 400 })
     })
-    const captchaData = captcha.generate(secrets)
+    const captchaData = await captcha.generate(secrets)
 
     const res = await request(app)
       .post('/v1/accounts/create')
@@ -622,7 +622,7 @@ describe('accounts test', () => {
     const account1 = new AccountTestModel({ name: 'accountExample1', urlFriendlyName: 'urlFriendlyNameExample1' })
     await account1.save()
 
-    const captchaData = captcha.generate(secrets)
+    const captchaData = await captcha.generate(secrets)
 
     const res = await request(app)
       .post('/v1/accounts/create')
@@ -640,7 +640,7 @@ describe('accounts test', () => {
     const account1 = new AccountTestModel({ name: 'accountExample1', urlFriendlyName: 'urlFriendlyNameExample1' })
     await account1.save()
 
-    const captchaData = captcha.generate(secrets)
+    const captchaData = await captcha.generate(secrets)
 
     const res = await request(app)
       .post('/v1/accounts/create')

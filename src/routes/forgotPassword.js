@@ -33,7 +33,7 @@ export default ({ apiServer, UserModel, SystemAdminModel, AccountModel }) => {
   }
 
   apiServer.post('/v1/accounts/:id/forgot-password/send', async req => {
-    const validationResult = captcha.validate(secrets, { text: req.body.captchaText, probe: req.body.captchaProbe })
+    const validationResult = await captcha.validate(secrets, { text: req.body.captchaText, probe: req.body.captchaProbe })
     if (!validationResult) {
       throw new ValidationError('Invalid CAPTCHA. Please try again.')
     }
@@ -66,7 +66,7 @@ export default ({ apiServer, UserModel, SystemAdminModel, AccountModel }) => {
   })
 
   apiServer.post('/v1/system-admins/forgot-password/send', async req => {
-    const validationResult = captcha.validate(secrets, { text: req.body.captchaText, probe: req.body.captchaProbe })
+    const validationResult = await captcha.validate(secrets, { text: req.body.captchaText, probe: req.body.captchaProbe })
     if (!validationResult) {
       throw new ValidationError('Invalid CAPTCHA. Please try again.')
     }
