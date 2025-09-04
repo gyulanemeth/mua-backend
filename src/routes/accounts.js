@@ -138,7 +138,7 @@ export default async ({
       accountId: newAccount.result._id
     }
     if (req.body.user.password) {
-      const hash = bcrypt.hashSync(req.body.user.password, 10)
+      const hash = await bcrypt.hash(req.body.user.password, 10)
       userData.password = hash
     } else {
       userData.googleProfileId = req.body.user.googleProfileId

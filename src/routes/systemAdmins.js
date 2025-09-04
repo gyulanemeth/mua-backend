@@ -122,7 +122,7 @@ export default async ({
     if (!checkPass) {
       throw new AuthorizationError('Wrong password.')
     }
-    const hash = bcrypt.hashSync(req.body.newPassword, 10)
+    const hash = await bcrypt.hash(req.body.newPassword, 10)
     await patchOne(SystemAdminModel, { id: req.params.id }, { password: hash })
     return {
       status: 200,

@@ -194,7 +194,7 @@ export default ({
     if (req.body.newPassword !== req.body.newPasswordAgain) { // check password matching
       throw new ValidationError("Validation error passwords didn't match ")
     }
-    const hash = bcrypt.hashSync(req.body.newPassword, 10)
+    const hash = await bcrypt.hash(req.body.newPassword, 10)
     const updatedUser = await patchOne(UserModel, { id: data.user._id }, { password: hash, name: req.body.name })
     hooks.createNewUser.post({ accountId: req.params.id, name: updatedUser.result.name, email: updatedUser.result.email })
 
@@ -230,7 +230,7 @@ export default ({
       throw new ValidationError("Validation error passwords didn't match ")
     }
 
-    const hash = bcrypt.hashSync(req.body.newPasswordAgain, 10)
+    const hash = await bcrypt.hash(req.body.newPasswordAgain, 10)
     const updatedAdmin = await patchOne(SystemAdminModel, { id: data.user._id }, { password: hash, name: req.body.name })
     const payload = {
       type: 'login',

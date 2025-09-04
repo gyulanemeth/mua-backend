@@ -50,7 +50,7 @@ export default async ({
 
   apiServer.patch('/v1/accounts/:accountId/users/:id/create-password', async req => {
     const tokenData = await allowAccessTo(req, secrets, [{ type: 'create-password', user: { _id: req.params.id }, account: { _id: req.params.accountId } }])
-    const hash = bcrypt.hashSync(tokenData.newPassword, 10)
+    const hash = await bcrypt.hash(tokenData.newPassword, 10)
     const user = await patchOne(UserModel, { id: req.params.id, accountId: req.params.accountId }, { password: hash }, { password: 0, googleProfileId: 0, microsoftProfileId: 0, githubProfileId: 0 })
     const payload = {
       type: 'user',
@@ -105,7 +105,7 @@ export default async ({
     if (!checkPass) {
       throw new ValidationError("Validation error passwords didn't match ")
     }
-    const hash = bcrypt.hashSync(req.body.newPassword, 10)
+    const hash = await bcrypt.hash(req.body.newPassword, 10)
     const user = await patchOne(UserModel, { id: req.params.id, accountId: req.params.accountId }, { password: hash }, { password: 0, googleProfileId: 0, microsoftProfileId: 0, githubProfileId: 0 })
     return user
   })
@@ -284,7 +284,7 @@ export default async ({
     if (checkUser.result.count !== 0) {
       throw new MethodNotAllowedError('User exist')
     }
-    const hash = bcrypt.hashSync(req.body.password, 10)
+    const hash = await bcrypt.hash(req.body.password, 10)
     await hooks.checkEmail(req.body.email)
     const newUser = await createOne(UserModel, req.params, { name: req.body.name, email: req.body.email, password: hash, accountId: req.params.accountId, verified: true })
     hooks.createNewUser.post({ accountId: req.params.accountId, name: newUser.result.name, email: newUser.result.email })
