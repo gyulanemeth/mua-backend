@@ -155,6 +155,9 @@ MuaBackend({
   UserModel,
   SystemAdminModel,
   hooks: {
+    checkEmail: async (params) => {
+      // Custom logic for checking email before creating or patching user or system admin
+    },
     deleteAccount: {
       post: (params) => {
         // Custom logic after deleting an account
