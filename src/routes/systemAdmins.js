@@ -1,4 +1,4 @@
-import crypto from 'crypto'
+import bcrypt from 'bcrypt'
 
 import jwt from 'jsonwebtoken'
 import mime from 'mime-types'
@@ -6,6 +6,7 @@ import mime from 'mime-types'
 import { list, readOne, deleteOne, patchOne } from 'mongoose-crudl'
 import { AuthorizationError, MethodNotAllowedError, ValidationError, AuthenticationError } from 'standard-api-errors'
 import allowAccessTo from 'bearer-jwt-auth'
+import verifyAndUpgradePassword from '../helpers/verifyAndUpgradePassword.js'
 
 import aws from '../helpers/awsBucket.js'
 
@@ -63,9 +64,9 @@ export default async ({
 
   apiServer.post('/v1/system-admins/permission/:permissionFor', async req => {
     const tokenData = allowAccessTo(req, secrets, [{ type: 'admin' }])
-    const hash = crypto.createHash('md5').update(req.body.password).digest('hex')
-    const findUser = await list(SystemAdminModel, { email: tokenData.user.email, password: hash })
-    if (findUser.result.count === 0) {
+    const findUser = await list(SystemAdminModel, { email: tokenData.user.email })
+    const checkPass = await verifyAndUpgradePassword(findUser.result.items[0], req.body.password, SystemAdminModel)
+    if (!checkPass) {
       throw new AuthenticationError('Invalid password')
     }
     const payload = {
@@ -116,12 +117,12 @@ export default async ({
     if (req.body.newPassword !== req.body.newPasswordAgain) {
       throw new ValidationError('Validation error passwords didn\'t match.')
     }
-    const hash = crypto.createHash('md5').update(req.body.newPassword).digest('hex')
-    const oldHash = crypto.createHash('md5').update(req.body.oldPassword).digest('hex')
     const getAdmin = await readOne(SystemAdminModel, { id: req.params.id }, req.query)
-    if (oldHash !== getAdmin.result.password) {
+    const checkPass = await verifyAndUpgradePassword(getAdmin.result, req.body.oldPassword, SystemAdminModel)
+    if (!checkPass) {
       throw new AuthorizationError('Wrong password.')
     }
+    const hash = await bcrypt.hash(req.body.newPassword, 10)
     await patchOne(SystemAdminModel, { id: req.params.id }, { password: hash })
     return {
       status: 200,

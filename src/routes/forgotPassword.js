@@ -1,4 +1,4 @@
-import crypto from 'crypto'
+import bcrypt from 'bcrypt'
 
 import jwt from 'jsonwebtoken'
 
@@ -33,7 +33,7 @@ export default ({ apiServer, UserModel, SystemAdminModel, AccountModel }) => {
   }
 
   apiServer.post('/v1/accounts/:id/forgot-password/send', async req => {
-    const validationResult = captcha.validate(secrets, { text: req.body.captchaText, probe: req.body.captchaProbe })
+    const validationResult = await captcha.validate(secrets, { text: req.body.captchaText, probe: req.body.captchaProbe })
     if (!validationResult) {
       throw new ValidationError('Invalid CAPTCHA. Please try again.')
     }
@@ -66,7 +66,7 @@ export default ({ apiServer, UserModel, SystemAdminModel, AccountModel }) => {
   })
 
   apiServer.post('/v1/system-admins/forgot-password/send', async req => {
-    const validationResult = captcha.validate(secrets, { text: req.body.captchaText, probe: req.body.captchaProbe })
+    const validationResult = await captcha.validate(secrets, { text: req.body.captchaText, probe: req.body.captchaProbe })
     if (!validationResult) {
       throw new ValidationError('Invalid CAPTCHA. Please try again.')
     }
@@ -101,7 +101,7 @@ export default ({ apiServer, UserModel, SystemAdminModel, AccountModel }) => {
     if (req.body.newPassword !== req.body.newPasswordAgain) {
       throw new ValidationError("Validation error passwords didn't match ")
     }
-    const hash = crypto.createHash('md5').update(req.body.newPassword).digest('hex')
+    const hash = await bcrypt.hash(req.body.newPassword, 10)
     const updatedUser = await patchOne(UserModel, { id: data.user._id }, { password: hash })
     const payload = {
       type: 'login',
@@ -127,7 +127,7 @@ export default ({ apiServer, UserModel, SystemAdminModel, AccountModel }) => {
     if (req.body.newPassword !== req.body.newPasswordAgain) {
       throw new ValidationError("Validation error passwords didn't match ")
     }
-    const hash = crypto.createHash('md5').update(req.body.newPassword).digest('hex')
+    const hash = await bcrypt.hash(req.body.newPassword, 10)
     const updatedAdmin = await patchOne(SystemAdminModel, { id: data.user._id, email: data.user.email }, { password: hash })
     const payload = {
       type: 'login',

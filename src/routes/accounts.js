@@ -1,4 +1,4 @@
-import crypto from 'crypto'
+import bcrypt from 'bcrypt'
 
 import jwt from 'jsonwebtoken'
 import mime from 'mime-types'
@@ -13,6 +13,7 @@ import aws from '../helpers/awsBucket.js'
 export default async ({
   apiServer, UserModel, AccountModel, hooks =
   {
+    checkEmail: async (params) => {},
     deleteAccount: { post: (params) => { } },
     createAccount: { post: (params) => { } },
     createNewUser: { post: (params) => { } }
@@ -119,7 +120,7 @@ export default async ({
   })
 
   apiServer.post('/v1/accounts/create', async req => {
-    const validationResult = captcha.validate(secrets, { text: req.body.captchaText, probe: req.body.captchaProbe })
+    const validationResult = await captcha.validate(secrets, { text: req.body.captchaText, probe: req.body.captchaProbe })
     if (!validationResult) {
       throw new ValidationError('Invalid CAPTCHA. Please try again.')
     }
@@ -137,7 +138,7 @@ export default async ({
       accountId: newAccount.result._id
     }
     if (req.body.user.password) {
-      const hash = crypto.createHash('md5').update(req.body.user.password).digest('hex')
+      const hash = await bcrypt.hash(req.body.user.password, 10)
       userData.password = hash
     } else {
       userData.googleProfileId = req.body.user.googleProfileId
@@ -149,6 +150,7 @@ export default async ({
     }
     let newUser
     try {
+      await hooks.checkEmail(req.body.user.email)
       newUser = await createOne(UserModel, req.params, userData)
     } catch (error) {
       const deletedAccount = await deleteOne(AccountModel, { id: newAccount.result._id })

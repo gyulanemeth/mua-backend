@@ -155,6 +155,9 @@ MuaBackend({
   UserModel,
   SystemAdminModel,
   hooks: {
+    checkEmail: async (params) => {
+      // Custom logic for checking email before creating or patching user or system admin (if you want to prevent spicific email you can throw error insde here for example disposable email and this will prevent the creation / update of the user email)
+    },
     deleteAccount: {
       post: (params) => {
         // Custom logic after deleting an account

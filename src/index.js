@@ -54,6 +54,7 @@ if (process.env.MICROSOFT_CLIENT_ID && process.env.MICROSOFT_CLIENT_SECRET) {
 export default ({
   apiServer, UserModel, AccountModel, SystemAdminModel, hooks =
   {
+    checkEmail: async (params) => {},
     deleteAccount: { post: (params) => { } },
     createAccount: { post: (params) => { } },
     createNewUser: { post: (params) => { } },

@@ -1,10 +1,9 @@
-import crypto from 'crypto'
-
 import { list, readOne, patchOne } from 'mongoose-crudl'
 import jwt from 'jsonwebtoken'
 import allowAccessTo from 'bearer-jwt-auth'
 import { AuthenticationError, MethodNotAllowedError, ValidationError } from 'standard-api-errors'
 import passport from 'passport'
+import verifyAndUpgradePassword from '../helpers/verifyAndUpgradePassword.js'
 
 export default ({
   apiServer, UserModel, AccountModel, SystemAdminModel
@@ -243,9 +242,9 @@ export default ({
 
   apiServer.post('/v1/accounts/:id/login', async req => {
     const data = allowAccessTo(req, secrets, [{ type: 'login' }])
-    req.body.password = crypto.createHash('md5').update(req.body.password).digest('hex')
-    const findUser = await list(UserModel, { email: data.user.email, accountId: req.params.id, password: req.body.password }, req.query)
-    if (findUser.result.count === 0) {
+    const findUser = await list(UserModel, { email: data.user.email, accountId: req.params.id }, req.query)
+    const checkPass = await verifyAndUpgradePassword(findUser.result.items[0], req.body.password, UserModel)
+    if (!checkPass) {
       throw new AuthenticationError('Invalid email or password')
     }
     if (!findUser.result.items[0].verified) {
@@ -288,10 +287,10 @@ export default ({
     let getAccount
     let findUser
     try {
-      req.body.password = crypto.createHash('md5').update(req.body.password).digest('hex')
       getAccount = await list(AccountModel, { urlFriendlyName: req.params.id }, req.query)
-      findUser = await list(UserModel, { email: req.body.email, accountId: getAccount.result.items[0]._id, password: req.body.password }, req.query)
-      if (!getAccount.result.count || !findUser.result.count) {
+      findUser = await list(UserModel, { email: req.body.email, accountId: getAccount.result.items[0]._id }, req.query)
+      const checkPass = await verifyAndUpgradePassword(findUser.result.items[0], req.body.password, UserModel)
+      if (!getAccount.result.count || !checkPass) {
         throw new Error()
       }
     } catch (error) {
@@ -361,10 +360,9 @@ export default ({
 
   apiServer.post('/v1/system-admins/login', async req => {
     req.body.email = req.body.email.toLowerCase()
-    req.body.password = crypto.createHash('md5').update(req.body.password).digest('hex')
-    const findUser = await list(SystemAdminModel, { email: req.body.email, password: req.body.password }, { select: { password: 0 } })
-
-    if (findUser.result.count === 0) {
+    const findUser = await list(SystemAdminModel, { email: req.body.email })
+    const checkPass = await verifyAndUpgradePassword(findUser.result.items[0], req.body.password, SystemAdminModel)
+    if (!checkPass) {
       throw new AuthenticationError('Invalid email or password')
     }
 

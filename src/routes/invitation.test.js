@@ -1,6 +1,6 @@
 import { describe, test, expect, beforeAll, afterEach, afterAll, vi } from 'vitest'
 import createApiServer from 'express-async-api'
-import crypto from 'crypto'
+import bcrypt from 'bcrypt'
 import jwt from 'jsonwebtoken'
 import mongoose from 'mongoose'
 import request from 'supertest'
@@ -107,15 +107,15 @@ describe('Accounts invitation test', () => {
     const account1 = new AccountTestModel({ name: 'accountExample1', urlFriendlyName: 'urlFriendlyNameExample1' })
     await account1.save()
 
-    const adminHash = crypto.createHash('md5').update('user1Password').digest('hex')
+    const adminHash = await bcrypt.hash('user1Password', 10)
     const admin1 = new SystemAdminTestModel({ email: 'admin1@gmail.com', name: 'user1', password: adminHash })
     await admin1.save()
 
-    const hash1 = crypto.createHash('md5').update('user1Password').digest('hex')
+    const hash1 = await bcrypt.hash('user1Password', 10)
     const user1 = new UserTestModel({ email: 'user1@gmail.com', name: 'user1', password: hash1, accountId: account1._id })
     await user1.save()
 
-    const hash2 = crypto.createHash('md5').update('user2Password').digest('hex')
+    const hash2 = await bcrypt.hash('user2Password', 10)
     const user2 = new UserTestModel({ email: 'user2@gmail.com', name: 'user2', password: hash2, accountId: account1._id })
     await user2.save()
 
@@ -140,11 +140,11 @@ describe('Accounts invitation test', () => {
     const account1 = new AccountTestModel({ name: 'accountExample1', urlFriendlyName: 'urlFriendlyNameExample1' })
     await account1.save()
 
-    const hash1 = crypto.createHash('md5').update('user1Password').digest('hex')
+    const hash1 = await bcrypt.hash('user1Password', 10)
     const user1 = new UserTestModel({ email: 'user1@gmail.com', role: 'admin', name: 'user1', password: hash1, accountId: account1._id })
     await user1.save()
 
-    const hash2 = crypto.createHash('md5').update('user2Password').digest('hex')
+    const hash2 = await bcrypt.hash('user2Password', 10)
     const user2 = new UserTestModel({ email: 'user2@gmail.com', name: 'user2', password: hash2, accountId: account1._id })
     await user2.save()
 
@@ -171,7 +171,7 @@ describe('Accounts invitation test', () => {
     const user1 = new UserTestModel({ email: 'user1@gmail.com', accountId: account1._id })
     await user1.save()
 
-    const hash2 = crypto.createHash('md5').update('user2Password').digest('hex')
+    const hash2 = await bcrypt.hash('user2Password', 10)
     const user2 = new UserTestModel({ email: 'user2@gmail.com', name: 'user2', role: 'admin', password: hash2, accountId: account1._id })
     await user2.save()
 
@@ -196,14 +196,14 @@ describe('Accounts invitation test', () => {
     const account1 = new AccountTestModel({ name: 'accountExample1', urlFriendlyName: 'urlFriendlyNameExample1' })
     await account1.save()
 
-    const adminHash = crypto.createHash('md5').update('user1Password').digest('hex')
+    const adminHash = await bcrypt.hash('user1Password', 10)
     const admin1 = new SystemAdminTestModel({ email: 'admin1@gmail.com', name: 'user1', password: adminHash })
     await admin1.save()
 
     const user1 = new UserTestModel({ email: 'user1@gmail.com', accountId: account1._id })
     await user1.save()
 
-    const hash2 = crypto.createHash('md5').update('user2Password').digest('hex')
+    const hash2 = await bcrypt.hash('user2Password', 10)
     const user2 = new UserTestModel({ email: 'user2@gmail.com', name: 'user2', role: 'admin', password: hash2, accountId: account1._id })
     await user2.save()
 
@@ -230,11 +230,11 @@ describe('Accounts invitation test', () => {
     const account1 = new AccountTestModel({ name: 'accountExample1', urlFriendlyName: 'urlFriendlyNameExample1' })
     await account1.save()
 
-    const hash1 = crypto.createHash('md5').update('user1Password').digest('hex')
+    const hash1 = await bcrypt.hash('user1Password', 10)
     const user1 = new UserTestModel({ email: 'user1@gmail.com', name: 'user1', role: 'admin', password: hash1, accountId: account1._id })
     await user1.save()
 
-    const hash2 = crypto.createHash('md5').update('user2Password').digest('hex')
+    const hash2 = await bcrypt.hash('user2Password', 10)
     const user2 = new UserTestModel({ email: 'user2@gmail.com', name: 'user2', password: hash2, accountId: account1._id })
     await user2.save()
 
@@ -252,11 +252,11 @@ describe('Accounts invitation test', () => {
     const account1 = new AccountTestModel({ name: 'accountExample1', urlFriendlyName: 'urlFriendlyNameExample1' })
     await account1.save()
 
-    const hash1 = crypto.createHash('md5').update('user1Password').digest('hex')
+    const hash1 = await bcrypt.hash('user1Password', 10)
     const user1 = new UserTestModel({ email: 'user1@gmail.com', name: 'user1', password: hash1, accountId: account1._id })
     await user1.save()
 
-    const hash2 = crypto.createHash('md5').update('user2Password').digest('hex')
+    const hash2 = await bcrypt.hash('user2Password', 10)
     const user2 = new UserTestModel({ email: 'user2@gmail.com', name: 'user2', password: hash2, accountId: account1._id })
     await user2.save()
 
@@ -272,11 +272,11 @@ describe('Accounts invitation test', () => {
     const account1 = new AccountTestModel({ name: 'accountExample1', urlFriendlyName: 'urlFriendlyNameExample1' })
     await account1.save()
 
-    const hash1 = crypto.createHash('md5').update('user1Password').digest('hex')
+    const hash1 = await bcrypt.hash('user1Password', 10)
     const user1 = new UserTestModel({ email: 'user1@gmail.com', name: 'user1', password: hash1, accountId: account1._id })
     await user1.save()
 
-    const hash2 = crypto.createHash('md5').update('user2Password').digest('hex')
+    const hash2 = await bcrypt.hash('user2Password', 10)
     const user2 = new UserTestModel({ email: 'user2@gmail.com', name: 'user2', password: hash2, accountId: account1._id })
     await user2.save()
 
@@ -292,11 +292,11 @@ describe('Accounts invitation test', () => {
     const account1 = new AccountTestModel({ name: 'accountExample1', urlFriendlyName: 'urlFriendlyNameExample1' })
     await account1.save()
 
-    const hash1 = crypto.createHash('md5').update('user1Password').digest('hex')
+    const hash1 = await bcrypt.hash('user1Password', 10)
     const user1 = new UserTestModel({ email: 'user1@gmail.com', name: 'user1', password: hash1, accountId: account1._id })
     await user1.save()
 
-    const hash2 = crypto.createHash('md5').update('user2Password').digest('hex')
+    const hash2 = await bcrypt.hash('user2Password', 10)
     const user2 = new UserTestModel({ email: 'user2@gmail.com', name: 'user2', password: hash2, accountId: account1._id })
     await user2.save()
 
@@ -312,15 +312,15 @@ describe('Accounts invitation test', () => {
     const account1 = new AccountTestModel({ name: 'accountExample1', urlFriendlyName: 'urlFriendlyNameExample1' })
     await account1.save()
 
-    const adminHash = crypto.createHash('md5').update('user1Password').digest('hex')
+    const adminHash = await bcrypt.hash('user1Password', 10)
     const admin1 = new SystemAdminTestModel({ email: 'admin1@gmail.com', name: 'user1', password: adminHash })
     await admin1.save()
 
-    const hash1 = crypto.createHash('md5').update('user1Password').digest('hex')
+    const hash1 = await bcrypt.hash('user1Password', 10)
     const user1 = new UserTestModel({ email: 'user1@gmail.com', name: 'user1', password: hash1, accountId: account1._id })
     await user1.save()
 
-    const hash2 = crypto.createHash('md5').update('user2Password').digest('hex')
+    const hash2 = await bcrypt.hash('user2Password', 10)
     const user2 = new UserTestModel({ email: 'user2@gmail.com', name: 'user2', password: hash2, accountId: account1._id })
     await user2.save()
 
@@ -359,11 +359,11 @@ describe('Accounts invitation test', () => {
     const account1 = new AccountTestModel({ name: 'accountExample1', urlFriendlyName: 'urlFriendlyNameExample1' })
     await account1.save()
 
-    const hash1 = crypto.createHash('md5').update('user1Password').digest('hex')
+    const hash1 = await bcrypt.hash('user1Password', 10)
     const user1 = new UserTestModel({ email: 'user1@gmail.com', name: 'user1', password: hash1, accountId: account1._id })
     await user1.save()
 
-    const hash2 = crypto.createHash('md5').update('user2Password').digest('hex')
+    const hash2 = await bcrypt.hash('user2Password', 10)
     const user2 = new UserTestModel({ email: 'user2@gmail.com', name: 'user2', password: hash2, accountId: account1._id })
     await user2.save()
 
@@ -379,7 +379,7 @@ describe('Accounts invitation test', () => {
     const account1 = new AccountTestModel({ name: 'accountExample1', urlFriendlyName: 'urlFriendlyNameExample1' })
     await account1.save()
 
-    const hash1 = crypto.createHash('md5').update('user1Password').digest('hex')
+    const hash1 = await bcrypt.hash('user1Password', 10)
     const user1 = new UserTestModel({ email: 'user1@gmail.com', name: 'user1', password: hash1, accountId: account1._id })
     await user1.save()
 
@@ -399,11 +399,11 @@ describe('Accounts invitation test', () => {
     const account1 = new AccountTestModel({ name: 'accountExample1', urlFriendlyName: 'urlFriendlyNameExample1' })
     await account1.save()
 
-    const hash1 = crypto.createHash('md5').update('user1Password').digest('hex')
+    const hash1 = await bcrypt.hash('user1Password', 10)
     const user1 = new UserTestModel({ email: 'user1@gmail.com', name: 'user1', password: hash1, accountId: account1._id })
     await user1.save()
 
-    const hash2 = crypto.createHash('md5').update('user2Password').digest('hex')
+    const hash2 = await bcrypt.hash('user2Password', 10)
     const user2 = new UserTestModel({ email: 'user2@gmail.com', name: 'user2', password: hash2, accountId: account1._id })
     await user2.save()
 
@@ -421,7 +421,7 @@ describe('Accounts invitation test', () => {
     const account1 = new AccountTestModel({ name: 'accountExample1', urlFriendlyName: 'urlFriendlyNameExample1' })
     await account1.save()
 
-    const hash1 = crypto.createHash('md5').update('user1Password').digest('hex')
+    const hash1 = await bcrypt.hash('user1Password', 10)
     const user1 = new UserTestModel({ email: 'user1@gmail.com', name: 'user1', password: hash1, accountId: account1._id })
     await user1.save()
 
@@ -441,7 +441,7 @@ describe('Accounts invitation test', () => {
     const account1 = new AccountTestModel({ name: 'accountExample1', urlFriendlyName: 'urlFriendlyNameExample1' })
     await account1.save()
 
-    const hash1 = crypto.createHash('md5').update('user1Password').digest('hex')
+    const hash1 = await bcrypt.hash('user1Password', 10)
     const user1 = new UserTestModel({ email: 'user1@gmail.com', name: 'user1', password: hash1, accountId: account1._id })
     await user1.save()
 
@@ -462,7 +462,7 @@ describe('Accounts invitation test', () => {
     const account1 = new AccountTestModel({ name: 'accountExample1', urlFriendlyName: 'urlFriendlyNameExample1' })
     await account1.save()
 
-    const hash1 = crypto.createHash('md5').update('user1Password').digest('hex')
+    const hash1 = await bcrypt.hash('user1Password', 10)
     const user1 = new UserTestModel({ email: 'user1@gmail.com', name: 'user1', password: hash1, accountId: account1._id })
     await user1.save()
 
@@ -481,7 +481,7 @@ describe('Accounts invitation test', () => {
     const account1 = new AccountTestModel({ name: 'accountExample1', urlFriendlyName: 'urlFriendlyNameExample1' })
     await account1.save()
 
-    const hash1 = crypto.createHash('md5').update('user1Password').digest('hex')
+    const hash1 = await bcrypt.hash('user1Password', 10)
     const user1 = new UserTestModel({ email: 'user1@gmail.com', name: 'user1', password: hash1, accountId: account1._id })
     await user1.save()
 
@@ -507,11 +507,11 @@ describe('Accounts invitation test', () => {
       json: () => Promise.resolve({ result: { success: true }, status: 200 })
     })
 
-    const hash1 = crypto.createHash('md5').update('user1Password').digest('hex')
+    const hash1 = await bcrypt.hash('user1Password', 10)
     const user1 = new SystemAdminTestModel({ email: 'user1@gmail.com', name: 'user1', password: hash1 })
     await user1.save()
 
-    const hash2 = crypto.createHash('md5').update('user2Password').digest('hex')
+    const hash2 = await bcrypt.hash('user2Password', 10)
     const user2 = new SystemAdminTestModel({ email: 'user2@gmail.com', name: 'user2', password: hash2 })
     await user2.save()
 
@@ -533,11 +533,11 @@ describe('Accounts invitation test', () => {
       json: () => Promise.resolve({ status: 400, error: { message: 'test error', name: 'error' } })
     })
 
-    const hash1 = crypto.createHash('md5').update('user1Password').digest('hex')
+    const hash1 = await bcrypt.hash('user1Password', 10)
     const user1 = new SystemAdminTestModel({ email: 'user1@gmail.com', name: 'user1', password: hash1 })
     await user1.save()
 
-    const hash2 = crypto.createHash('md5').update('user2Password').digest('hex')
+    const hash2 = await bcrypt.hash('user2Password', 10)
     const user2 = new SystemAdminTestModel({ email: 'user2@gmail.com', name: 'user2', password: hash2 })
     await user2.save()
 
@@ -561,7 +561,7 @@ describe('Accounts invitation test', () => {
     const user1 = new SystemAdminTestModel({ email: 'user1@gmail.com' })
     await user1.save()
 
-    const hash2 = crypto.createHash('md5').update('user2Password').digest('hex')
+    const hash2 = await bcrypt.hash('user2Password', 10)
     const user2 = new SystemAdminTestModel({ email: 'user2@gmail.com', name: 'user2', password: hash2 })
     await user2.save()
 
@@ -576,11 +576,11 @@ describe('Accounts invitation test', () => {
   })
 
   test('send invitation error user exist  /v1/system-admins/invitation/send', async () => {
-    const hash1 = crypto.createHash('md5').update('user1Password').digest('hex')
+    const hash1 = await bcrypt.hash('user1Password', 10)
     const user1 = new SystemAdminTestModel({ email: 'user1@gmail.com', name: 'user1', password: hash1 })
     await user1.save()
 
-    const hash2 = crypto.createHash('md5').update('user2Password').digest('hex')
+    const hash2 = await bcrypt.hash('user2Password', 10)
     const user2 = new SystemAdminTestModel({ email: 'user2@gmail.com', name: 'user2', password: hash2 })
     await user2.save()
 
@@ -593,11 +593,11 @@ describe('Accounts invitation test', () => {
   })
 
   test('send invitation error user not exist  /v1/system-admins/invitation/send', async () => {
-    const hash1 = crypto.createHash('md5').update('user1Password').digest('hex')
+    const hash1 = await bcrypt.hash('user1Password', 10)
     const user1 = new SystemAdminTestModel({ email: 'user1@gmail.com', name: 'user1', password: hash1 })
     await user1.save()
 
-    const hash2 = crypto.createHash('md5').update('user2Password').digest('hex')
+    const hash2 = await bcrypt.hash('user2Password', 10)
     const user2 = new SystemAdminTestModel({ email: 'user2@gmail.com', name: 'user2', password: hash2 })
     await user2.save()
 
@@ -609,11 +609,11 @@ describe('Accounts invitation test', () => {
   })
 
   test('send invitation error user already verified', async () => {
-    const hash1 = crypto.createHash('md5').update('user1Password').digest('hex')
+    const hash1 = await bcrypt.hash('user1Password', 10)
     const user1 = new SystemAdminTestModel({ email: 'user1@gmail.com', name: 'user1', password: hash1 })
     await user1.save()
 
-    const hash2 = crypto.createHash('md5').update('user2Password').digest('hex')
+    const hash2 = await bcrypt.hash('user2Password', 10)
     const user2 = new SystemAdminTestModel({ email: 'user2@gmail.com', name: 'user2', password: hash2 })
     await user2.save()
 
@@ -625,11 +625,11 @@ describe('Accounts invitation test', () => {
   })
 
   test('send invitation error unAuthorized header  /v1/system-admins/invitation/send', async () => {
-    const hash1 = crypto.createHash('md5').update('user1Password').digest('hex')
+    const hash1 = await bcrypt.hash('user1Password', 10)
     const user1 = new SystemAdminTestModel({ email: 'user1@gmail.com', name: 'user1', password: hash1 })
     await user1.save()
 
-    const hash2 = crypto.createHash('md5').update('user2Password').digest('hex')
+    const hash2 = await bcrypt.hash('user2Password', 10)
     const user2 = new SystemAdminTestModel({ email: 'user2@gmail.com', name: 'user2', password: hash2 })
     await user2.save()
 
@@ -645,11 +645,11 @@ describe('Accounts invitation test', () => {
     const fetchSpy = vi.spyOn(global, 'fetch')
     fetchSpy.mockRejectedValue(new Error('test mock send email error'))
 
-    const hash1 = crypto.createHash('md5').update('user1Password').digest('hex')
+    const hash1 = await bcrypt.hash('user1Password', 10)
     const user1 = new SystemAdminTestModel({ email: 'user1@gmail.com', name: 'user1', password: hash1 })
     await user1.save()
 
-    const hash2 = crypto.createHash('md5').update('user2Password').digest('hex')
+    const hash2 = await bcrypt.hash('user2Password', 10)
     const user2 = new SystemAdminTestModel({ email: 'user2@gmail.com', name: 'user2', password: hash2 })
     await user2.save()
 
@@ -674,7 +674,7 @@ describe('Accounts invitation test', () => {
   })
 
   test('success accept invitation  /v1/system-admins/invitation/accept', async () => {
-    const hash1 = crypto.createHash('md5').update('user1Password').digest('hex')
+    const hash1 = await bcrypt.hash('user1Password', 10)
     const user1 = new SystemAdminTestModel({ email: 'user1@gmail.com', name: 'user1', password: hash1 })
     await user1.save()
 
@@ -691,11 +691,11 @@ describe('Accounts invitation test', () => {
   })
 
   test('send invitation error user exist  /v1/system-admins/invitation/accept', async () => {
-    const hash1 = crypto.createHash('md5').update('user1Password').digest('hex')
+    const hash1 = await bcrypt.hash('user1Password', 10)
     const user1 = new SystemAdminTestModel({ email: 'user1@gmail.com', name: 'user1', password: hash1 })
     await user1.save()
 
-    const hash2 = crypto.createHash('md5').update('user2Password').digest('hex')
+    const hash2 = await bcrypt.hash('user2Password', 10)
     const user2 = new SystemAdminTestModel({ email: 'user2@gmail.com', name: 'user2', password: hash2 })
     await user2.save()
 
@@ -710,11 +710,11 @@ describe('Accounts invitation test', () => {
   })
 
   test('send invitation error unAuthorized header  /v1/system-admins/invitation/accept', async () => {
-    const hash1 = crypto.createHash('md5').update('user1Password').digest('hex')
+    const hash1 = await bcrypt.hash('user1Password', 10)
     const user1 = new SystemAdminTestModel({ email: 'user1@gmail.com', name: 'user1', password: hash1 })
     await user1.save()
 
-    const hash2 = crypto.createHash('md5').update('user2Password').digest('hex')
+    const hash2 = await bcrypt.hash('user2Password', 10)
     const user2 = new SystemAdminTestModel({ email: 'user2@gmail.com', name: 'user2', password: hash2 })
     await user2.save()
 
@@ -728,7 +728,7 @@ describe('Accounts invitation test', () => {
   })
 
   test('success accept invitation  /v1/system-admins/invitation/accept', async () => {
-    const hash1 = crypto.createHash('md5').update('user1Password').digest('hex')
+    const hash1 = await bcrypt.hash('user1Password', 10)
     const user1 = new SystemAdminTestModel({ email: 'user1@gmail.com', name: 'user1', password: hash1 })
     await user1.save()
 
@@ -745,7 +745,7 @@ describe('Accounts invitation test', () => {
   })
 
   test('accept invitation user email does not exist /v1/system-admins/invitation/accept', async () => {
-    const hash1 = crypto.createHash('md5').update('user1Password').digest('hex')
+    const hash1 = await bcrypt.hash('user1Password', 10)
     const user1 = new SystemAdminTestModel({ email: 'user1@gmail.com', name: 'user1', password: hash1 })
     await user1.save()
 
@@ -834,11 +834,11 @@ describe('System admin invitation test', () => {
       json: () => Promise.resolve({ result: { success: true }, status: 200 })
     })
 
-    const hash1 = crypto.createHash('md5').update('user1Password').digest('hex')
+    const hash1 = await bcrypt.hash('user1Password', 10)
     const user1 = new SystemAdminTestModel({ email: 'user1@gmail.com', name: 'user1', password: hash1 })
     await user1.save()
 
-    const hash2 = crypto.createHash('md5').update('user2Password').digest('hex')
+    const hash2 = await bcrypt.hash('user2Password', 10)
     const user2 = new SystemAdminTestModel({ email: 'user2@gmail.com', name: 'user2', password: hash2 })
     await user2.save()
 
@@ -860,11 +860,11 @@ describe('System admin invitation test', () => {
       json: () => Promise.resolve({ status: 400, error: { message: 'test error', name: 'error' } })
     })
 
-    const hash1 = crypto.createHash('md5').update('user1Password').digest('hex')
+    const hash1 = await bcrypt.hash('user1Password', 10)
     const user1 = new SystemAdminTestModel({ email: 'user1@gmail.com', name: 'user1', password: hash1 })
     await user1.save()
 
-    const hash2 = crypto.createHash('md5').update('user2Password').digest('hex')
+    const hash2 = await bcrypt.hash('user2Password', 10)
     const user2 = new SystemAdminTestModel({ email: 'user2@gmail.com', name: 'user2', password: hash2 })
     await user2.save()
 
@@ -888,7 +888,7 @@ describe('System admin invitation test', () => {
     const user1 = new SystemAdminTestModel({ email: 'user1@gmail.com' })
     await user1.save()
 
-    const hash2 = crypto.createHash('md5').update('user2Password').digest('hex')
+    const hash2 = await bcrypt.hash('user2Password', 10)
     const user2 = new SystemAdminTestModel({ email: 'user2@gmail.com', name: 'user2', password: hash2 })
     await user2.save()
 
@@ -903,11 +903,11 @@ describe('System admin invitation test', () => {
   })
 
   test('send invitation error user exist  /v1/system-admins/invitation/send', async () => {
-    const hash1 = crypto.createHash('md5').update('user1Password').digest('hex')
+    const hash1 = await bcrypt.hash('user1Password', 10)
     const user1 = new SystemAdminTestModel({ email: 'user1@gmail.com', name: 'user1', password: hash1 })
     await user1.save()
 
-    const hash2 = crypto.createHash('md5').update('user2Password').digest('hex')
+    const hash2 = await bcrypt.hash('user2Password', 10)
     const user2 = new SystemAdminTestModel({ email: 'user2@gmail.com', name: 'user2', password: hash2 })
     await user2.save()
 
@@ -920,11 +920,11 @@ describe('System admin invitation test', () => {
   })
 
   test('send invitation error user not exist  /v1/system-admins/invitation/send', async () => {
-    const hash1 = crypto.createHash('md5').update('user1Password').digest('hex')
+    const hash1 = await bcrypt.hash('user1Password', 10)
     const user1 = new SystemAdminTestModel({ email: 'user1@gmail.com', name: 'user1', password: hash1 })
     await user1.save()
 
-    const hash2 = crypto.createHash('md5').update('user2Password').digest('hex')
+    const hash2 = await bcrypt.hash('user2Password', 10)
     const user2 = new SystemAdminTestModel({ email: 'user2@gmail.com', name: 'user2', password: hash2 })
     await user2.save()
 
@@ -936,11 +936,11 @@ describe('System admin invitation test', () => {
   })
 
   test('send invitation error user already verified', async () => {
-    const hash1 = crypto.createHash('md5').update('user1Password').digest('hex')
+    const hash1 = await bcrypt.hash('user1Password', 10)
     const user1 = new SystemAdminTestModel({ email: 'user1@gmail.com', name: 'user1', password: hash1 })
     await user1.save()
 
-    const hash2 = crypto.createHash('md5').update('user2Password').digest('hex')
+    const hash2 = await bcrypt.hash('user2Password', 10)
     const user2 = new SystemAdminTestModel({ email: 'user2@gmail.com', name: 'user2', password: hash2 })
     await user2.save()
 
@@ -952,11 +952,11 @@ describe('System admin invitation test', () => {
   })
 
   test('send invitation error unAuthorized header  /v1/system-admins/invitation/send', async () => {
-    const hash1 = crypto.createHash('md5').update('user1Password').digest('hex')
+    const hash1 = await bcrypt.hash('user1Password', 10)
     const user1 = new SystemAdminTestModel({ email: 'user1@gmail.com', name: 'user1', password: hash1 })
     await user1.save()
 
-    const hash2 = crypto.createHash('md5').update('user2Password').digest('hex')
+    const hash2 = await bcrypt.hash('user2Password', 10)
     const user2 = new SystemAdminTestModel({ email: 'user2@gmail.com', name: 'user2', password: hash2 })
     await user2.save()
 
@@ -972,11 +972,11 @@ describe('System admin invitation test', () => {
     const fetchSpy = vi.spyOn(global, 'fetch')
     fetchSpy.mockRejectedValue(new Error('test mock send email error'))
 
-    const hash1 = crypto.createHash('md5').update('user1Password').digest('hex')
+    const hash1 = await bcrypt.hash('user1Password', 10)
     const user1 = new SystemAdminTestModel({ email: 'user1@gmail.com', name: 'user1', password: hash1 })
     await user1.save()
 
-    const hash2 = crypto.createHash('md5').update('user2Password').digest('hex')
+    const hash2 = await bcrypt.hash('user2Password', 10)
     const user2 = new SystemAdminTestModel({ email: 'user2@gmail.com', name: 'user2', password: hash2 })
     await user2.save()
 
@@ -1001,7 +1001,7 @@ describe('System admin invitation test', () => {
   })
 
   test('success accept invitation  /v1/system-admins/invitation/accept', async () => {
-    const hash1 = crypto.createHash('md5').update('user1Password').digest('hex')
+    const hash1 = await bcrypt.hash('user1Password', 10)
     const user1 = new SystemAdminTestModel({ email: 'user1@gmail.com', name: 'user1', password: hash1 })
     await user1.save()
 
@@ -1018,11 +1018,11 @@ describe('System admin invitation test', () => {
   })
 
   test('send invitation error user exist  /v1/system-admins/invitation/accept', async () => {
-    const hash1 = crypto.createHash('md5').update('user1Password').digest('hex')
+    const hash1 = await bcrypt.hash('user1Password', 10)
     const user1 = new SystemAdminTestModel({ email: 'user1@gmail.com', name: 'user1', password: hash1 })
     await user1.save()
 
-    const hash2 = crypto.createHash('md5').update('user2Password').digest('hex')
+    const hash2 = await bcrypt.hash('user2Password', 10)
     const user2 = new SystemAdminTestModel({ email: 'user2@gmail.com', name: 'user2', password: hash2 })
     await user2.save()
 
@@ -1037,11 +1037,11 @@ describe('System admin invitation test', () => {
   })
 
   test('send invitation error unAuthorized header  /v1/system-admins/invitation/accept', async () => {
-    const hash1 = crypto.createHash('md5').update('user1Password').digest('hex')
+    const hash1 = await bcrypt.hash('user1Password', 10)
     const user1 = new SystemAdminTestModel({ email: 'user1@gmail.com', name: 'user1', password: hash1 })
     await user1.save()
 
-    const hash2 = crypto.createHash('md5').update('user2Password').digest('hex')
+    const hash2 = await bcrypt.hash('user2Password', 10)
     const user2 = new SystemAdminTestModel({ email: 'user2@gmail.com', name: 'user2', password: hash2 })
     await user2.save()
 
@@ -1055,7 +1055,7 @@ describe('System admin invitation test', () => {
   })
 
   test('success accept invitation  /v1/system-admins/invitation/accept', async () => {
-    const hash1 = crypto.createHash('md5').update('user1Password').digest('hex')
+    const hash1 = await bcrypt.hash('user1Password', 10)
     const user1 = new SystemAdminTestModel({ email: 'user1@gmail.com', name: 'user1', password: hash1 })
     await user1.save()
 
@@ -1072,7 +1072,7 @@ describe('System admin invitation test', () => {
   })
 
   test('accept invitation user email does not exist /v1/system-admins/invitation/accept', async () => {
-    const hash1 = crypto.createHash('md5').update('user1Password').digest('hex')
+    const hash1 = await bcrypt.hash('user1Password', 10)
     const user1 = new SystemAdminTestModel({ email: 'user1@gmail.com', name: 'user1', password: hash1 })
     await user1.save()
 
