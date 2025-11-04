@@ -52,7 +52,7 @@ if (process.env.MICROSOFT_CLIENT_ID && process.env.MICROSOFT_CLIENT_SECRET) {
 }
 
 export default ({
-  apiServer, UserModel, AccountModel, SystemAdminModel, hooks =
+  apiServer, UserModel, AccountModel, SystemAdminModel, ProjectModel, hooks =
   {
     checkEmail: async (params) => {},
     deleteAccount: { post: (params) => { } },
@@ -62,9 +62,9 @@ export default ({
   }
 }) => {
   systemAdmins({ apiServer, SystemAdminModel })
-  users({ apiServer, UserModel, AccountModel, hooks })
+  users({ apiServer, UserModel, AccountModel, ProjectModel, hooks })
   login({ apiServer, UserModel, AccountModel, SystemAdminModel })
-  invitation({ apiServer, UserModel, AccountModel, SystemAdminModel, hooks })
+  invitation({ apiServer, UserModel, AccountModel, ProjectModel, SystemAdminModel, hooks })
   forgotPassword({ apiServer, UserModel, AccountModel, SystemAdminModel })
   account({ apiServer, UserModel, AccountModel, hooks })
   systemStats({ apiServer, UserModel, AccountModel })

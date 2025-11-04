@@ -794,7 +794,7 @@ describe('users test', () => {
     const user1 = new UserTestModel({ email: 'user1@gmail.com', name: 'user1', password: hash1, accountId: account1._id })
     await user1.save()
 
-    const token = jwt.sign({ type: 'user' }, secrets[0])
+    const token = jwt.sign({ type: 'user', role: 'user' }, secrets[0])
 
     const res = await request(app)
       .get('/v1/accounts/' + account1._id + '/users')
@@ -823,7 +823,7 @@ describe('users test', () => {
   })
 
   test('get all account users account not found  /v1/accounts/:accountId/users', async () => {
-    const token = jwt.sign({ type: 'user' }, secrets[0])
+    const token = jwt.sign({ type: 'user', role: 'user' }, secrets[0])
     const id = new mongoose.Types.ObjectId()
     const res = await request(app)
       .get('/v1/accounts/' + id + '/users')
@@ -859,7 +859,7 @@ describe('users test', () => {
     const user1 = new UserTestModel({ email: 'user1@gmail.com', name: 'user1', password: hash1, accountId: account1._id })
     await user1.save()
 
-    const token = jwt.sign({ type: 'user' }, secrets[0])
+    const token = jwt.sign({ type: 'user', role: 'user' }, secrets[0])
 
     const res = await request(app)
       .post('/v1/accounts/' + account1._id + '/users')
@@ -913,7 +913,7 @@ describe('users test', () => {
     const user1 = new UserTestModel({ email: 'user1@gmail.com', name: 'user1', password: hash1, accountId: account1._id })
     await user1.save()
 
-    const token = jwt.sign({ type: 'user' }, secrets[0])
+    const token = jwt.sign({ type: 'user', role: 'user' }, secrets[0])
     const id = new mongoose.Types.ObjectId()
     const res = await request(app)
       .post('/v1/accounts/' + id + '/users')
