@@ -67,9 +67,9 @@ export default ({
     }
     if (isClient) {
       payload.project = {
-        _id: newUser.result.projectId,
-        permission: newUser.result.permission
+        _id: newUser.result.projectId
       }
+      payload.permission = newUser.result.permission
     }
     const token = jwt.sign(payload, secrets[0], { expiresIn: '7d' })
     let inviterData
@@ -183,9 +183,9 @@ export default ({
     }
     if (isClient) {
       payload.project = {
-        _id: getUser.result.items[0].projectId,
-        permission: getUser.result.items[0].permission
+        _id: getUser.result.items[0].projectId
       }
+      payload.permission = getUser.result.items[0].permission
     }
     let inviterData
     if (tokenData.type === 'user') {
@@ -273,7 +273,7 @@ export default ({
       throw new ValidationError("Validation error passwords didn't match ")
     }
     const hash = await bcrypt.hash(req.body.newPassword, 10)
-    const updatedUser = await patchOne(UserModel, { id: data.user._id }, { password: hash, name: req.body.name })
+    const updatedUser = await patchOne(UserModel, { id: data.user._id }, { password: hash, name: req.body.name, verified: true })
     if (updatedUser.result.role !== 'client') {
       hooks.createNewUser.post({ accountId: req.params.id, name: updatedUser.result.name, email: updatedUser.result.email })
     }
@@ -289,9 +289,9 @@ export default ({
     }
     if (updatedUser.result.role === 'client') {
       payload.project = {
-        _id: updatedUser.result.projectId,
-        permission: updatedUser.result.permission
+        _id: updatedUser.result.projectId
       }
+      payload.permission = updatedUser.result.permission
     }
     const token = jwt.sign(payload, secrets[0], { expiresIn: '24h' })
     return {

@@ -308,7 +308,7 @@ export default ({
         }
       }
       const token = jwt.sign(payload, secrets[0], { expiresIn: '24h' })
-      await sendRegistration(findUser.result.items[0].email, token)
+      await sendRegistration(findUser.result.items[0].email, process.env.BLUEFOX_TEMPLATE_ID_ACCOUNT_FINALIZE_REGISTRATION, token)
       throw new MethodNotAllowedError('Please verify your email')
     }
     const payload = {
