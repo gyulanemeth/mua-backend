@@ -64,10 +64,10 @@ export default async ({
       role: user.result.role
     }
     if (user.result.role === 'client') {
-      payload.project = {
-        _id: user.result.projectId
-      }
-      payload.permission = user.result.permission
+      payload.projectsAccess = {}
+      user.result.projectsAccess.foreach(ele => {
+        payload.projectsAccess[ele.projectId] = ele.permission
+      })
     }
     const token = jwt.sign(payload, secrets[0], { expiresIn: '24h' })
     return {
@@ -98,10 +98,10 @@ export default async ({
         }
       }
       if (getUser.result.role === 'client') {
-        payload.project = {
-          _id: getUser.result.projectId
-        }
-        payload.permission = getUser.result.permission
+        payload.projectsAccess = {}
+        getUser.result.projectsAccess.foreach(ele => {
+          payload.projectsAccess[ele.projectId] = ele.permission
+        })
       }
       const token = jwt.sign(payload, secrets[0], { expiresIn: '24h' })
       const mail = await sendUserEmail(getUser.result.email, process.env.BLUEFOX_TEMPLATE_ID_ACCOUNT_CREATE_PASSWORD, { link: `${process.env.APP_URL}accounts/create-password?token=${token}`, name: getUser.result.name, accountName: getAccount.result.name, account: { name: getAccount.result.name, urlFriendlyName: getAccount.result.urlFriendlyName, logo: getAccount.result.logo, url: `${process.env.APP_URL}accounts/${getAccount.result.urlFriendlyName}` }, user: { name: getUser.result.name, email: getUser.result.email, profilePicture: getUser.result.profilePicture } })
@@ -159,10 +159,10 @@ export default async ({
       }
     }
     if (response.result.role === 'client') {
-      payload.project = {
-        _id: response.result.projectId
-      }
-      payload.permission = response.result.permission
+      payload.projectsAccess = {}
+      response.result.projectsAccess.foreach(ele => {
+        payload.projectsAccess[ele.projectId] = ele.permission
+      })
     }
     const token = jwt.sign(payload, secrets[0], { expiresIn: '24h' })
     const mail = await sendUserEmail(req.body.newEmail, process.env.BLUEFOX_TEMPLATE_ID_ACCOUNT_VERIFY_EMAIL, { link: `${process.env.APP_URL}accounts/verify-email?token=${token}`, name: response.result.name, user: { name: response.result.name, email: response.result.email, profilePicture: response.result.profilePicture } })
@@ -193,10 +193,10 @@ export default async ({
       role: user.result.role
     }
     if (user.result.role === 'client') {
-      payload.project = {
-        _id: user.result.projectId
-      }
-      payload.permission = user.result.permission
+      payload.projectsAccess = {}
+      user.result.projectsAccess.foreach(ele => {
+        payload.projectsAccess[ele.projectId] = ele.permission
+      })
     }
     const token = jwt.sign(payload, secrets[0], { expiresIn: '24h' })
 
@@ -263,10 +263,10 @@ export default async ({
       role: findUser.result.role
     }
     if (findUser.result.role === 'client') {
-      payload.project = {
-        _id: findUser.result.projectId
-      }
-      payload.permission = findUser.result.permission
+      payload.projectsAccess = {}
+      findUser.result.projectsAccess.foreach(ele => {
+        payload.projectsAccess[ele.projectId] = ele.permission
+      })
     }
     const token = jwt.sign(payload, secrets[0], { expiresIn: '24h' })
 
@@ -292,10 +292,10 @@ export default async ({
       }
     }
     if (user.result.role === 'client') {
-      payload.project = {
-        _id: user.result.projectId
-      }
-      payload.permission = user.result.permission
+      payload.projectsAccess = {}
+      user.result.projectsAccess.foreach(ele => {
+        payload.projectsAccess[ele.projectId] = ele.permission
+      })
     }
     const token = jwt.sign(payload, secrets[0], { expiresIn: '24h' })
     return {
@@ -326,16 +326,7 @@ export default async ({
     allowAccessTo(req, secrets, [{ type: 'admin' }, { type: 'user', role: 'user' }, { type: 'user', role: 'admin' }])
     await readOne(AccountModel, { id: req.params.accountId }, req.query)
     const isClient = req.body.role === 'cilent'
-    let project
-    const userParams = {
-      email: req.body.email,
-      accountId: req.params.accountId
-    }
-    if (isClient) {
-      project = await readOne(ProjectModel, { id: req.body.projectId })
-      userParams.projectId = project.result._id
-    }
-    const checkUser = await list(UserModel, userParams, { select: { password: 0, googleProfileId: 0, microsoftProfileId: 0, githubProfileId: 0 } })
+    const checkUser = await list(UserModel, { email: req.body.email, accountId: req.params.accountId }, { select: { password: 0, googleProfileId: 0, microsoftProfileId: 0, githubProfileId: 0 } })
     if (checkUser.result.count !== 0) {
       throw new MethodNotAllowedError('User exist')
     }
@@ -406,10 +397,10 @@ export default async ({
       }
     }
     if (getUser.result.role === 'client') {
-      payload.project = {
-        _id: getUser.result.projectId
-      }
-      payload.permission = getUser.result.permission
+      payload.projectsAccess = {}
+      getUser.result.projectsAccess.foreach(ele => {
+        payload.projectsAccess[ele.projectId] = ele.permission
+      })
     }
     const token = jwt.sign(payload, secrets[0], { expiresIn: '24h' })
     const mail = await sendUserEmail(getUser.result.email, process.env.BLUEFOX_TEMPLATE_ID_ACCOUNT_FINALIZE_REGISTRATION, { link: `${process.env.APP_URL}accounts/finalize-registration?token=${token}` })

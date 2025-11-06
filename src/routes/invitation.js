@@ -39,16 +39,7 @@ export default ({
     const tokenData = await allowAccessTo(req, secrets, [{ type: 'admin' }, { type: 'user', role: 'admin' }])
     const checkAccount = await readOne(AccountModel, { id: req.params.id }, req.query)
     const isClient = req.body.role === 'cilent'
-    let project
-    const userParams = {
-      email: req.body.email,
-      accountId: req.params.id
-    }
-    if (isClient) {
-      project = await readOne(ProjectModel, { id: req.body.projectId })
-      userParams.projectId = project.result._id
-    }
-    const checkUser = await list(UserModel, userParams, req.query)
+    const checkUser = await list(UserModel, { email: req.body.email, accountId: req.params.id }, req.query)
     if (checkUser.result.count !== 0) {
       throw new MethodNotAllowedError('User exist')
     }
@@ -66,10 +57,10 @@ export default ({
       }
     }
     if (isClient) {
-      payload.project = {
-        _id: newUser.result.projectId
-      }
-      payload.permission = newUser.result.permission
+      payload.projectsAccess = {}
+      newUser.result.projectsAccess.foreach(ele => {
+        payload.projectsAccess[ele.projectId] = ele.permission
+      })
     }
     const token = jwt.sign(payload, secrets[0], { expiresIn: '7d' })
     let inviterData
@@ -92,12 +83,6 @@ export default ({
           urlFriendlyName: checkAccount.result.urlFriendlyName,
           logo: checkAccount.result.logo,
           url: `${process.env.APP_URL}accounts/${checkAccount.result.urlFriendlyName}`
-        }
-      }
-      if (isClient) {
-        emailData.project = {
-          name: project.result.name,
-          permission: newUser.result.permission
         }
       }
       mail = await sendInvitation(newUser.result.email, process.env.BLUEFOX_TEMPLATE_ID_ACCOUNT_INVITATION, emailData)
@@ -152,16 +137,7 @@ export default ({
     const tokenData = await allowAccessTo(req, secrets, [{ type: 'admin' }, { type: 'user', role: 'admin' }])
     const getAccount = await readOne(AccountModel, { id: req.params.id }, req.query)
     const isClient = req.body.role === 'cilent'
-    let project
-    const userParams = {
-      email: req.body.email,
-      accountId: req.params.id
-    }
-    if (isClient) {
-      project = await readOne(ProjectModel, { id: req.body.projectId })
-      userParams.projectId = project.result._id
-    }
-    const getUser = await list(UserModel, userParams, req.query)
+    const getUser = await list(UserModel, { email: req.body.email, accountId: req.params.id }, req.query)
     if (getUser.result.count === 0) {
       throw new MethodNotAllowedError("User dosen't exist")
     }
@@ -182,10 +158,10 @@ export default ({
       }
     }
     if (isClient) {
-      payload.project = {
-        _id: getUser.result.items[0].projectId
-      }
-      payload.permission = getUser.result.items[0].permission
+      payload.projectsAccess = {}
+      getUser.result.items[0].projectsAccess.foreach(ele => {
+        payload.projectsAccess[ele.projectId] = ele.permission
+      })
     }
     let inviterData
     if (tokenData.type === 'user') {
@@ -206,12 +182,6 @@ export default ({
         urlFriendlyName: getAccount.result.urlFriendlyName,
         logo: getAccount.result.logo,
         url: `${process.env.APP_URL}accounts/${getAccount.result.urlFriendlyName}`
-      }
-    }
-    if (isClient) {
-      emailData.project = {
-        name: project.result.name,
-        permission: getUser.result.items[0].permission
       }
     }
     const mail = await sendInvitation(getUser.result.items[0].email, process.env.BLUEFOX_TEMPLATE_ID_ACCOUNT_INVITATION, emailData)
@@ -255,17 +225,7 @@ export default ({
 
   apiServer.post('/v1/accounts/:id/invitation/accept', async req => {
     const data = await allowAccessTo(req, secrets, [{ type: 'invitation', account: { _id: req.params.id } }])
-    const userParams = {
-      id: data.user._id,
-      email: data.user.email,
-      accountId: req.params.id
-    }
-    if (data.project?._id) {
-      userParams.projectId = data.project.projectId
-      userParams.permission = data.project.permission
-    }
-    const user = await readOne(UserModel, userParams, req.query)
-
+    const user = await readOne(UserModel, { id: data.user._id, email: data.user.email, accountId: req.params.id }, req.query)
     if (user.result.password || user.result.googleProfileId || user.result.microsoftProfileId || user.result.githubProfileId) { // check if user accepted the invitation before and completed the necessary data.
       throw new MethodNotAllowedError('Token already used, user exists')
     }
@@ -288,10 +248,10 @@ export default ({
       }
     }
     if (updatedUser.result.role === 'client') {
-      payload.project = {
-        _id: updatedUser.result.projectId
-      }
-      payload.permission = updatedUser.result.permission
+      payload.projectsAccess = {}
+      updatedUser.result.projectsAccess.foreach(ele => {
+        payload.projectsAccess[ele.projectId] = ele.permission
+      })
     }
     const token = jwt.sign(payload, secrets[0], { expiresIn: '24h' })
     return {

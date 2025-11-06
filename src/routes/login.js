@@ -55,7 +55,7 @@ export default ({
     return res
   }
 
-  async function providerLoginCallback(provider, user, data) {
+  async function providerLoginCallback (provider, user, data) {
     const userParams = {
       email: user.email,
       accountId: data.account._id
@@ -92,7 +92,7 @@ export default ({
     }
   }
 
-  async function providerLoginAdminCallback(user) {
+  async function providerLoginAdminCallback (user) {
     const userParams = {
       email: user.email
     }
@@ -115,7 +115,7 @@ export default ({
     }
   }
 
-  async function providerLinkCallback(provider, user, data) {
+  async function providerLinkCallback (provider, user, data) {
     const userBody = {}
     switch (provider) {
       case 'google':
@@ -136,7 +136,7 @@ export default ({
     }
   }
 
-  async function providerLinkAdminCallback(admin, data) {
+  async function providerLinkAdminCallback (admin, data) {
     const adminBody = {}
     adminBody.googleProfileId = admin.id
     try {
@@ -147,7 +147,7 @@ export default ({
     }
   }
 
-  async function providerCreateCallback(provider, user, data) {
+  async function providerCreateCallback (provider, user, data) {
     let payload = {}
     try {
       if (data.user && data.account) {
@@ -186,7 +186,7 @@ export default ({
     }
   }
 
-  async function providerCallback(req, provider) {
+  async function providerCallback (req, provider) {
     let redirect
     try {
       await new Promise((resolve) => {
@@ -214,7 +214,7 @@ export default ({
     }
   }
 
-  async function providerAdminCallback(req, provider) {
+  async function providerAdminCallback (req, provider) {
     let redirect
     try {
       await new Promise((resolve) => {
@@ -308,10 +308,10 @@ export default ({
         }
       }
       if (findUser.result.items[0].role === 'client') {
-        payload.project = {
-          _id: findUser.result.items[0].projectId
-        }
-        payload.permission = findUser.result.items[0].permission
+        payload.projectsAccess = {}
+        findUser.result.items[0].projectsAccess.foreach(ele => {
+          payload.projectsAccess[ele.projectId] = ele.permission
+        })
       }
       const token = jwt.sign(payload, secrets[0], { expiresIn: '24h' })
       await sendRegistration(findUser.result.items[0].email, process.env.BLUEFOX_TEMPLATE_ID_ACCOUNT_FINALIZE_REGISTRATION, token)
@@ -326,6 +326,12 @@ export default ({
       account: {
         _id: getAccount.result.items[0]._id
       }
+    }
+    if (findUser.result.items[0].role === 'client') {
+      payload.projectsAccess = {}
+      findUser.result.items[0].projectsAccess.foreach(ele => {
+        payload.projectsAccess[ele.projectId] = ele.permission
+      })
     }
     const token = jwt.sign(payload, secrets[0], { expiresIn: '24h' })
     return {
