@@ -65,7 +65,7 @@ export default async ({
     }
     if (user.result.role === 'client') {
       payload.projectsAccess = {}
-      user.result.projectsAccess.foreach(ele => {
+      user.result.projectsAccess.forEach(ele => {
         payload.projectsAccess[ele.projectId] = ele.permission
       })
     }
@@ -99,7 +99,7 @@ export default async ({
       }
       if (getUser.result.role === 'client') {
         payload.projectsAccess = {}
-        getUser.result.projectsAccess.foreach(ele => {
+        getUser.result.projectsAccess.forEach(ele => {
           payload.projectsAccess[ele.projectId] = ele.permission
         })
       }
@@ -160,7 +160,7 @@ export default async ({
     }
     if (response.result.role === 'client') {
       payload.projectsAccess = {}
-      response.result.projectsAccess.foreach(ele => {
+      response.result.projectsAccess.forEach(ele => {
         payload.projectsAccess[ele.projectId] = ele.permission
       })
     }
@@ -194,7 +194,7 @@ export default async ({
     }
     if (user.result.role === 'client') {
       payload.projectsAccess = {}
-      user.result.projectsAccess.foreach(ele => {
+      user.result.projectsAccess.forEach(ele => {
         payload.projectsAccess[ele.projectId] = ele.permission
       })
     }
@@ -264,7 +264,7 @@ export default async ({
     }
     if (findUser.result.role === 'client') {
       payload.projectsAccess = {}
-      findUser.result.projectsAccess.foreach(ele => {
+      findUser.result.projectsAccess.forEach(ele => {
         payload.projectsAccess[ele.projectId] = ele.permission
       })
     }
@@ -293,7 +293,7 @@ export default async ({
     }
     if (user.result.role === 'client') {
       payload.projectsAccess = {}
-      user.result.projectsAccess.foreach(ele => {
+      user.result.projectsAccess.forEach(ele => {
         payload.projectsAccess[ele.projectId] = ele.permission
       })
     }
@@ -398,7 +398,7 @@ export default async ({
     }
     if (getUser.result.role === 'client') {
       payload.projectsAccess = {}
-      getUser.result.projectsAccess.foreach(ele => {
+      getUser.result.projectsAccess.forEach(ele => {
         payload.projectsAccess[ele.projectId] = ele.permission
       })
     }

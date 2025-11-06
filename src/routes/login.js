@@ -309,7 +309,7 @@ export default ({
       }
       if (findUser.result.items[0].role === 'client') {
         payload.projectsAccess = {}
-        findUser.result.items[0].projectsAccess.foreach(ele => {
+        findUser.result.items[0].projectsAccess.forEach(ele => {
           payload.projectsAccess[ele.projectId] = ele.permission
         })
       }
@@ -329,7 +329,7 @@ export default ({
     }
     if (findUser.result.items[0].role === 'client') {
       payload.projectsAccess = {}
-      findUser.result.items[0].projectsAccess.foreach(ele => {
+      findUser.result.items[0].projectsAccess.forEach(ele => {
         payload.projectsAccess[ele.projectId] = ele.permission
       })
     }
