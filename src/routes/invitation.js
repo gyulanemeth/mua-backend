@@ -38,7 +38,7 @@ export default ({
   apiServer.post('/v1/accounts/:id/invitation/send', async req => {
     const tokenData = await allowAccessTo(req, secrets, [{ type: 'admin' }, { type: 'user', role: 'admin' }])
     const checkAccount = await readOne(AccountModel, { id: req.params.id }, req.query)
-    const isClient = req.body.role === 'cilent'
+    const isClient = req.body.role === 'client'
     const checkUser = await list(UserModel, { email: req.body.email, accountId: req.params.id }, req.query)
     if (checkUser.result.count !== 0) {
       throw new MethodNotAllowedError('User exist')
@@ -136,7 +136,6 @@ export default ({
   apiServer.post('/v1/accounts/:id/invitation/resend', async req => {
     const tokenData = await allowAccessTo(req, secrets, [{ type: 'admin' }, { type: 'user', role: 'admin' }])
     const getAccount = await readOne(AccountModel, { id: req.params.id }, req.query)
-    const isClient = req.body.role === 'cilent'
     const getUser = await list(UserModel, { email: req.body.email, accountId: req.params.id }, req.query)
     if (getUser.result.count === 0) {
       throw new MethodNotAllowedError("User dosen't exist")
@@ -157,7 +156,7 @@ export default ({
         urlFriendlyName: getAccount.result.urlFriendlyName
       }
     }
-    if (isClient) {
+    if (getUser.result.items[0].role === 'client') {
       payload.projectsAccess = {}
       getUser.result.items[0].projectsAccess.forEach(ele => {
         payload.projectsAccess[ele.projectId] = ele.permission

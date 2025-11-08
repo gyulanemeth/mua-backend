@@ -325,7 +325,7 @@ export default async ({
   apiServer.post('/v1/accounts/:accountId/users', async req => {
     allowAccessTo(req, secrets, [{ type: 'admin' }, { type: 'user', role: 'user' }, { type: 'user', role: 'admin' }])
     await readOne(AccountModel, { id: req.params.accountId }, req.query)
-    const isClient = req.body.role === 'cilent'
+    const isClient = req.body.role === 'client'
     const checkUser = await list(UserModel, { email: req.body.email, accountId: req.params.accountId }, { select: { password: 0, googleProfileId: 0, microsoftProfileId: 0, githubProfileId: 0 } })
     if (checkUser.result.count !== 0) {
       throw new MethodNotAllowedError('User exist')
