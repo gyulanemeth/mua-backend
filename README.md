@@ -47,6 +47,11 @@ export default mongoose.model('Account', AccountSchema)
 
 ```javascript
 
+const UserProjectAccessSchema = new mongoose.Schema({
+  projectId: { type: mongoose.Schema.Types.ObjectId, ref: 'Project', required: true },
+  permission: { type: String, enum: ['viewer', 'editor'], required: true }
+}, { _id: false })
+
 const UserSchema = new mongoose.Schema({
   name: { type: String },
   email: { type: String, lowercase: true, required: true, match: /.+[\\@].+\..+/ },
@@ -54,7 +59,8 @@ const UserSchema = new mongoose.Schema({
   googleProfileId: { type: String },
   microsoftProfileId: { type: String },
   githubProfileId: { type: String },
-  role: { type: String, default: 'user', enum: ['user', 'admin'] },
+  role: { type: String, default: 'user', enum: ['user', 'admin', 'client'] },
+  projectsAccess: { type: [UserProjectAccessSchema], default: [] },
   accountId: { type: Schema.Types.ObjectId, ref: 'Account', required: true },
   profilePicture: { type: String },
   verified: { type: Boolean, default: false },
@@ -62,6 +68,19 @@ const UserSchema = new mongoose.Schema({
 }, { timestamps: true })
 
 export default mongoose.model('User', UserSchema)
+
+```
+
+- **ProjectModel**: The model for client users project access permission level.
+
+```javascript
+
+const ProjectSchema = new mongoose.Schema({
+  name: { type: String },
+  accountId: { type: Schema.Types.ObjectId, ref: 'Account', required: true }
+}, { timestamps: true })
+
+export default mongoose.model('Project', ProjectSchema)
 
 ```
 - **SystemAdminModel**: The model for managing system administrators.
@@ -87,12 +106,14 @@ import MuaBackend from'mua-backend'
 import AccountModel from'./models/account' 
 import UserModel from'./models/user'
 import SystemAdminModel from'./models/systemAdmin' 
+import ProjectModel from'./models/project' 
 
 MuaBackend({  
   apiServer,  
   AccountModel,
   UserModel,
   SystemAdminModel,
+  ProjectModel
   hooks: {} // optional  
 })
 
@@ -154,6 +175,7 @@ MuaBackend({
   AccountModel,
   UserModel,
   SystemAdminModel,
+  ProjectModel,
   hooks: {
     checkEmail: async (params) => {
       // Custom logic for checking email before creating or patching user or system admin (if you want to prevent spicific email you can throw error insde here for example disposable email and this will prevent the creation / update of the user email)
@@ -227,7 +249,8 @@ Developers using mua can rely on the seamless integration with the mua-frontend,
 | Route                                                       | Method  | Description                                           |
 |-------------------------------------------------------------|---------|-------------------------------------------------------|
 | `/v1/accounts/:accountId/users`                             | POST    | Create a new user in account.                         |
-| `/v1/accounts/:accountId/users/:id/profile-picture`         | POST    | Upload user profile picture.                         |
+| `/v1/accounts/:accountId/users/:id/profile-picture`         | POST    | Upload user profile picture.                          |
+| `/v1/accounts/:accountId/projects-for-access`               | GET     | Retrieve all account projects.                        |
 | `/v1/accounts/:accountId/users`                             | GET     | Retrieve all users in account.                        |
 | `/v1/accounts/:accountId/users/:id`                         | GET     | Retrieve user by ID in account.                       |
 | `/v1/accounts/:accountId/users/:id/name`                    | PATCH   | Update user name in account.                          |
@@ -235,7 +258,7 @@ Developers using mua can rely on the seamless integration with the mua-frontend,
 | `/v1/accounts/:accountId/users/:id/email`                   | PATCH   | Update user email.                                    |
 | `/v1/accounts/:accountId/users/:id/create-password`         | PATCH   | Create password for user.                             |
 | `/v1/accounts/:accountId/users/:id/email-confirm`           | PATCH   | Confirm user email.                                   |
-| `/v1/accounts/:accountId/users/:id/profile-picture`         | DELETE  | Delete user profile picture.                         |
+| `/v1/accounts/:accountId/users/:id/profile-picture`         | DELETE  | Delete user profile picture.                          |
 | `/v1/accounts/:accountId/users/:id`                         | DELETE  | Delete a user in account.                             |
 
 ### Auth routes
