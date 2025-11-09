@@ -164,10 +164,10 @@ describe('Accounts invitation test', () => {
       .post('/v1/accounts/' + account1._id + '/invitation/send').set('authorization', 'Bearer ' + token).send({
         email: 'user3@gmail.com',
         role: 'client',
-        projectsAccess: {
+        projectsAccess: [{
           projectId: mongoose.Types.ObjectId(),
           permission: 'editor'
-        }
+        }]
       })
 
     expect(res.body.status).toBe(201)
@@ -246,10 +246,10 @@ describe('Accounts invitation test', () => {
       email: 'user1@gmail.com',
       accountId: account1._id,
       role: 'client',
-      projectsAccess: {
+      projectsAccess: [{
         projectId: mongoose.Types.ObjectId(),
         permission: 'editor'
-      }
+      }]
     })
     await user1.save()
 
@@ -491,10 +491,10 @@ describe('Accounts invitation test', () => {
       email: 'user2@gmail.com',
       accountId: account1._id,
       role: 'client',
-      projectsAccess: {
+      projectsAccess: [{
         projectId: mongoose.Types.ObjectId(),
         permission: 'editor'
-      }
+      }]
     })
     await user2.save()
 

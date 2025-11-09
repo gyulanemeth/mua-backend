@@ -19,17 +19,28 @@ const mongooseMemoryServer = createMongooseMemoryServer(mongoose)
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 
+const ProjectTestModel = mongoose.model('ProjectTest', new mongoose.Schema({
+  accountId: { type: mongoose.Schema.Types.ObjectId, ref: 'Account', required: true },
+  name: { type: String }
+}, { timestamps: true }))
+
 const AccountTestModel = mongoose.model('AccountTest', new mongoose.Schema({
   name: { type: String },
   urlFriendlyName: { type: String, unique: true },
   logo: { type: String }
 }, { timestamps: true }))
 
+const UserProjectAccessSchema = new mongoose.Schema({
+  projectId: { type: mongoose.Schema.Types.ObjectId, ref: 'Project', required: true },
+  permission: { type: String, enum: ['viewer', 'editor'], required: true }
+}, { _id: false })
+
 const UserTestModel = mongoose.model('UserTest', new mongoose.Schema({
   name: { type: String },
   email: { type: String, lowercase: true, required: true, match: /.+[\\@].+\..+/ },
   password: { type: String },
-  role: { type: String, default: 'user', enum: ['user', 'admin'] },
+  role: { type: String, default: 'user', enum: ['user', 'admin', 'client'] },
+  projectsAccess: { type: [UserProjectAccessSchema], default: [] },
   accountId: { type: mongoose.Schema.Types.ObjectId, ref: 'Account', required: true },
   profilePicture: { type: String },
   googleProfileId: { type: String },
@@ -86,8 +97,8 @@ describe('users test', () => {
           message: e.message
         }
       }
-    }, () => {})
-    users({ apiServer: app, UserModel: UserTestModel, AccountModel: AccountTestModel })
+    }, () => { })
+    users({ apiServer: app, UserModel: UserTestModel, AccountModel: AccountTestModel, ProjectModel: ProjectTestModel })
     app = app._expressServer
 
     s3 = await aws()
@@ -141,6 +152,39 @@ describe('users test', () => {
 
     const hash1 = await bcrypt.hash('user1Password', 10)
     const user1 = new UserTestModel({ email: 'user1@gmail.com', name: 'user1', password: hash1, accountId: account1._id })
+    await user1.save()
+
+    const res = await request(app)
+      .post('/v1/accounts/' + account1._id + '/users/' + user1._id + '/resend-finalize-registration')
+      .send()
+
+    expect(res.body.status).toBe(200)
+    await fetchSpy.mockRestore()
+  })
+
+  test('success resend finalize user client  /v1/accounts/:accoutId/users/:userId/resend-finalize-registration', async () => {
+    const fetchSpy = vi.spyOn(global, 'fetch')
+    fetchSpy.mockResolvedValue({
+      ok: true,
+      headers: { get: () => 'application/json' },
+      json: () => Promise.resolve({ result: { success: true }, status: 200 })
+    })
+
+    const account1 = new AccountTestModel({ name: 'accountExample1', urlFriendlyName: 'urlFriendlyNameExample1' })
+    await account1.save()
+
+    const hash1 = await bcrypt.hash('user1Password', 10)
+    const user1 = new UserTestModel({
+      email: 'user1@gmail.com',
+      name: 'user1',
+      password: hash1,
+      accountId: account1._id,
+      role: 'client',
+      projectsAccess: [{
+        projectId: mongoose.Types.ObjectId(),
+        permission: 'editor'
+      }]
+    })
     await user1.save()
 
     const res = await request(app)
@@ -262,6 +306,40 @@ describe('users test', () => {
       .send({ oldPassword: 'user1Password', newPassword: 'updatePassword', newPasswordAgain: 'updatePassword' })
 
     expect(res.body.status).toBe(200)
+  })
+
+  test('success send create password email user client /v1/accounts/:accountId/users/:id/password', async () => {
+    const fetchSpy = vi.spyOn(global, 'fetch')
+    fetchSpy.mockResolvedValue({
+      ok: true,
+      headers: { get: () => 'application/json' },
+      json: () => Promise.resolve({ result: { success: true }, status: 200 })
+    })
+
+    const account1 = new AccountTestModel({ name: 'accountExample1', urlFriendlyName: 'urlFriendlyNameExample1' })
+    await account1.save()
+
+    const user1 = new UserTestModel({
+      email: 'user1@gmail.com',
+      name: 'user1',
+      googleProfileId: 'googleProfileId',
+      accountId: account1._id,
+      role: 'client',
+      projectsAccess: [{
+        projectId: mongoose.Types.ObjectId(),
+        permission: 'editor'
+      }]
+    })
+    await user1.save()
+
+    const token = jwt.sign({ type: 'user', account: { _id: account1._id }, user: { _id: user1._id } }, secrets[0])
+    const res = await request(app)
+      .patch('/v1/accounts/' + account1._id + '/users/' + user1._id + '/password')
+      .set('authorization', 'Bearer ' + token)
+      .send({ newPassword: 'newPassword', newPasswordAgain: 'newPassword' })
+
+    expect(res.body.result.success).toBe(true)
+    await fetchSpy.mockRestore()
   })
 
   test('success send create password email user /v1/accounts/:accountId/users/:id/password', async () => {
@@ -655,6 +733,34 @@ describe('users test', () => {
     expect(res.body.status).toBe(200)
   })
 
+  test('success get user access token client  /v1/accounts/:accountId/users/:id/access-token ', async () => {
+    const account1 = new AccountTestModel({ name: 'accountExample1', urlFriendlyName: 'urlFriendlyNameExample1' })
+    await account1.save()
+
+    const hash1 = await bcrypt.hash('user1Password', 10)
+    const user1 = new UserTestModel({
+      email: 'user1@gmail.com',
+      name: 'user1',
+      password: hash1,
+      accountId: account1._id,
+      role: 'client',
+      projectsAccess: [{
+        projectId: mongoose.Types.ObjectId(),
+        permission: 'editor'
+      }]
+    })
+    await user1.save()
+
+    const token = jwt.sign({ type: 'login', user: { _id: user1._id }, account: { _id: account1._id } }, secrets[0])
+
+    const res = await request(app)
+      .get('/v1/accounts/' + account1._id + '/users/' + user1._id + '/access-token')
+      .set('authorization', 'Bearer ' + token)
+      .send()
+
+    expect(res.body.status).toBe(200)
+  })
+
   test('success get user access token with user same user   /v1/accounts/:accountId/users/:id/access-token ', async () => {
     const account1 = new AccountTestModel({ name: 'accountExample1', urlFriendlyName: 'urlFriendlyNameExample1' })
     await account1.save()
@@ -729,6 +835,28 @@ describe('users test', () => {
       .send()
 
     expect(res.body.status).toBe(403)
+  })
+
+  test('get projects-for-access   /v1/accounts/:accountId/projects-for-access', async () => {
+    const account1 = new AccountTestModel({ name: 'accountExample1', urlFriendlyName: 'urlFriendlyNameExample1' })
+    await account1.save()
+
+    const hash1 = await bcrypt.hash('user1Password', 10)
+    const user1 = new UserTestModel({ email: 'user1@gmail.com', name: 'user1', role: 'user', password: hash1, accountId: account1._id })
+    await user1.save()
+
+    const hash2 = await bcrypt.hash('user1Password', 10)
+    const user2 = new UserTestModel({ email: 'user2@gmail.com', name: 'user2', role: 'user', password: hash2, accountId: account1._id })
+    await user2.save()
+
+    const token = jwt.sign({ type: 'admin' }, secrets[0])
+
+    const res = await request(app)
+      .get('/v1/accounts/' + account1._id + '/projects-for-access')
+      .set('authorization', 'Bearer ' + token)
+      .send()
+
+    expect(res.body.status).toBe(200)
   })
 
   test('post user finalize-registration for undefined account   /v1/accounts/:accountId/users/:id/finalize-registration ', async () => {
@@ -1038,6 +1166,45 @@ describe('users test', () => {
     await fetchSpy.mockRestore()
   })
 
+  test('success patch email req send client  /v1/accounts/:accountId/users/:id/email', async () => {
+    const fetchSpy = vi.spyOn(global, 'fetch')
+    fetchSpy.mockResolvedValue({
+      ok: true,
+      headers: { get: () => 'application/json' },
+      json: () => Promise.resolve({ result: { success: true }, status: 200 })
+    })
+
+    const account1 = new AccountTestModel({ name: 'accountExample1', urlFriendlyName: 'urlFriendlyNameExample1' })
+    await account1.save()
+
+    const hash1 = await bcrypt.hash('user1Password', 10)
+    const user1 = new UserTestModel({
+      email: 'user1@gmail.com',
+      name: 'user1',
+      password: hash1,
+      accountId: account1._id,
+      role: 'client',
+      projectsAccess: [{
+        projectId: mongoose.Types.ObjectId(),
+        permission: 'editor'
+      }]
+    })
+    await user1.save()
+
+    const hash2 = await bcrypt.hash('user2Password', 10)
+    const user2 = new UserTestModel({ email: 'user2@gmail.com', name: 'user2', password: hash2, accountId: account1._id })
+    await user2.save()
+
+    const token = jwt.sign({ type: 'user', user: { _id: user1._id }, account: { _id: account1._id } }, secrets[0])
+
+    const res = await request(app)
+      .patch(`/v1/accounts/${account1._id}/users/${user1._id}/email`).set('authorization', 'Bearer ' + token).send({ newEmail: 'userUpdate@gmail.com', newEmailAgain: 'userUpdate@gmail.com' })
+
+    expect(res.body.status).toBe(200)
+    expect(res.body.result.success).toBe(true)
+    await fetchSpy.mockRestore()
+  })
+
   test('patch email required password req send  /v1/accounts/:accountId/users/:id/email', async () => {
     const fetchSpy = vi.spyOn(global, 'fetch')
     fetchSpy.mockResolvedValue({
@@ -1112,6 +1279,39 @@ describe('users test', () => {
 
     const hash1 = await bcrypt.hash('user1Password', 10)
     const user1 = new UserTestModel({ email: 'user1@gmail.com', name: 'user1', password: hash1, accountId: account1._id })
+    await user1.save()
+
+    const hash2 = await bcrypt.hash('user2Password', 10)
+    const user2 = new UserTestModel({ email: 'user2@gmail.com', name: 'user2', password: hash2, accountId: account1._id })
+    await user2.save()
+
+    const token = jwt.sign({ type: 'verfiy-email', user: { _id: user1._id }, account: { _id: account1._id }, newEmail: 'userUpdate@gmail.com' }, secrets[0])
+
+    const res = await request(app)
+      .patch(`/v1/accounts/${account1._id}/users/${user1._id}/email-confirm`)
+      .set('authorization', 'Bearer ' + token)
+      .send()
+
+    expect(res.body.status).toBe(200)
+    expect(res.body.result.success).toBe(true)
+  })
+
+  test('update client email success /v1/accounts/:accountId/users/:id/emai/v1/admins/:id/email-confirm', async () => {
+    const account1 = new AccountTestModel({ name: 'accountExample1', urlFriendlyName: 'urlFriendlyNameExample1' })
+    await account1.save()
+
+    const hash1 = await bcrypt.hash('user1Password', 10)
+    const user1 = new UserTestModel({
+      email: 'user1@gmail.com',
+      name: 'user1',
+      password: hash1,
+      accountId: account1._id,
+      role: 'client',
+      projectsAccess: [{
+        projectId: mongoose.Types.ObjectId(),
+        permission: 'editor'
+      }]
+    })
     await user1.save()
 
     const hash2 = await bcrypt.hash('user2Password', 10)
@@ -1247,7 +1447,7 @@ describe('users test', () => {
           message: e.message
         }
       }
-    }, () => {})
+    }, () => { })
     users({ apiServer: sizeTestApp, UserModel: UserTestModel, AccountModel: AccountTestModel })
     sizeTestApp = sizeTestApp._expressServer
 
@@ -1299,6 +1499,41 @@ describe('users test', () => {
     await account1.save()
 
     const user1 = new UserTestModel({ email: 'user1@gmail.com', name: 'user1', googleProfileId: 'googleProfileId', accountId: account1._id })
+    await user1.save()
+
+    const hash = await bcrypt.hash('passTest', 10)
+    const token = jwt.sign({ type: 'create-password', account: { _id: account1._id }, user: { _id: user1._id }, newPassword: hash }, secrets[0])
+    const res = await request(app)
+      .patch('/v1/accounts/' + account1._id + '/users/' + user1._id + '/create-password')
+      .set('authorization', 'Bearer ' + token)
+      .send()
+
+    expect(res.body.result.success).toBe(true)
+    await fetchSpy.mockRestore()
+  })
+
+  test('success create password email client user /v1/accounts/:accountId/users/:id/create-password', async () => {
+    const fetchSpy = vi.spyOn(global, 'fetch')
+    fetchSpy.mockResolvedValue({
+      ok: true,
+      headers: { get: () => 'application/json' },
+      json: () => Promise.resolve({ result: { success: true }, status: 200 })
+    })
+
+    const account1 = new AccountTestModel({ name: 'accountExample1', urlFriendlyName: 'urlFriendlyNameExample1' })
+    await account1.save()
+
+    const user1 = new UserTestModel({
+      email: 'user1@gmail.com',
+      name: 'user1',
+      googleProfileId: 'googleProfileId',
+      accountId: account1._id,
+      role: 'client',
+      projectsAccess: [{
+        projectId: mongoose.Types.ObjectId(),
+        permission: 'editor'
+      }]
+    })
     await user1.save()
 
     const hash = await bcrypt.hash('passTest', 10)

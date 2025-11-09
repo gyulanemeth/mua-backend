@@ -221,10 +221,10 @@ describe('Accounts login test ', () => {
       accountId: account1._id,
       verified: true,
       role: 'client',
-      projectsAccess: {
+      projectsAccess: [{
         projectId: mongoose.Types.ObjectId(),
         permission: 'editor'
-      }
+      }]
     })
     await user1.save()
 
@@ -240,6 +240,46 @@ describe('Accounts login test ', () => {
       .send({ password: 'user1Password', email: user1.email })
 
     expect(res.body.status).toBe(200)
+  })
+
+  test('unverified user login client with urlFriendlyName  ', async () => {
+    const fetchSpy = vi.spyOn(global, 'fetch')
+    fetchSpy.mockResolvedValue({
+      ok: true,
+      headers: { get: () => 'application/json' },
+      json: () => Promise.resolve({ result: { success: true }, status: 200 })
+    })
+
+    const account1 = new AccountTestModel({ name: 'accountExample1', urlFriendlyName: 'urlFriendlyNameExample1' })
+    await account1.save()
+
+    const hash1 = await bcrypt.hash('user1Password', 10)
+    const user1 = new UserTestModel({
+      email: 'user1@gmail.com',
+      name: 'user1',
+      password: hash1,
+      accountId: account1._id,
+      role: 'client',
+      projectsAccess: [{
+        projectId: mongoose.Types.ObjectId(),
+        permission: 'editor'
+      }]
+    })
+    await user1.save()
+
+    const hash2 = await bcrypt.hash('user2Password', 10)
+    const user2 = new UserTestModel({ email: 'user2@gmail.com', name: 'user2', password: hash2, accountId: account1._id, verified: true })
+    await user2.save()
+
+    const token = jwt.sign({ type: 'login', user: { email: user1.email }, account: { urlFriendlyName: 'urlFriendlyName1' } }, secrets[0])
+
+    const res = await request(app)
+      .post('/v1/accounts/' + account1.urlFriendlyName + '/login/url-friendly-name')
+      .set('authorization', 'Bearer ' + token)
+      .send({ password: 'user1Password', email: user1.email })
+
+    expect(res.body.status).toBe(405)
+    await fetchSpy.mockRestore()
   })
 
   test('unverified user login with urlFriendlyName  ', async () => {

@@ -291,12 +291,6 @@ export default async ({
         _id: user.result.accountId
       }
     }
-    if (user.result.role === 'client') {
-      payload.projectsAccess = {}
-      user.result.projectsAccess.forEach(ele => {
-        payload.projectsAccess[ele.projectId] = ele.permission
-      })
-    }
     const token = jwt.sign(payload, secrets[0], { expiresIn: '24h' })
     return {
       status: 200,
