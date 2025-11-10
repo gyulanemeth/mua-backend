@@ -16,11 +16,17 @@ const AccountTestModel = mongoose.model('AccountTest', new mongoose.Schema({
   logo: { type: String }
 }, { timestamps: true }))
 
+const UserProjectAccessSchema = new mongoose.Schema({
+  projectId: { type: mongoose.Schema.Types.ObjectId, ref: 'Project', required: true },
+  permission: { type: String, enum: ['viewer', 'editor'], required: true }
+}, { _id: false })
+
 const UserTestModel = mongoose.model('UserTest', new mongoose.Schema({
   name: { type: String },
   email: { type: String, lowercase: true, required: true, match: /.+[\\@].+\..+/ },
   password: { type: String },
-  role: { type: String, default: 'user', enum: ['user', 'admin'] },
+  role: { type: String, default: 'user', enum: ['user', 'admin', 'client'] },
+  projectsAccess: { type: [UserProjectAccessSchema], default: [] },
   accountId: { type: mongoose.Schema.Types.ObjectId, ref: 'Account', required: true },
   profilePicture: { type: String }
 }, { timestamps: true }))
@@ -81,7 +87,7 @@ describe('Accounts invitation test', () => {
           message: e.message
         }
       }
-    }, () => {})
+    }, () => { })
     invitation({ apiServer: app, UserModel: UserTestModel, AccountModel: AccountTestModel, SystemAdminModel: SystemAdminTestModel })
     app = app._expressServer
   })
@@ -123,6 +129,46 @@ describe('Accounts invitation test', () => {
 
     const res = await request(app)
       .post('/v1/accounts/' + account1._id + '/invitation/send').set('authorization', 'Bearer ' + token).send({ email: 'user3@gmail.com' })
+
+    expect(res.body.status).toBe(201)
+    expect(res.body.result.success).toBe(true)
+    await fetchSpy.mockRestore()
+  })
+
+  test('success send invitation role client by admin /v1/accounts/:accountId/invitation/send', async () => {
+    const fetchSpy = vi.spyOn(global, 'fetch')
+    fetchSpy.mockResolvedValue({
+      ok: true,
+      headers: { get: () => 'application/json' },
+      json: () => Promise.resolve({ result: { success: true }, status: 200 })
+    })
+
+    const account1 = new AccountTestModel({ name: 'accountExample1', urlFriendlyName: 'urlFriendlyNameExample1' })
+    await account1.save()
+
+    const adminHash = await bcrypt.hash('user1Password', 10)
+    const admin1 = new SystemAdminTestModel({ email: 'admin1@gmail.com', name: 'user1', password: adminHash })
+    await admin1.save()
+
+    const hash1 = await bcrypt.hash('user1Password', 10)
+    const user1 = new UserTestModel({ email: 'user1@gmail.com', name: 'user1', password: hash1, accountId: account1._id })
+    await user1.save()
+
+    const hash2 = await bcrypt.hash('user2Password', 10)
+    const user2 = new UserTestModel({ email: 'user2@gmail.com', name: 'user2', password: hash2, accountId: account1._id })
+    await user2.save()
+
+    const token = jwt.sign({ type: 'admin', user: { _id: admin1._id } }, secrets[0])
+
+    const res = await request(app)
+      .post('/v1/accounts/' + account1._id + '/invitation/send').set('authorization', 'Bearer ' + token).send({
+        email: 'user3@gmail.com',
+        role: 'client',
+        projectsAccess: [{
+          projectId: mongoose.Types.ObjectId(),
+          permission: 'editor'
+        }]
+      })
 
     expect(res.body.status).toBe(201)
     expect(res.body.result.success).toBe(true)
@@ -179,6 +225,44 @@ describe('Accounts invitation test', () => {
 
     const res = await request(app)
       .post('/v1/accounts/' + account1._id + '/invitation/resend').set('authorization', 'Bearer ' + token).send({ email: 'user1@gmail.com' })
+
+    expect(res.body.status).toBe(200)
+    expect(res.body.result.success).toBe(true)
+    await fetchSpy.mockRestore()
+  })
+
+  test('success resend invitation role client by admin /v1/accounts/:accountId/invitation/resend', async () => {
+    const fetchSpy = vi.spyOn(global, 'fetch')
+    fetchSpy.mockResolvedValue({
+      ok: true,
+      headers: { get: () => 'application/json' },
+      json: () => Promise.resolve({ result: { success: true }, status: 200 })
+    })
+
+    const account1 = new AccountTestModel({ name: 'accountExample1', urlFriendlyName: 'urlFriendlyNameExample1' })
+    await account1.save()
+
+    const user1 = new UserTestModel({
+      email: 'user1@gmail.com',
+      accountId: account1._id,
+      role: 'client',
+      projectsAccess: [{
+        projectId: mongoose.Types.ObjectId(),
+        permission: 'editor'
+      }]
+    })
+    await user1.save()
+
+    const hash2 = await bcrypt.hash('user2Password', 10)
+    const user2 = new UserTestModel({ email: 'user2@gmail.com', name: 'user2', role: 'admin', password: hash2, accountId: account1._id })
+    await user2.save()
+
+    const token = jwt.sign({ type: 'user', role: 'admin', user: { _id: user2._id } }, secrets[0])
+
+    const res = await request(app)
+      .post('/v1/accounts/' + account1._id + '/invitation/resend').set('authorization', 'Bearer ' + token).send({
+        email: 'user1@gmail.com'
+      })
 
     expect(res.body.status).toBe(200)
     expect(res.body.result.success).toBe(true)
@@ -344,7 +428,7 @@ describe('Accounts invitation test', () => {
           message: e.message
         }
       }
-    }, () => {})
+    }, () => { })
     invitation({ apiServer: app, UserModel: UserTestModel, AccountModel: AccountTestModel, SystemAdminModel: SystemAdminTestModel })
     app = app._expressServer
 
@@ -384,6 +468,34 @@ describe('Accounts invitation test', () => {
     await user1.save()
 
     const user2 = new UserTestModel({ email: 'user2@gmail.com', accountId: account1._id })
+    await user2.save()
+
+    const token = jwt.sign({ type: 'invitation', account: { _id: account1._id }, user: { _id: user2._id, email: user2.email } }, secrets[0])
+
+    const res = await request(app)
+      .post('/v1/accounts/' + account1._id + '/invitation/accept')
+      .set('authorization', 'Bearer ' + token)
+      .send({ newPassword: 'userPasswordUpdated', newPasswordAgain: 'userPasswordUpdated' })
+    expect(res.body.status).toBe(200)
+  })
+
+  test('success accept invitation client /v1/accounts/:accountId/invitation/accept', async () => {
+    const account1 = new AccountTestModel({ name: 'accountExample1', urlFriendlyName: 'urlFriendlyNameExample1' })
+    await account1.save()
+
+    const hash1 = await bcrypt.hash('user1Password', 10)
+    const user1 = new UserTestModel({ email: 'user1@gmail.com', name: 'user1', password: hash1, accountId: account1._id })
+    await user1.save()
+
+    const user2 = new UserTestModel({
+      email: 'user2@gmail.com',
+      accountId: account1._id,
+      role: 'client',
+      projectsAccess: [{
+        projectId: mongoose.Types.ObjectId(),
+        permission: 'editor'
+      }]
+    })
     await user2.save()
 
     const token = jwt.sign({ type: 'invitation', account: { _id: account1._id }, user: { _id: user2._id, email: user2.email } }, secrets[0])
@@ -661,7 +773,7 @@ describe('Accounts invitation test', () => {
           message: e.message
         }
       }
-    }, () => {})
+    }, () => { })
     invitation({ apiServer: app, UserModel: UserTestModel, AccountModel: AccountTestModel, SystemAdminModel: SystemAdminTestModel })
     app = app._expressServer
 
@@ -811,7 +923,7 @@ describe('System admin invitation test', () => {
           message: e.message
         }
       }
-    }, () => {})
+    }, () => { })
     invitation({ apiServer: app, UserModel: UserTestModel, AccountModel: AccountTestModel, SystemAdminModel: SystemAdminTestModel })
     app = app._expressServer
   })
@@ -988,7 +1100,7 @@ describe('System admin invitation test', () => {
           message: e.message
         }
       }
-    }, () => {})
+    }, () => { })
     invitation({ apiServer: app, UserModel: UserTestModel, AccountModel: AccountTestModel, SystemAdminModel: SystemAdminTestModel })
     app = app._expressServer
 

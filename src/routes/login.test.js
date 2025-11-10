@@ -18,11 +18,17 @@ const AccountTestModel = mongoose.model('AccountTest', new mongoose.Schema({
   logo: { type: String }
 }, { timestamps: true }))
 
+const UserProjectAccessSchema = new mongoose.Schema({
+  projectId: { type: mongoose.Schema.Types.ObjectId, ref: 'Project', required: true },
+  permission: { type: String, enum: ['viewer', 'editor'], required: true }
+}, { _id: false })
+
 const UserTestModel = mongoose.model('UserTest', new mongoose.Schema({
   name: { type: String },
   email: { type: String, lowercase: true, required: true, match: /.+[\\@].+\..+/ },
   password: { type: String },
-  role: { type: String, default: 'user', enum: ['user', 'admin'] },
+  role: { type: String, default: 'user', enum: ['user', 'admin', 'client'] },
+  projectsAccess: { type: [UserProjectAccessSchema], default: [] },
   accountId: { type: mongoose.Schema.Types.ObjectId, ref: 'Account', required: true },
   profilePicture: { type: String },
   googleProfileId: { type: String },
@@ -85,7 +91,7 @@ describe('Accounts login test ', () => {
           message: e.message
         }
       }
-    }, () => {})
+    }, () => { })
     login({ apiServer: app, UserModel: UserTestModel, AccountModel: AccountTestModel, SystemAdminModel: SystemAdminTestModel })
     app = app._expressServer
   })
@@ -201,6 +207,79 @@ describe('Accounts login test ', () => {
       .send({ password: 'user1Password', email: user1.email })
 
     expect(res.body.status).toBe(200)
+  })
+
+  test('success login with urlFriendlyName to client account ', async () => {
+    const account1 = new AccountTestModel({ name: 'accountExample1', urlFriendlyName: 'urlFriendlyNameExample1' })
+    await account1.save()
+
+    const hash1 = await bcrypt.hash('user1Password', 10)
+    const user1 = new UserTestModel({
+      email: 'user1@gmail.com',
+      name: 'user1',
+      password: hash1,
+      accountId: account1._id,
+      verified: true,
+      role: 'client',
+      projectsAccess: [{
+        projectId: mongoose.Types.ObjectId(),
+        permission: 'editor'
+      }]
+    })
+    await user1.save()
+
+    const hash2 = await bcrypt.hash('user2Password', 10)
+    const user2 = new UserTestModel({ email: 'user2@gmail.com', name: 'user2', password: hash2, accountId: account1._id, verified: true })
+    await user2.save()
+
+    const token = jwt.sign({ type: 'login', user: { email: user1.email }, account: { urlFriendlyName: 'urlFriendlyName1' } }, secrets[0])
+
+    const res = await request(app)
+      .post('/v1/accounts/' + account1.urlFriendlyName + '/login/url-friendly-name')
+      .set('authorization', 'Bearer ' + token)
+      .send({ password: 'user1Password', email: user1.email })
+
+    expect(res.body.status).toBe(200)
+  })
+
+  test('unverified user login client with urlFriendlyName  ', async () => {
+    const fetchSpy = vi.spyOn(global, 'fetch')
+    fetchSpy.mockResolvedValue({
+      ok: true,
+      headers: { get: () => 'application/json' },
+      json: () => Promise.resolve({ result: { success: true }, status: 200 })
+    })
+
+    const account1 = new AccountTestModel({ name: 'accountExample1', urlFriendlyName: 'urlFriendlyNameExample1' })
+    await account1.save()
+
+    const hash1 = await bcrypt.hash('user1Password', 10)
+    const user1 = new UserTestModel({
+      email: 'user1@gmail.com',
+      name: 'user1',
+      password: hash1,
+      accountId: account1._id,
+      role: 'client',
+      projectsAccess: [{
+        projectId: mongoose.Types.ObjectId(),
+        permission: 'editor'
+      }]
+    })
+    await user1.save()
+
+    const hash2 = await bcrypt.hash('user2Password', 10)
+    const user2 = new UserTestModel({ email: 'user2@gmail.com', name: 'user2', password: hash2, accountId: account1._id, verified: true })
+    await user2.save()
+
+    const token = jwt.sign({ type: 'login', user: { email: user1.email }, account: { urlFriendlyName: 'urlFriendlyName1' } }, secrets[0])
+
+    const res = await request(app)
+      .post('/v1/accounts/' + account1.urlFriendlyName + '/login/url-friendly-name')
+      .set('authorization', 'Bearer ' + token)
+      .send({ password: 'user1Password', email: user1.email })
+
+    expect(res.body.status).toBe(405)
+    await fetchSpy.mockRestore()
   })
 
   test('unverified user login with urlFriendlyName  ', async () => {
@@ -479,7 +558,7 @@ describe('System admin login test ', () => {
           message: e.message
         }
       }
-    }, () => {})
+    }, () => { })
     login({ apiServer: app, UserModel: UserTestModel, AccountModel: AccountTestModel, SystemAdminModel: SystemAdminTestModel })
     app = app._expressServer
   })
@@ -583,7 +662,7 @@ describe('System admin login test ', () => {
           message: e.message
         }
       }
-    }, () => {})
+    }, () => { })
     login({ apiServer: app, UserModel: UserTestModel, AccountModel: AccountTestModel, SystemAdminModel: SystemAdminTestModel })
     app = app._expressServer
   })

@@ -11,8 +11,8 @@ import verifyAndUpgradePassword from '../helpers/verifyAndUpgradePassword.js'
 import aws from '../helpers/awsBucket.js'
 
 export default async ({
-  apiServer, UserModel, AccountModel, hooks = {
-    checkEmail: async (params) => {},
+  apiServer, UserModel, AccountModel, ProjectModel, hooks = {
+    checkEmail: async (params) => { },
     createNewUser: { post: () => { } },
     updateUserEmail: { post: () => { } }
   }
@@ -63,6 +63,12 @@ export default async ({
       },
       role: user.result.role
     }
+    if (user.result.role === 'client') {
+      payload.projectsAccess = {}
+      user.result.projectsAccess.forEach(ele => {
+        payload.projectsAccess[ele.projectId] = ele.permission
+      })
+    }
     const token = jwt.sign(payload, secrets[0], { expiresIn: '24h' })
     return {
       status: 200,
@@ -90,6 +96,12 @@ export default async ({
         account: {
           _id: getAccount.result._id
         }
+      }
+      if (getUser.result.role === 'client') {
+        payload.projectsAccess = {}
+        getUser.result.projectsAccess.forEach(ele => {
+          payload.projectsAccess[ele.projectId] = ele.permission
+        })
       }
       const token = jwt.sign(payload, secrets[0], { expiresIn: '24h' })
       const mail = await sendUserEmail(getUser.result.email, process.env.BLUEFOX_TEMPLATE_ID_ACCOUNT_CREATE_PASSWORD, { link: `${process.env.APP_URL}accounts/create-password?token=${token}`, name: getUser.result.name, accountName: getAccount.result.name, account: { name: getAccount.result.name, urlFriendlyName: getAccount.result.urlFriendlyName, logo: getAccount.result.logo, url: `${process.env.APP_URL}accounts/${getAccount.result.urlFriendlyName}` }, user: { name: getUser.result.name, email: getUser.result.email, profilePicture: getUser.result.profilePicture } })
@@ -120,7 +132,7 @@ export default async ({
         throw new MethodNotAllowedError('Removing the last admin is not allowed')
       }
     }
-    const updatedUser = await patchOne(UserModel, { id: req.params.id, accountId: req.params.accountId }, { role: req.body.role }, { password: 0, googleProfileId: 0, microsoftProfileId: 0, githubProfileId: 0 })
+    const updatedUser = await patchOne(UserModel, { id: req.params.id, accountId: req.params.accountId }, req.body, { password: 0, googleProfileId: 0, microsoftProfileId: 0, githubProfileId: 0 })
     return updatedUser
   })
 
@@ -145,6 +157,12 @@ export default async ({
       account: {
         _id: req.params.accountId
       }
+    }
+    if (response.result.role === 'client') {
+      payload.projectsAccess = {}
+      response.result.projectsAccess.forEach(ele => {
+        payload.projectsAccess[ele.projectId] = ele.permission
+      })
     }
     const token = jwt.sign(payload, secrets[0], { expiresIn: '24h' })
     const mail = await sendUserEmail(req.body.newEmail, process.env.BLUEFOX_TEMPLATE_ID_ACCOUNT_VERIFY_EMAIL, { link: `${process.env.APP_URL}accounts/verify-email?token=${token}`, name: response.result.name, user: { name: response.result.name, email: response.result.email, profilePicture: response.result.profilePicture } })
@@ -173,6 +191,12 @@ export default async ({
         _id: user.result.accountId
       },
       role: user.result.role
+    }
+    if (user.result.role === 'client') {
+      payload.projectsAccess = {}
+      user.result.projectsAccess.forEach(ele => {
+        payload.projectsAccess[ele.projectId] = ele.permission
+      })
     }
     const token = jwt.sign(payload, secrets[0], { expiresIn: '24h' })
 
@@ -209,6 +233,7 @@ export default async ({
       type: req.params.permissionFor,
       user: tokenData.user,
       account: tokenData.account,
+      project: tokenData.project,
       role: tokenData.role
     }
     const token = jwt.sign(payload, secrets[0], { expiresIn: '5m' })
@@ -236,6 +261,12 @@ export default async ({
         urlFriendlyName: getAccount.result.urlFriendlyName
       },
       role: findUser.result.role
+    }
+    if (findUser.result.role === 'client') {
+      payload.projectsAccess = {}
+      findUser.result.projectsAccess.forEach(ele => {
+        payload.projectsAccess[ele.projectId] = ele.permission
+      })
     }
     const token = jwt.sign(payload, secrets[0], { expiresIn: '24h' })
 
@@ -269,25 +300,36 @@ export default async ({
     }
   })
 
+  apiServer.get('/v1/accounts/:accountId/projects-for-access', async req => {
+    allowAccessTo(req, secrets, [{ type: 'admin' }, { type: 'user', role: 'user' }, { type: 'user', role: 'admin' }])
+    const projects = await list(ProjectModel, { accountId: req.params.accountId }, { ...req.query, select: { name: 1 } })
+    return {
+      status: 200,
+      result: projects.result.items
+    }
+  })
+
   apiServer.get('/v1/accounts/:accountId/users', async req => {
-    allowAccessTo(req, secrets, [{ type: 'admin' }, { type: 'user' }])
+    allowAccessTo(req, secrets, [{ type: 'admin' }, { type: 'user', role: 'user' }, { type: 'user', role: 'admin' }])
     await readOne(AccountModel, { id: req.params.accountId }, req.query)
     const userList = await list(UserModel, { accountId: req.params.accountId }, { ...req.query, select: { password: 0, googleProfileId: 0, microsoftProfileId: 0, githubProfileId: 0 } })
     return userList
   })
 
   apiServer.post('/v1/accounts/:accountId/users', async req => {
-    allowAccessTo(req, secrets, [{ type: 'admin' }, { type: 'user' }])
+    allowAccessTo(req, secrets, [{ type: 'admin' }, { type: 'user', role: 'user' }, { type: 'user', role: 'admin' }])
     await readOne(AccountModel, { id: req.params.accountId }, req.query)
-
+    const isClient = req.body.role === 'client'
     const checkUser = await list(UserModel, { email: req.body.email, accountId: req.params.accountId }, { select: { password: 0, googleProfileId: 0, microsoftProfileId: 0, githubProfileId: 0 } })
     if (checkUser.result.count !== 0) {
       throw new MethodNotAllowedError('User exist')
     }
     const hash = await bcrypt.hash(req.body.password, 10)
     await hooks.checkEmail(req.body.email)
-    const newUser = await createOne(UserModel, req.params, { name: req.body.name, email: req.body.email, password: hash, accountId: req.params.accountId, verified: true })
-    hooks.createNewUser.post({ accountId: req.params.accountId, name: newUser.result.name, email: newUser.result.email })
+    const newUser = await createOne(UserModel, req.params, { ...req.body, password: hash, verified: true })
+    if (!isClient) {
+      hooks.createNewUser.post({ accountId: req.params.accountId, name: newUser.result.name, email: newUser.result.email })
+    }
     return newUser
   })
 
@@ -347,6 +389,12 @@ export default async ({
       account: {
         _id: getAccount.result._id
       }
+    }
+    if (getUser.result.role === 'client') {
+      payload.projectsAccess = {}
+      getUser.result.projectsAccess.forEach(ele => {
+        payload.projectsAccess[ele.projectId] = ele.permission
+      })
     }
     const token = jwt.sign(payload, secrets[0], { expiresIn: '24h' })
     const mail = await sendUserEmail(getUser.result.email, process.env.BLUEFOX_TEMPLATE_ID_ACCOUNT_FINALIZE_REGISTRATION, { link: `${process.env.APP_URL}accounts/finalize-registration?token=${token}` })
