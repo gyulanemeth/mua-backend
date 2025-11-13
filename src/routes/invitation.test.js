@@ -175,6 +175,42 @@ describe('Accounts invitation test', () => {
     await fetchSpy.mockRestore()
   })
 
+  test('error send invitation  missing projectsAccess /v1/accounts/:accountId/invitation/send', async () => {
+    const fetchSpy = vi.spyOn(global, 'fetch')
+    fetchSpy.mockResolvedValue({
+      ok: true,
+      headers: { get: () => 'application/json' },
+      json: () => Promise.resolve({ result: { success: true }, status: 200 })
+    })
+
+    const account1 = new AccountTestModel({ name: 'accountExample1', urlFriendlyName: 'urlFriendlyNameExample1' })
+    await account1.save()
+
+    const adminHash = await bcrypt.hash('user1Password', 10)
+    const admin1 = new SystemAdminTestModel({ email: 'admin1@gmail.com', name: 'user1', password: adminHash })
+    await admin1.save()
+
+    const hash1 = await bcrypt.hash('user1Password', 10)
+    const user1 = new UserTestModel({ email: 'user1@gmail.com', name: 'user1', password: hash1, accountId: account1._id })
+    await user1.save()
+
+    const hash2 = await bcrypt.hash('user2Password', 10)
+    const user2 = new UserTestModel({ email: 'user2@gmail.com', name: 'user2', password: hash2, accountId: account1._id })
+    await user2.save()
+
+    const token = jwt.sign({ type: 'admin', user: { _id: admin1._id } }, secrets[0])
+
+    const res = await request(app)
+      .post('/v1/accounts/' + account1._id + '/invitation/send').set('authorization', 'Bearer ' + token).send({
+        email: 'user3@gmail.com',
+        role: 'client',
+        projectsAccess: []
+      })
+
+    expect(res.body.status).toBe(400)
+    await fetchSpy.mockRestore()
+  })
+
   test('error fetch', async () => {
     const fetchSpy = vi.spyOn(global, 'fetch')
     fetchSpy.mockResolvedValue({

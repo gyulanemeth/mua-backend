@@ -43,6 +43,9 @@ export default ({
     if (checkUser.result.count !== 0) {
       throw new MethodNotAllowedError('User exist')
     }
+    if (isClient && (!req.body.projectsAccess || !req.body.projectsAccess.length)) {
+      throw new ValidationError('Missing client projectsAccess')
+    }
     await hooks.checkEmail(req.body.email)
     const newUser = await createOne(UserModel, { accountId: req.params.id }, req.body)
     const payload = {

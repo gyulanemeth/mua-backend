@@ -132,6 +132,9 @@ export default async ({
         throw new MethodNotAllowedError('Removing the last admin is not allowed')
       }
     }
+    if (req.body.role === 'client' && (!req.body.projectsAccess || !req.body.projectsAccess.length)) {
+      throw new ValidationError('Missing client projectsAccess')
+    }
     const updatedUser = await patchOne(UserModel, { id: req.params.id, accountId: req.params.accountId }, req.body, { password: 0, googleProfileId: 0, microsoftProfileId: 0, githubProfileId: 0 })
     return updatedUser
   })
