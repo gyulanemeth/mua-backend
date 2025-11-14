@@ -492,6 +492,24 @@ describe('users test', () => {
     expect(res.body.status).toBe(200)
   })
 
+  test('error update user role in account by admin missing projectsAccess /v1/accounts/:accountId/users/:id/role', async () => {
+    const account1 = new AccountTestModel({ name: 'accountExample1', urlFriendlyName: 'urlFriendlyNameExample1' })
+    await account1.save()
+
+    const hash1 = await bcrypt.hash('user1Password', 10)
+    const user1 = new UserTestModel({ email: 'user1@gmail.com', name: 'user1', password: hash1, accountId: account1._id })
+    await user1.save()
+
+    const token = jwt.sign({ type: 'admin' }, secrets[0])
+
+    const res = await request(app)
+      .patch('/v1/accounts/' + account1._id + '/users/' + user1._id + '/role')
+      .set('authorization', 'Bearer ' + token)
+      .send({ role: 'client', projectsAccess: [] })
+
+    expect(res.body.status).toBe(400)
+  })
+
   test('success update user role in account by user with role admin  /v1/accounts/:accountId/users/:id/role', async () => {
     const account1 = new AccountTestModel({ name: 'accountExample1', urlFriendlyName: 'urlFriendlyNameExample1' })
     await account1.save()
