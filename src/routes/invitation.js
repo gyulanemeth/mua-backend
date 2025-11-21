@@ -39,6 +39,9 @@ export default ({
     const tokenData = await allowAccessTo(req, secrets, [{ type: 'admin' }, { type: 'user', role: 'admin' }])
     const checkAccount = await readOne(AccountModel, { id: req.params.id }, req.query)
     const isClient = req.body.role === 'client'
+    if (!isClient) {
+      delete req.body.projectsAccess
+    }
     const checkUser = await list(UserModel, { email: req.body.email, accountId: req.params.id }, req.query)
     if (checkUser.result.count !== 0) {
       throw new MethodNotAllowedError('User exist')
@@ -64,7 +67,7 @@ export default ({
       newUser.result.projectsAccess.forEach(ele => {
         payload.projectsAccess[ele.projectId] = ele.permission
       })
-    }
+    }    
     const token = jwt.sign(payload, secrets[0], { expiresIn: '7d' })
     let inviterData
     if (tokenData.type === 'user') {
