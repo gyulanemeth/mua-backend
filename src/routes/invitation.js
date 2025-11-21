@@ -67,7 +67,7 @@ export default ({
       newUser.result.projectsAccess.forEach(ele => {
         payload.projectsAccess[ele.projectId] = ele.permission
       })
-    }    
+    }
     const token = jwt.sign(payload, secrets[0], { expiresIn: '7d' })
     let inviterData
     if (tokenData.type === 'user') {
