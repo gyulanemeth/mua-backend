@@ -39,6 +39,9 @@ export default ({
     const tokenData = await allowAccessTo(req, secrets, [{ type: 'admin' }, { type: 'user', role: 'admin' }])
     const checkAccount = await readOne(AccountModel, { id: req.params.id }, req.query)
     const isClient = req.body.role === 'client'
+    if (!isClient) {
+      delete req.body.projectsAccess
+    }
     const checkUser = await list(UserModel, { email: req.body.email, accountId: req.params.id }, req.query)
     if (checkUser.result.count !== 0) {
       throw new MethodNotAllowedError('User exist')
