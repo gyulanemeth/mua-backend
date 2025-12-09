@@ -2,7 +2,7 @@ import bcrypt from 'bcrypt'
 
 import jwt from 'jsonwebtoken'
 import mime from 'mime-types'
-import * as fileType from 'file-type'
+import { fileTypeFromBuffer } from 'file-type'
 
 import { list, readOne, deleteOne, patchOne } from 'mongoose-crudl'
 import { AuthorizationError, MethodNotAllowedError, ValidationError, AuthenticationError } from 'standard-api-errors'
@@ -172,12 +172,12 @@ export default async ({
 
   apiServer.postBinary('/v1/system-admins/:id/profile-picture', { mimeTypes: ['image/jpeg', 'image/png', 'image/gif'], fieldName: 'profilePicture', maxFileSize: process.env.MAX_FILE_SIZE }, async req => {
     allowAccessTo(req, secrets, [{ type: 'admin', user: { _id: req.params.id } }])
-
+    const type = await fileTypeFromBuffer(req.file.buffer)
     const uploadParams = {
       Bucket: process.env.AWS_BUCKET_NAME,
       Body: req.file.buffer,
       ACL: 'public-read',
-      ContentType: await fileType.fromBuffer(req.file.buffer).mime,
+      ContentType: type.mime,
       Key: `${process.env.AWS_FOLDER_NAME}/${req.params.id}.${mime.extension(req.file.mimetype)}`
     }
 

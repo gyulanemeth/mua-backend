@@ -27,6 +27,7 @@
     "bearer-jwt-auth": "^1.0.1",
     "dotenv": "^16.0.1",
     "express-async-api": "^0.7.0",
+    "file-type": "^21.1.1",
     "handlebars": "^4.7.7",
     "jsonwebtoken": "^9.0.1",
     "mime-types": "^2.1.35",
