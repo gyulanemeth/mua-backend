@@ -2,6 +2,7 @@ import bcrypt from 'bcrypt'
 
 import jwt from 'jsonwebtoken'
 import mime from 'mime-types'
+import * as fileType from 'file-type'
 
 import allowAccessTo from 'bearer-jwt-auth'
 import { ConflictError, NotFoundError, ValidationError } from 'standard-api-errors'
@@ -13,7 +14,7 @@ import aws from '../helpers/awsBucket.js'
 export default async ({
   apiServer, UserModel, AccountModel, hooks =
   {
-    checkEmail: async (params) => {},
+    checkEmail: async (params) => { },
     deleteAccount: { post: (params) => { } },
     createAccount: { post: (params) => { } },
     createNewUser: { post: (params) => { } }
@@ -210,6 +211,8 @@ export default async ({
     const uploadParams = {
       Bucket: process.env.AWS_BUCKET_NAME,
       Body: req.file.buffer,
+      ACL: 'public-read',
+      ContentType: await fileType.fromBuffer(req.file.buffer).mime,
       Key: `${process.env.AWS_FOLDER_NAME}/accounts/${req.params.id}.${mime.extension(req.file.mimetype)}`
     }
     const result = await s3.upload(uploadParams).promise()
