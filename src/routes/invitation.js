@@ -6,7 +6,7 @@ import { MethodNotAllowedError, ValidationError, AuthenticationError } from 'sta
 import allowAccessTo from 'bearer-jwt-auth'
 
 export default ({
-  apiServer, UserModel, AccountModel, SystemAdminModel, ProjectModel, hooks = {
+  apiServer, UserModel, AccountModel, SystemAdminModel, hooks = {
     checkEmail: async (params) => { },
     createNewUser: { post: (params) => { } }
   }
