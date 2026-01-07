@@ -877,6 +877,50 @@ describe('users test', () => {
     expect(res.body.status).toBe(200)
   })
 
+  test('get projects-for-access disabled  /v1/accounts/:accountId/projects-for-access', async () => {
+    const account1 = new AccountTestModel({ name: 'accountExample1', urlFriendlyName: 'urlFriendlyNameExample1' })
+    await account1.save()
+
+    const hash1 = await bcrypt.hash('user1Password', 10)
+    const user1 = new UserTestModel({ email: 'user1@gmail.com', name: 'user1', role: 'user', password: hash1, accountId: account1._id })
+    await user1.save()
+
+    const hash2 = await bcrypt.hash('user1Password', 10)
+    const user2 = new UserTestModel({ email: 'user2@gmail.com', name: 'user2', role: 'user', password: hash2, accountId: account1._id })
+    await user2.save()
+
+    const token = jwt.sign({ type: 'admin' }, secrets[0])
+
+    let app2 = createApiServer((e) => {
+      if (e.code === 'LIMIT_FILE_SIZE') {
+        return {
+          status: 413,
+          error: {
+            name: 'PAYLOAD_TOO_LARGE',
+            message: 'File size limit exceeded. Maximum file size allowed is ' + (Number(20000) / (1024 * 1024)).toFixed(2) + 'mb'
+          }
+        }
+      }
+      return {
+        status: e.status,
+        error: {
+          name: e.name,
+          message: e.message
+        }
+      }
+    }, () => { })
+    users({ apiServer: app2, UserModel: UserTestModel, AccountModel: AccountTestModel })
+    app2 = app2._expressServer
+
+    const res = await request(app2)
+      .get('/v1/accounts/' + account1._id + '/projects-for-access')
+      .set('authorization', 'Bearer ' + token)
+      .send()
+
+    expect(res.body.status).toBe(200)
+    expect(res.body.result.disabled).toBe(true)
+  })
+
   test('post user finalize-registration for undefined account   /v1/accounts/:accountId/users/:id/finalize-registration ', async () => {
     const account1 = new AccountTestModel({ name: 'accountExample1', urlFriendlyName: 'urlFriendlyNameExample1' })
     await account1.save()
