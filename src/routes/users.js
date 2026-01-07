@@ -306,6 +306,14 @@ export default async ({
 
   apiServer.get('/v1/accounts/:accountId/projects-for-access', async req => {
     allowAccessTo(req, secrets, [{ type: 'admin' }, { type: 'user', role: 'user' }, { type: 'user', role: 'admin' }])
+    if (!ProjectModel) {
+      return {
+        status: 200,
+        result: {
+          disabled: true
+        }
+      }
+    }
     const projects = await list(ProjectModel, { accountId: req.params.accountId }, { ...req.query, select: { name: 1 } })
     return {
       status: 200,
