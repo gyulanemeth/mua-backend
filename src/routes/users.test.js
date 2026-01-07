@@ -909,7 +909,7 @@ describe('users test', () => {
         }
       }
     }, () => { })
-    users({ apiServer: app2, UserModel: UserTestModel, AccountModel: AccountTestModel })
+    await users({ apiServer: app2, UserModel: UserTestModel, AccountModel: AccountTestModel })
     app2 = app2._expressServer
 
     const res = await request(app2)
