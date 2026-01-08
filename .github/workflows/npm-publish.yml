@@ -29,10 +29,7 @@ jobs:
         run: npm i
 
       - name: Run tests
-        run: npm run test
-
-      - name: Build the package
-        run: npm run build
+        run: npm test
 
       - name: Publish to npm
         run: npm publish
