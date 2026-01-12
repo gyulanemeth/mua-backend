@@ -93,7 +93,7 @@ export default async ({
         email: response.result.email
       }
     }
-    const token = jwt.sign(payload, secrets[0], { expiresIn: '24h' })
+    const token = jwt.sign(payload, secrets[0], { expiresIn: '48h' })
     return {
       status: 200,
       result: {
