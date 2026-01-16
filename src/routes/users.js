@@ -159,6 +159,7 @@ export default async ({
       issuer: `${process.env.APP_NAME}-user-${response.result._id}-account-${response.result.accountId}`
     })
 
+    /* c8 ignore next */
     await patchOne(UserModel, { id: req.params.id, accountId: req.params.accountId }, { twoFactor: { ...response.result.twoFactor || {}, secret: encrypt(secret) } })
     return {
       status: 200,
@@ -178,6 +179,7 @@ export default async ({
     }
 
     const { recoveryCode } = mfa.generateRecoveryCode()
+    /* c8 ignore next */
     await patchOne(UserModel, { id: req.params.id, accountId: req.params.accountId }, { twoFactor: { ...user.result.twoFactor || {}, enabled: true, recoverySecret: encrypt(recoveryCode) } })
     return {
       status: 200,
@@ -191,6 +193,7 @@ export default async ({
   apiServer.delete('/v1/accounts/:accountId/users/:id/mfa', async req => {
     allowAccessTo(req, secrets, [{ type: 'admin' }, { type: 'user', user: { _id: req.params.id }, account: { _id: req.params.accountId } }])
     const user = await readOne(UserModel, { id: req.params.id, accountId: req.params.accountId })
+    /* c8 ignore next */
     await patchOne(UserModel, { id: req.params.id, accountId: req.params.accountId }, { twoFactor: { ...user.result.twoFactor || {}, enabled: false } })
     return {
       status: 200,

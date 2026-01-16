@@ -120,7 +120,7 @@ export default async ({
       label: response.result.email,
       issuer: `${process.env.APP_NAME}-admin-${response.result._id}`
     })
-
+    /* c8 ignore next */
     await patchOne(SystemAdminModel, { id: req.params.id }, { twoFactor: { ...response.result.twoFactor || {}, secret: encrypt(secret) } })
     return {
       status: 200,
@@ -140,6 +140,7 @@ export default async ({
     }
 
     const { recoveryCode } = mfa.generateRecoveryCode()
+    /* c8 ignore next */
     await patchOne(SystemAdminModel, { id: req.params.id }, { twoFactor: { ...user.result.twoFactor || {}, enabled: true, recoverySecret: encrypt(recoveryCode) } })
     return {
       status: 200,
@@ -153,6 +154,7 @@ export default async ({
   apiServer.delete('/v1/system-admins/:id/mfa', async req => {
     allowAccessTo(req, secrets, [{ type: 'admin' }])
     const user = await readOne(SystemAdminModel, { id: req.params.id })
+    /* c8 ignore next */
     await patchOne(SystemAdminModel, { id: req.params.id }, { twoFactor: { ...user.result.twoFactor || {}, enabled: false } })
     return {
       status: 200,

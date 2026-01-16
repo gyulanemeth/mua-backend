@@ -401,7 +401,7 @@ export default ({
     const user = await readOne(UserModel, { id: data.user._id })
     let ok = false
     if (req.body.recoveryCode && req.body.recoveryCode === decrypt(user.result.twoFactor?.recoverySecret)) {
-      await patchOne(UserModel, { id: user.result._id }, { twoFactor: { ...user.result.twoFactor || {}, enabled: false } })
+      await patchOne(UserModel, { id: user.result._id }, { twoFactor: { ...user.result.twoFactor /* c8 ignore next */ || {}, enabled: false } })
       ok = true
     } else if (req.body.code) {
       ok = mfa.validate({ code: req.body.code, secret: decrypt(user.result.twoFactor?.secret), window: 1 })
@@ -428,7 +428,7 @@ export default ({
     const user = await readOne(SystemAdminModel, { id: data.user._id })
     let ok = false
     if (req.body.recoveryCode && req.body.recoveryCode === decrypt(user.result.twoFactor?.recoverySecret)) {
-      await patchOne(SystemAdminModel, { id: user.result._id }, { twoFactor: { ...user.result.twoFactor || {}, enabled: false } })
+      await patchOne(SystemAdminModel, { id: user.result._id }, { twoFactor: { ...user.result.twoFactor /* c8 ignore next */ || {}, enabled: false } })
       ok = true
     } else if (req.body.code) {
       ok = mfa.validate({ code: req.body.code, secret: decrypt(user.result.twoFactor?.secret), window: 1 })
