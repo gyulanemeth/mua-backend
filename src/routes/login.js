@@ -4,6 +4,8 @@ import allowAccessTo from 'bearer-jwt-auth'
 import { AuthenticationError, MethodNotAllowedError, ValidationError } from 'standard-api-errors'
 import passport from 'passport'
 import verifyAndUpgradePassword from '../helpers/verifyAndUpgradePassword.js'
+import mfa from '../helpers/mfa.js'
+import { decrypt } from '../helpers/decryptEncryptHandler.js'
 
 export default ({
   apiServer, UserModel, AccountModel, SystemAdminModel
@@ -333,6 +335,18 @@ export default ({
         payload.projectsAccess[ele.projectId] = ele.permission
       })
     }
+
+    if (findUser.result.items[0].twoFactorEnabled) {
+      payload.type = '2fa-login'
+      const token = jwt.sign(payload, secrets[0], { expiresIn: '24h' })
+      return {
+        status: 200,
+        result: {
+          twoFactorLoginToken: token
+        }
+      }
+    }
+
     const token = jwt.sign(payload, secrets[0], { expiresIn: '24h' })
     return {
       status: 200,
@@ -370,6 +384,59 @@ export default ({
     }
   })
 
+  apiServer.post('/v1/accounts/mfa-login', async req => {
+    const data = allowAccessTo(req, secrets, [{ type: '2fa-login' }])
+    const user = await readOne(UserModel, { id: data.user._id })
+    let ok = false
+    if (req.body.recoveryCode && req.body.recoveryCode === decrypt(user.result.twoFactorRecoverySecret)) {
+      await patchOne(UserModel, { id: user.result._id }, { twoFactorEnabled: false })
+      ok = true
+    } else if (req.body.code) {
+      ok = mfa.validate({ code: req.body.code, secret: decrypt(user.result.twoFactorSecret), window: 1 })
+    }
+    if (!ok) {
+      throw new AuthenticationError('INVALID_2FA_CODE')
+    }
+    const payload = {
+      type: 'login',
+      user: data.user,
+      account: data.account
+    }
+    const token = jwt.sign(payload, secrets[0], { expiresIn: '24h' })
+    return {
+      status: 200,
+      result: {
+        loginToken: token
+      }
+    }
+  })
+
+  apiServer.post('/v1/system-admins/mfa-login', async req => {
+    const data = allowAccessTo(req, secrets, [{ type: '2fa-login' }])
+    const user = await readOne(SystemAdminModel, { id: data.user._id })
+    let ok = false
+    if (req.body.recoveryCode && req.body.recoveryCode === decrypt(user.result.twoFactorRecoverySecret)) {
+      await patchOne(SystemAdminModel, { id: user.result._id }, { twoFactorEnabled: false })
+      ok = true
+    } else if (req.body.code) {
+      ok = mfa.validate({ code: req.body.code, secret: decrypt(user.result.twoFactorSecret), window: 1 })
+    }
+    if (!ok) {
+      throw new AuthenticationError('INVALID_2FA_CODE')
+    }
+    const payload = {
+      type: 'login',
+      user: data.user
+    }
+    const token = jwt.sign(payload, secrets[0], { expiresIn: '24h' })
+    return {
+      status: 200,
+      result: {
+        loginToken: token
+      }
+    }
+  })
+
   apiServer.post('/v1/system-admins/login', async req => {
     req.body.email = req.body.email.toLowerCase()
     const findUser = await list(SystemAdminModel, { email: req.body.email })
@@ -385,6 +452,18 @@ export default ({
         email: findUser.result.items[0].email
       }
     }
+
+    if (findUser.result.items[0].twoFactorEnabled) {
+      payload.type = '2fa-login'
+      const token = jwt.sign(payload, secrets[0], { expiresIn: '24h' })
+      return {
+        status: 200,
+        result: {
+          twoFactorLoginToken: token
+        }
+      }
+    }
+
     const token = jwt.sign(payload, secrets[0], { expiresIn: '24h' })
     return {
       status: 200,
