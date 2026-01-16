@@ -64,7 +64,10 @@ const UserSchema = new mongoose.Schema({
   accountId: { type: Schema.Types.ObjectId, ref: 'Account', required: true },
   profilePicture: { type: String },
   verified: { type: Boolean, default: false },
-  deleted: { type: Boolean }
+  deleted: { type: Boolean },
+  twoFactorEnabled: { type: Boolean },
+  twoFactorSecret: { type: String },
+  twoFactorRecoverySecret: { type: String }
 }, { timestamps: true })
 
 export default mongoose.model('User', UserSchema)
@@ -91,7 +94,10 @@ const SystemAdminSchema = new mongoose.Schema({
   name: { type: String },
   email: { type: String, lowercase: true, required: true, match: /.+[\\@].+\..+/, unique: true },
   password: { type: String },
-  profilePicture: { type: String }
+  profilePicture: { type: String },
+  twoFactorEnabled: { type: Boolean },
+  twoFactorSecret: { type: String },
+  twoFactorRecoverySecret: { type: String }
 }, { timestamps: true });
 
 export default mongoose.model('SystemAdmin', SystemAdminSchema)
@@ -125,6 +131,8 @@ You need to provide the following environment variables in a .env file for Mua t
 ```bash
 NODE_ENV=development # Environment mode (e.g., development, production)
 SECRETS=testsecret1 testsecret2 # Space-separated list of secrets used for token encryption
+
+APP_NAME=<app_name> # Your app name (will show it 2FA)
 
 APP_URL=<app_url> # The base URL of your application
 
