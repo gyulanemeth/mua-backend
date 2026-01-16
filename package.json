@@ -1,6 +1,6 @@
 {
   "name": "mua-backend",
-  "version": "0.5.4",
+  "version": "0.6.0",
   "description": "",
   "type": "module",
   "main": "src/index.js",
@@ -22,6 +22,7 @@
   "homepage": "https://github.com/gyulanemeth/mua-backend#readme",
   "dependencies": {
     "@aws-sdk/client-ses": "^3.131.0",
+    "2fa-util": "^1.5.0",
     "aws-sdk": "^2.1216.0",
     "bcrypt": "^6.0.0",
     "bearer-jwt-auth": "^1.0.1",

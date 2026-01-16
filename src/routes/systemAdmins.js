@@ -8,8 +8,10 @@ import { list, readOne, deleteOne, patchOne } from 'mongoose-crudl'
 import { AuthorizationError, MethodNotAllowedError, ValidationError, AuthenticationError } from 'standard-api-errors'
 import allowAccessTo from 'bearer-jwt-auth'
 import verifyAndUpgradePassword from '../helpers/verifyAndUpgradePassword.js'
+import { encrypt, decrypt } from '../helpers/decryptEncryptHandler.js'
 
 import aws from '../helpers/awsBucket.js'
+import mfa from '../helpers/mfa.js'
 
 export default async ({
   apiServer, SystemAdminModel
@@ -98,6 +100,66 @@ export default async ({
       status: 200,
       result: {
         accessToken: token
+      }
+    }
+  })
+
+  apiServer.get('/v1/system-admins/:id/mfa', async req => {
+    allowAccessTo(req, secrets, [{ type: 'admin' }])
+    const response = await readOne(SystemAdminModel, { id: req.params.id })
+    if (response.result.twoFactor?.enabled) {
+      return {
+        status: 200,
+        result: {
+          enabled: true,
+          recoverySecret: decrypt(response.result.twoFactor.recoverySecret)
+        }
+      }
+    }
+    const { secret, qrcode } = await mfa.generate({
+      label: response.result.email,
+      issuer: `${process.env.APP_NAME}-admin-${response.result._id}`
+    })
+    /* c8 ignore next */
+    await patchOne(SystemAdminModel, { id: req.params.id }, { twoFactor: { ...response.result.twoFactor || {}, secret: encrypt(secret) } })
+    return {
+      status: 200,
+      result: {
+        qrcode,
+        secret
+      }
+    }
+  })
+
+  apiServer.post('/v1/system-admins/:id/mfa', async req => {
+    allowAccessTo(req, secrets, [{ type: 'admin' }])
+    const user = await readOne(SystemAdminModel, { id: req.params.id })
+    const ok = mfa.validate({ code: req.body.code, secret: decrypt(user.result.twoFactor?.secret), window: 1 })
+    if (!ok) {
+      throw new ValidationError('Invalid 2FA Code')
+    }
+
+    const { recoveryCode } = mfa.generateRecoveryCode()
+    /* c8 ignore next */
+    await patchOne(SystemAdminModel, { id: req.params.id }, { twoFactor: { ...user.result.twoFactor || {}, enabled: true, recoverySecret: encrypt(recoveryCode) } })
+    return {
+      status: 200,
+      result: {
+        enabled: true,
+        recoverySecret: recoveryCode
+      }
+    }
+  })
+
+  apiServer.delete('/v1/system-admins/:id/mfa', async req => {
+    allowAccessTo(req, secrets, [{ type: 'admin' }])
+    const user = await readOne(SystemAdminModel, { id: req.params.id })
+    /* c8 ignore next */
+    await patchOne(SystemAdminModel, { id: req.params.id }, { twoFactor: { ...user.result.twoFactor || {}, enabled: false } })
+    return {
+      status: 200,
+      result: {
+        enabled: false
       }
     }
   })

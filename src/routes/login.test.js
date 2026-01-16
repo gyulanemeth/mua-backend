@@ -9,6 +9,9 @@ import passport from 'passport'
 import createMongooseMemoryServer from 'mongoose-memory'
 
 import login from './login.js'
+import { encrypt } from '../helpers/decryptEncryptHandler.js'
+
+import mfa from '../helpers/mfa.js'
 
 const mongooseMemoryServer = createMongooseMemoryServer(mongoose)
 
@@ -34,14 +37,24 @@ const UserTestModel = mongoose.model('UserTest', new mongoose.Schema({
   googleProfileId: { type: String },
   microsoftProfileId: { type: String },
   githubProfileId: { type: String },
-  verified: { type: Boolean, default: false }
+  verified: { type: Boolean, default: false },
+  twoFactor: {
+    enabled: { type: Boolean, default: false },
+    secret: { type: String },
+    recoverySecret: { type: String }
+  }
 }, { timestamps: true }))
 
 const SystemAdminTestModel = mongoose.model('SystemAdminTest', new mongoose.Schema({
   name: { type: String },
   email: { type: String, lowercase: true, required: true, match: /.+[\\@].+\..+/, unique: true },
   password: { type: String },
-  profilePicture: { type: String }
+  profilePicture: { type: String },
+  twoFactor: {
+    enabled: { type: Boolean, default: false },
+    secret: { type: String },
+    recoverySecret: { type: String }
+  }
 }, { timestamps: true }))
 
 describe('Accounts login test ', () => {
@@ -51,6 +64,8 @@ describe('Accounts login test ', () => {
     await mongooseMemoryServer.start()
     await mongooseMemoryServer.connect('test-db')
     process.env.NODE_ENV = 'development'
+    process.env.NODE_NAME = 'appName'
+    process.env.ENCRYPTION_SECRET_KEY = 'test123'
     process.env.SECRETS = 'verylongsecret1 verylongsecret2'
     process.env.APP_URL = 'http://app.emailfox.link/'
     process.env.BLUEFOX_TRANSACTIONAL_EMAIL_API_URL = 'http://app.emailfox.link/v1/send-transactional'
@@ -187,7 +202,7 @@ describe('Accounts login test ', () => {
     await fetchSpy.mockRestore()
   })
 
-  test('success login with urlFriendlyName  ', async () => {
+  test('success login with urlFriendlyName', async () => {
     const account1 = new AccountTestModel({ name: 'accountExample1', urlFriendlyName: 'urlFriendlyNameExample1' })
     await account1.save()
 
@@ -207,6 +222,118 @@ describe('Accounts login test ', () => {
       .send({ password: 'user1Password', email: user1.email })
 
     expect(res.body.status).toBe(200)
+  })
+
+  test('success login with 2fa', async () => {
+    const account1 = new AccountTestModel({ name: 'accountExample1', urlFriendlyName: 'urlFriendlyNameExample1' })
+    await account1.save()
+
+    const hash1 = await bcrypt.hash('user1Password', 10)
+    const user1 = new UserTestModel({ email: 'user1@gmail.com', name: 'user1', password: hash1, accountId: account1._id, verified: true, twoFactor: { enabled: true, secret: encrypt('secret'), recoverySecret: encrypt('recoveryCode') } })
+    await user1.save()
+
+    const hash2 = await bcrypt.hash('user2Password', 10)
+    const user2 = new UserTestModel({ email: 'user2@gmail.com', name: 'user2', password: hash2, accountId: account1._id, verified: true })
+    await user2.save()
+
+    const token = jwt.sign({ type: 'login', user: { email: user1.email } }, secrets[0])
+
+    const res = await request(app)
+      .post('/v1/accounts/' + account1._id + '/login')
+      .set('authorization', 'Bearer ' + token)
+      .send({ password: 'user1Password', email: user1.email })
+
+    expect(res.body.status).toBe(200)
+    expect(res.body.result.twoFactorLoginToken).toBeDefined()
+  })
+
+  test('success login 2fa with urlFriendlyName', async () => {
+    const account1 = new AccountTestModel({ name: 'accountExample1', urlFriendlyName: 'urlFriendlyNameExample1' })
+    await account1.save()
+
+    const hash1 = await bcrypt.hash('user1Password', 10)
+    const user1 = new UserTestModel({ email: 'user1@gmail.com', name: 'user1', password: hash1, accountId: account1._id, verified: true, twoFactor: { enabled: true, secret: encrypt('secret'), recoverySecret: encrypt('recoveryCode') } })
+    await user1.save()
+
+    const hash2 = await bcrypt.hash('user2Password', 10)
+    const user2 = new UserTestModel({ email: 'user2@gmail.com', name: 'user2', password: hash2, accountId: account1._id, verified: true })
+    await user2.save()
+
+    const res = await request(app)
+      .post('/v1/accounts/' + account1.urlFriendlyName + '/login/url-friendly-name')
+      .send({ password: 'user1Password', email: user1.email })
+
+    expect(res.body.status).toBe(200)
+    expect(res.body.result.twoFactorLoginToken).toBeDefined()
+  })
+
+  test('success mfa-login', async () => {
+    const mfaSpy = vi.spyOn(mfa, 'validate').mockImplementation(() => {
+      return true
+    })
+
+    const account1 = new AccountTestModel({ name: 'accountExample1', urlFriendlyName: 'urlFriendlyNameExample1' })
+    await account1.save()
+
+    const hash1 = await bcrypt.hash('user1Password', 10)
+    const user1 = new UserTestModel({ email: 'user1@gmail.com', name: 'user1', accountId: account1._id, verified: true, password: hash1, twoFactor: { enabled: true, secret: encrypt('secret'), recoverySecret: encrypt('recoveryCode') } })
+    await user1.save()
+
+    const token = jwt.sign({ type: '2fa-login', user: { _id: user1._id, email: user1._id }, account: { _id: account1._id } }, secrets[0])
+    const res = await request(app)
+      .post('/v1/accounts/mfa-login')
+      .set('authorization', 'Bearer ' + token)
+      .send({ code: '123123' })
+
+    expect(res.body.status).toBe(200)
+    expect(res.body.result.loginToken).toBeDefined()
+    await mfaSpy.mockRestore()
+  })
+
+  test('success mfa-login', async () => {
+    const mfaSpy = vi.spyOn(mfa, 'validate').mockImplementation(() => {
+      return true
+    })
+
+    const account1 = new AccountTestModel({ name: 'accountExample1', urlFriendlyName: 'urlFriendlyNameExample1' })
+    await account1.save()
+
+    const hash1 = await bcrypt.hash('user1Password', 10)
+    const user1 = new UserTestModel({ email: 'user1@gmail.com', name: 'user1', accountId: account1._id, verified: true, password: hash1, twoFactor: { enabled: true, secret: encrypt('secret'), recoverySecret: encrypt('twoFactorRecoverySecretTest') } })
+    await user1.save()
+
+    const token = jwt.sign({ type: '2fa-login', user: { _id: user1._id, email: user1._id }, account: { _id: account1._id } }, secrets[0])
+    const res = await request(app)
+      .post('/v1/accounts/mfa-login')
+      .set('authorization', 'Bearer ' + token)
+      .send({ recoveryCode: 'twoFactorRecoverySecretTest' })
+
+    expect(res.body.status).toBe(200)
+    expect(res.body.result.loginToken).toBeDefined()
+    await mfaSpy.mockRestore()
+  })
+
+  test('error invalid code mfa-login', async () => {
+    const mfaSpy = vi.spyOn(mfa, 'validate').mockImplementation(() => {
+      return false
+    })
+
+    const account1 = new AccountTestModel({ name: 'accountExample1', urlFriendlyName: 'urlFriendlyNameExample1' })
+    await account1.save()
+
+    const hash1 = await bcrypt.hash('user1Password', 10)
+    const user1 = new UserTestModel({ email: 'user1@gmail.com', name: 'user1', accountId: account1._id, verified: true, password: hash1, twoFactor: { enabled: true, secret: encrypt('secret'), recoverySecret: encrypt('recoveryCode') } })
+    await user1.save()
+
+    const token = jwt.sign({ type: '2fa-login', user: { _id: user1._id, email: user1._id }, account: { _id: account1._id } }, secrets[0])
+    const res = await request(app)
+      .post('/v1/accounts/mfa-login')
+      .set('authorization', 'Bearer ' + token)
+      .send({ code: '123123' })
+
+    expect(res.body.status).toBe(401)
+    expect(res.body.error.message).toBe('Invalid 2FA Code')
+    await mfaSpy.mockRestore()
   })
 
   test('success login with urlFriendlyName to client account ', async () => {
@@ -515,6 +642,7 @@ describe('Accounts login test ', () => {
 
 describe('System admin login test ', () => {
   let app
+  let secrets
   beforeAll(async () => {
     await mongooseMemoryServer.start()
     await mongooseMemoryServer.connect('test-db')
@@ -541,6 +669,7 @@ describe('System admin login test ', () => {
     process.env.AWS_SECRET_ACCESS_KEY = '<your_aws_secret_access_key>'
     process.env.ALPHA_MODE = 'false'
     process.env.MAX_FILE_SIZE = '5242880'
+    secrets = process.env.SECRETS.split(' ')
     app = createApiServer((e) => {
       if (e.code === 'LIMIT_FILE_SIZE') {
         return {
@@ -585,6 +714,82 @@ describe('System admin login test ', () => {
       .post('/v1/system-admins/login/')
       .send({ email: user1.email, password: 'user1Password' })
     expect(res.body.status).toBe(200)
+  })
+
+  test('login with 2fa', async () => {
+    const hash1 = await bcrypt.hash('user1Password', 10)
+    const user1 = new SystemAdminTestModel({ email: 'user1@gmail.com', name: 'user1', password: hash1, twoFactor: { enabled: true, secret: encrypt('secret'), recoverySecret: encrypt('recoveryCode') } })
+    await user1.save()
+
+    const hash2 = await bcrypt.hash('user2Password', 10)
+    const user2 = new SystemAdminTestModel({ email: 'user2@gmail.com', name: 'user2', password: hash2 })
+    await user2.save()
+
+    const res = await request(app)
+      .post('/v1/system-admins/login/')
+      .send({ email: user1.email, password: 'user1Password' })
+    expect(res.body.status).toBe(200)
+    expect(res.body.result.twoFactorLoginToken).toBeDefined()
+  })
+
+  test('success mfa-login', async () => {
+    const mfaSpy = vi.spyOn(mfa, 'validate').mockImplementation(() => {
+      return true
+    })
+
+    const hash1 = await bcrypt.hash('user1Password', 10)
+    const user1 = new SystemAdminTestModel({ email: 'user1@gmail.com', name: 'user1', password: hash1, twoFactor: { enabled: true, secret: encrypt('secret'), recoverySecret: encrypt('recoveryCode') } })
+    await user1.save()
+
+    const token = jwt.sign({ type: '2fa-login', user: { _id: user1._id, email: user1._id } }, secrets[0])
+    const res = await request(app)
+      .post('/v1/system-admins/mfa-login')
+      .set('authorization', 'Bearer ' + token)
+      .send({ code: '123123' })
+
+    expect(res.body.status).toBe(200)
+    expect(res.body.result.loginToken).toBeDefined()
+    await mfaSpy.mockRestore()
+  })
+
+  test('success mfa-login', async () => {
+    const mfaSpy = vi.spyOn(mfa, 'validate').mockImplementation(() => {
+      return true
+    })
+
+    const hash1 = await bcrypt.hash('user1Password', 10)
+    const user1 = new SystemAdminTestModel({ email: 'user1@gmail.com', name: 'user1', password: hash1, twoFactor: { enabled: true, secret: encrypt('secret'), recoverySecret: encrypt('twoFactorRecoverySecretTest') } })
+    await user1.save()
+
+    const token = jwt.sign({ type: '2fa-login', user: { _id: user1._id, email: user1._id } }, secrets[0])
+    const res = await request(app)
+      .post('/v1/system-admins/mfa-login')
+      .set('authorization', 'Bearer ' + token)
+      .send({ recoveryCode: 'twoFactorRecoverySecretTest' })
+
+    expect(res.body.status).toBe(200)
+    expect(res.body.result.loginToken).toBeDefined()
+    await mfaSpy.mockRestore()
+  })
+
+  test('error invalid code mfa-login', async () => {
+    const mfaSpy = vi.spyOn(mfa, 'validate').mockImplementation(() => {
+      return false
+    })
+
+    const hash1 = await bcrypt.hash('user1Password', 10)
+    const user1 = new SystemAdminTestModel({ email: 'user1@gmail.com', name: 'user1', password: hash1, twoFactor: { enabled: true, secret: encrypt('secret'), recoverySecret: encrypt('recoveryCode') } })
+    await user1.save()
+
+    const token = jwt.sign({ type: '2fa-login', user: { _id: user1._id, email: user1._id } }, secrets[0])
+    const res = await request(app)
+      .post('/v1/system-admins/mfa-login')
+      .set('authorization', 'Bearer ' + token)
+      .send({ code: '123123' })
+
+    expect(res.body.status).toBe(401)
+    expect(res.body.error.message).toBe('Invalid 2FA Code')
+    await mfaSpy.mockRestore()
   })
 
   test('login with wrong email', async () => {

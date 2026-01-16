@@ -14,6 +14,9 @@ import StaticServer from 'static-server'
 
 import path from 'path'
 import { fileURLToPath } from 'url'
+import { encrypt } from '../helpers/decryptEncryptHandler.js'
+
+import mfa from '../helpers/mfa.js'
 
 const mongooseMemoryServer = createMongooseMemoryServer(mongoose)
 
@@ -23,7 +26,12 @@ const SystemAdminTestModel = mongoose.model('Test', new mongoose.Schema({
   name: { type: String },
   email: { type: String, lowercase: true, required: true, match: /.+[\\@].+\..+/, unique: true },
   password: { type: String },
-  profilePicture: { type: String }
+  profilePicture: { type: String },
+  twoFactor: {
+    enabled: { type: Boolean, default: false },
+    secret: { type: String },
+    recoverySecret: { type: String }
+  }
 }, { timestamps: true }))
 
 describe('/v1/system-admins/ ', () => {
@@ -35,6 +43,8 @@ describe('/v1/system-admins/ ', () => {
     await mongooseMemoryServer.start()
     await mongooseMemoryServer.connect('test-db')
     process.env.NODE_ENV = 'development'
+    process.env.NODE_NAME = 'appName'
+    process.env.ENCRYPTION_SECRET_KEY = 'test123'
     process.env.SECRETS = 'verylongsecret1 verylongsecret2'
     process.env.BLUEFOX_TRANSACTIONAL_EMAIL_API_URL = 'http://app.emailfox.link/v1/send-transactional'
     process.env.BLUEFOX_API_KEY = '<your_bluefox_api_key>'
@@ -74,7 +84,7 @@ describe('/v1/system-admins/ ', () => {
           message: e.message
         }
       }
-    }, () => {})
+    }, () => { })
     admins({ apiServer: app, SystemAdminModel: SystemAdminTestModel })
     app = app._expressServer
 
@@ -616,7 +626,7 @@ describe('/v1/system-admins/ ', () => {
           message: e.message
         }
       }
-    }, () => {})
+    }, () => { })
     admins({ apiServer: sizeTestApp, SystemAdminModel: SystemAdminTestModel })
     sizeTestApp = sizeTestApp._expressServer
 
@@ -650,5 +660,93 @@ describe('/v1/system-admins/ ', () => {
     const pic = await fetch(uploadRes.body.result.profilePicture)
     expect(pic.status).toBe(404)
     expect(res.body.status).toBe(200)
+  })
+
+  test('success get mfa for user  /v1/system-admins/:id/mfa', async () => {
+    const hash1 = await bcrypt.hash('user1Password', 10)
+    const user1 = new SystemAdminTestModel({ email: 'user1@gmail.com', name: 'user1', password: hash1 })
+    await user1.save()
+
+    const token = jwt.sign({ type: 'admin' }, secrets[0])
+
+    const res = await request(app)
+      .get(`/v1/system-admins/${user1._id}/mfa`)
+      .set('authorization', 'Bearer ' + token)
+      .send()
+
+    expect(res.body.status).toBe(200)
+    expect(res.body.result.qrcode).toBeDefined()
+    expect(res.body.result.secret).toBeDefined()
+  })
+
+  test('success get mfa for user already enabled /v1/system-admins/:id/mfa', async () => {
+    const hash1 = await bcrypt.hash('user1Password', 10)
+    const user1 = new SystemAdminTestModel({ email: 'user1@gmail.com', name: 'user1', password: hash1, twoFactor: { enabled: true, secret: encrypt('secret'), recoverySecret: encrypt('recoveryCode') } })
+    await user1.save()
+
+    const token = jwt.sign({ type: 'admin' }, secrets[0])
+
+    const res = await request(app)
+      .get(`/v1/system-admins/${user1._id}/mfa`)
+      .set('authorization', 'Bearer ' + token)
+      .send()
+
+    expect(res.body.status).toBe(200)
+    expect(res.body.result.enabled).toBe(true)
+    expect(res.body.result.recoverySecret).toBeDefined()
+  })
+
+  test('success confirm mfa for user /v1/system-admins/:id/mfa', async () => {
+    const mfaSpy = vi.spyOn(mfa, 'validate').mockImplementation(() => {
+      return true
+    })
+
+    const hash1 = await bcrypt.hash('user1Password', 10)
+    const user1 = new SystemAdminTestModel({ email: 'user1@gmail.com', name: 'user1', password: hash1, twoFactor: { enabled: false, secret: encrypt('secret'), recoverySecret: encrypt('recoveryCode') } })
+    await user1.save()
+
+    const token = jwt.sign({ type: 'admin' }, secrets[0])
+
+    const res = await request(app)
+      .post(`/v1/system-admins/${user1._id}/mfa`)
+      .set('authorization', 'Bearer ' + token)
+      .send({ code: '123456' })
+
+    expect(res.body.status).toBe(200)
+    expect(res.body.result.enabled).toBe(true)
+    expect(res.body.result.recoverySecret).toBeDefined()
+    await mfaSpy.mockRestore()
+  })
+
+  test('success confirm mfa for user /v1/system-admins/:id/mfa', async () => {
+    const hash1 = await bcrypt.hash('user1Password', 10)
+    const user1 = new SystemAdminTestModel({ email: 'user1@gmail.com', name: 'user1', password: hash1, twoFactor: { enabled: false, secret: encrypt('secret'), recoverySecret: encrypt('recoveryCode') } })
+    await user1.save()
+
+    const token = jwt.sign({ type: 'admin' }, secrets[0])
+
+    const res = await request(app)
+      .post(`/v1/system-admins/${user1._id}/mfa`)
+      .set('authorization', 'Bearer ' + token)
+      .send({ code: '123456' })
+
+    expect(res.body.status).toBe(400)
+    expect(res.body.error.message).toBe('Invalid 2FA Code')
+  })
+
+  test('success disable mfa for user /v1/system-admins/:id/mfa', async () => {
+    const hash1 = await bcrypt.hash('user1Password', 10)
+    const user1 = new SystemAdminTestModel({ email: 'user1@gmail.com', name: 'user1', password: hash1, twoFactor: { enabled: true, secret: encrypt('secret'), recoverySecret: encrypt('recoveryCode') } })
+    await user1.save()
+
+    const token = jwt.sign({ type: 'admin' }, secrets[0])
+
+    const res = await request(app)
+      .delete(`/v1/system-admins/${user1._id}/mfa`)
+      .set('authorization', 'Bearer ' + token)
+      .send()
+
+    expect(res.body.status).toBe(200)
+    expect(res.body.result.enabled).toBe(false)
   })
 })

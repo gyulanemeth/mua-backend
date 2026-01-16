@@ -12,8 +12,10 @@ import aws from '../helpers/awsBucket.js'
 
 import path from 'path'
 import { fileURLToPath } from 'url'
+import { encrypt } from '../helpers/decryptEncryptHandler.js'
 
 import users from './users.js'
+import mfa from '../helpers/mfa.js'
 
 const mongooseMemoryServer = createMongooseMemoryServer(mongoose)
 
@@ -45,7 +47,12 @@ const UserTestModel = mongoose.model('UserTest', new mongoose.Schema({
   profilePicture: { type: String },
   googleProfileId: { type: String },
   microsoftProfileId: { type: String },
-  githubProfileId: { type: String }
+  githubProfileId: { type: String },
+  twoFactor: {
+    enabled: { type: Boolean, default: false },
+    secret: { type: String },
+    recoverySecret: { type: String }
+  }
 }, { timestamps: true }))
 
 describe('users test', () => {
@@ -57,6 +64,8 @@ describe('users test', () => {
     await mongooseMemoryServer.start()
     await mongooseMemoryServer.connect('test-db')
     process.env.NODE_ENV = 'development'
+    process.env.NODE_NAME = 'appName'
+    process.env.ENCRYPTION_SECRET_KEY = 'test123'
     process.env.SECRETS = 'verylongsecret1 verylongsecret2'
     process.env.APP_URL = 'http://app.emailfox.link/'
     process.env.BLUEFOX_TRANSACTIONAL_EMAIL_API_URL = 'http://app.emailfox.link/v1/send-transactional'
@@ -1680,5 +1689,119 @@ describe('users test', () => {
     expect(res.body.status).toBe(405)
     expect(res.body.error.name).toBe('METHOD_NOT_ALLOWED')
     expect(res.body.error.message).toBe('Password is required')
+  })
+
+  test('success get mfa for user  /v1/accounts/:accountId/users/:id/mfa', async () => {
+    const account1 = new AccountTestModel({ name: 'accountExample1', urlFriendlyName: 'urlFriendlyNameExample1' })
+    await account1.save()
+
+    const hash1 = await bcrypt.hash('user1Password', 10)
+    const user1 = new UserTestModel({ email: 'user1@gmail.com', name: 'user1', password: hash1, accountId: account1._id })
+    await user1.save()
+
+    const token = jwt.sign({ type: 'admin' }, secrets[0])
+
+    const res = await request(app)
+      .get('/v1/accounts/' + account1._id + '/users/' + user1._id + '/mfa')
+      .set('authorization', 'Bearer ' + token)
+      .send()
+
+    expect(res.body.status).toBe(200)
+    expect(res.body.result.qrcode).toBeDefined()
+    expect(res.body.result.secret).toBeDefined()
+  })
+
+  test('success get mfa for user already enabled /v1/accounts/:accountId/users/:id/mfa', async () => {
+    const account1 = new AccountTestModel({ name: 'accountExample1', urlFriendlyName: 'urlFriendlyNameExample1' })
+    await account1.save()
+
+    const hash1 = await bcrypt.hash('user1Password', 10)
+    const user1 = new UserTestModel({ email: 'user1@gmail.com', name: 'user1', password: hash1, accountId: account1._id, twoFactor: { enabled: true, secret: encrypt('secret'), recoverySecret: encrypt('recoveryCode') } })
+    await user1.save()
+
+    const token = jwt.sign({ type: 'admin' }, secrets[0])
+
+    const res = await request(app)
+      .get('/v1/accounts/' + account1._id + '/users/' + user1._id + '/mfa')
+      .set('authorization', 'Bearer ' + token)
+      .send()
+
+    expect(res.body.status).toBe(200)
+    expect(res.body.result.enabled).toBe(true)
+    expect(res.body.result.recoverySecret).toBeDefined()
+  })
+
+  test('success confirm mfa for user /v1/accounts/:accountId/users/:id/mfa', async () => {
+    const mfaSpy = vi.spyOn(mfa, 'validate').mockImplementation(() => {
+      return true
+    })
+    const account1 = new AccountTestModel({ name: 'accountExample1', urlFriendlyName: 'urlFriendlyNameExample1' })
+    await account1.save()
+
+    const hash1 = await bcrypt.hash('user1Password', 10)
+    const user1 = new UserTestModel({
+      email: 'user1@gmail.com',
+      name: 'user1',
+      password: hash1,
+      accountId: account1._id,
+      twoFactor: { enabled: false, secret: encrypt('secret'), recoverySecret: encrypt('recoveryCode') }
+    })
+    await user1.save()
+
+    const token = jwt.sign({ type: 'admin' }, secrets[0])
+
+    const res = await request(app)
+      .post(`/v1/accounts/${account1._id}/users/${user1._id}/mfa`)
+      .set('authorization', 'Bearer ' + token)
+      .send({ code: '123456' })
+
+    expect(res.body.status).toBe(200)
+    expect(res.body.result.enabled).toBe(true)
+    expect(res.body.result.recoverySecret).toBeDefined()
+    await mfaSpy.mockRestore()
+  })
+
+  test('success confirm mfa for user /v1/accounts/:accountId/users/:id/mfa', async () => {
+    const account1 = new AccountTestModel({ name: 'accountExample1', urlFriendlyName: 'urlFriendlyNameExample1' })
+    await account1.save()
+
+    const hash1 = await bcrypt.hash('user1Password', 10)
+    const user1 = new UserTestModel({
+      email: 'user1@gmail.com',
+      name: 'user1',
+      password: hash1,
+      accountId: account1._id,
+      twoFactor: { enabled: false, secret: encrypt('secret'), recoverySecret: encrypt('recoveryCode') }
+    })
+    await user1.save()
+
+    const token = jwt.sign({ type: 'admin' }, secrets[0])
+
+    const res = await request(app)
+      .post(`/v1/accounts/${account1._id}/users/${user1._id}/mfa`)
+      .set('authorization', 'Bearer ' + token)
+      .send({ code: '123456' })
+
+    expect(res.body.status).toBe(400)
+    expect(res.body.error.message).toBe('Invalid 2FA Code')
+  })
+
+  test('success disable mfa for user /v1/accounts/:accountId/users/:id/mfa', async () => {
+    const account1 = new AccountTestModel({ name: 'accountExample1', urlFriendlyName: 'urlFriendlyNameExample1' })
+    await account1.save()
+
+    const hash1 = await bcrypt.hash('user1Password', 10)
+    const user1 = new UserTestModel({ email: 'user1@gmail.com', name: 'user1', password: hash1, accountId: account1._id, twoFactor: { enabled: true, secret: encrypt('secret'), recoverySecret: encrypt('recoveryCode') } })
+    await user1.save()
+
+    const token = jwt.sign({ type: 'admin' }, secrets[0])
+
+    const res = await request(app)
+      .delete('/v1/accounts/' + account1._id + '/users/' + user1._id + '/mfa')
+      .set('authorization', 'Bearer ' + token)
+      .send()
+
+    expect(res.body.status).toBe(200)
+    expect(res.body.result.enabled).toBe(false)
   })
 })

@@ -8,8 +8,10 @@ import { fileTypeFromBuffer } from 'file-type'
 import { list, readOne, deleteOne, patchOne, createOne } from 'mongoose-crudl'
 import { MethodNotAllowedError, ValidationError, AuthenticationError } from 'standard-api-errors'
 import verifyAndUpgradePassword from '../helpers/verifyAndUpgradePassword.js'
+import { encrypt, decrypt } from '../helpers/decryptEncryptHandler.js'
 
 import aws from '../helpers/awsBucket.js'
+import mfa from '../helpers/mfa.js'
 
 export default async ({
   apiServer, UserModel, AccountModel, ProjectModel, hooks = {
@@ -138,6 +140,67 @@ export default async ({
     }
     const updatedUser = await patchOne(UserModel, { id: req.params.id, accountId: req.params.accountId }, req.body, { password: 0, googleProfileId: 0, microsoftProfileId: 0, githubProfileId: 0 })
     return updatedUser
+  })
+
+  apiServer.get('/v1/accounts/:accountId/users/:id/mfa', async req => {
+    allowAccessTo(req, secrets, [{ type: 'admin' }, { type: 'user', user: { _id: req.params.id }, account: { _id: req.params.accountId } }])
+    const response = await readOne(UserModel, { id: req.params.id, accountId: req.params.accountId })
+    if (response.result.twoFactor?.enabled) {
+      return {
+        status: 200,
+        result: {
+          enabled: true,
+          recoverySecret: decrypt(response.result.twoFactor.recoverySecret)
+        }
+      }
+    }
+    const { secret, qrcode } = await mfa.generate({
+      label: response.result.email,
+      issuer: `${process.env.APP_NAME}-user-${response.result._id}-account-${response.result.accountId}`
+    })
+
+    /* c8 ignore next */
+    await patchOne(UserModel, { id: req.params.id, accountId: req.params.accountId }, { twoFactor: { ...response.result.twoFactor || {}, secret: encrypt(secret) } })
+    return {
+      status: 200,
+      result: {
+        qrcode,
+        secret
+      }
+    }
+  })
+
+  apiServer.post('/v1/accounts/:accountId/users/:id/mfa', async req => {
+    allowAccessTo(req, secrets, [{ type: 'admin' }, { type: 'user', user: { _id: req.params.id }, account: { _id: req.params.accountId } }])
+    const user = await readOne(UserModel, { id: req.params.id, accountId: req.params.accountId })
+    const ok = mfa.validate({ code: req.body.code, secret: decrypt(user.result.twoFactor?.secret), window: 1 })
+    if (!ok) {
+      throw new ValidationError('Invalid 2FA Code')
+    }
+
+    const { recoveryCode } = mfa.generateRecoveryCode()
+    /* c8 ignore next */
+    await patchOne(UserModel, { id: req.params.id, accountId: req.params.accountId }, { twoFactor: { ...user.result.twoFactor || {}, enabled: true, recoverySecret: encrypt(recoveryCode) } })
+    return {
+      status: 200,
+      result: {
+        enabled: true,
+        recoverySecret: recoveryCode
+      }
+    }
+  })
+
+  apiServer.delete('/v1/accounts/:accountId/users/:id/mfa', async req => {
+    allowAccessTo(req, secrets, [{ type: 'admin' }, { type: 'user', user: { _id: req.params.id }, account: { _id: req.params.accountId } }])
+    const user = await readOne(UserModel, { id: req.params.id, accountId: req.params.accountId })
+    /* c8 ignore next */
+    await patchOne(UserModel, { id: req.params.id, accountId: req.params.accountId }, { twoFactor: { ...user.result.twoFactor || {}, enabled: false } })
+    return {
+      status: 200,
+      result: {
+        enabled: false
+      }
+    }
   })
 
   apiServer.patch('/v1/accounts/:accountId/users/:id/email', async req => {
