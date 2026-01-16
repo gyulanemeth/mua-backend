@@ -8,9 +8,6 @@ export default {
   },
 
   validate: ({ code, secret, window = 1 }) => {
-    if (!code || !secret) {
-      return false
-    }
     return verify(String(code), secret, { window })
   },
 

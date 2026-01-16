@@ -1,8 +1,7 @@
 import crypto from 'crypto'
 
-const key = process.env.ENCRYPTION_SECRET_KEY
-
 function encrypt (data) {
+  const key = process.env.ENCRYPTION_SECRET_KEY
   if (data) {
     const encryptKey = key.repeat(32).substr(0, 32)
     const iv = key.repeat(16).substr(0, 16)
@@ -13,6 +12,7 @@ function encrypt (data) {
 }
 
 function decrypt (data) {
+  const key = process.env.ENCRYPTION_SECRET_KEY
   if (data) {
     const encryptKey = key.repeat(32).substr(0, 32)
     const iv = key.repeat(16).substr(0, 16)

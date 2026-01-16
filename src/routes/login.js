@@ -276,6 +276,18 @@ export default ({
         _id: getAccount.result._id
       }
     }
+
+    if (findUser.result.items[0].twoFactorEnabled) {
+      payload.type = '2fa-login'
+      const token = jwt.sign(payload, secrets[0], { expiresIn: '24h' })
+      return {
+        status: 200,
+        result: {
+          twoFactorLoginToken: token
+        }
+      }
+    }
+
     const token = jwt.sign(payload, secrets[0], { expiresIn: '24h' })
     return {
       status: 200,
@@ -395,7 +407,7 @@ export default ({
       ok = mfa.validate({ code: req.body.code, secret: decrypt(user.result.twoFactorSecret), window: 1 })
     }
     if (!ok) {
-      throw new AuthenticationError('INVALID_2FA_CODE')
+      throw new AuthenticationError('Invalid 2FA Code')
     }
     const payload = {
       type: 'login',
@@ -422,7 +434,7 @@ export default ({
       ok = mfa.validate({ code: req.body.code, secret: decrypt(user.result.twoFactorSecret), window: 1 })
     }
     if (!ok) {
-      throw new AuthenticationError('INVALID_2FA_CODE')
+      throw new AuthenticationError('Invalid 2FA Code')
     }
     const payload = {
       type: 'login',

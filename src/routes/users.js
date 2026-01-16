@@ -174,7 +174,7 @@ export default async ({
     const user = await readOne(UserModel, { id: req.params.id, accountId: req.params.accountId })
     const ok = mfa.validate({ code: req.body.code, secret: decrypt(user.result.twoFactorSecret), window: 1 })
     if (!ok) {
-      throw new ValidationError('INVALID_2FA_CODE')
+      throw new ValidationError('Invalid 2FA Code')
     }
 
     const { recoveryCode } = mfa.generateRecoveryCode()
