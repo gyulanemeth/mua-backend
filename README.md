@@ -132,6 +132,8 @@ You need to provide the following environment variables in a .env file for Mua t
 NODE_ENV=development # Environment mode (e.g., development, production)
 SECRETS=testsecret1 testsecret2 # Space-separated list of secrets used for token encryption
 
+ENCRYPTION_SECRET_KEY=<app_name> # Your 2FA secrets will be encrypted in db using this key
+
 APP_NAME=<app_name> # Your app name (will show it 2FA)
 
 APP_URL=<app_url> # The base URL of your application
@@ -251,6 +253,9 @@ Developers using mua can rely on the seamless integration with the mua-frontend,
 | `/v1/system-admins/:id/email-confirm`                       | PATCH   | Confirm system admin email.                           |
 | `/v1/system-admins/:id/profile-picture`                     | DELETE  | Delete system admin profile picture.                  |
 | `/v1/system-admins/:id`                                     | DELETE  | Delete a system admin.                                |
+| `/v1/system-admins/:id/mfa`                                 | GET     | Get 2FA Qr and code.                                  |
+| `/v1/system-admins/:id/mfa`                                 | POST    | Confirm and enable system admin 2FA.                  |
+| `/v1/system-admins/:id/mfa`                                 | DELETE  | Disable system admin 2FA.                             |
 
 ### Users routes
 
@@ -268,6 +273,9 @@ Developers using mua can rely on the seamless integration with the mua-frontend,
 | `/v1/accounts/:accountId/users/:id/email-confirm`           | PATCH   | Confirm user email.                                   |
 | `/v1/accounts/:accountId/users/:id/profile-picture`         | DELETE  | Delete user profile picture.                          |
 | `/v1/accounts/:accountId/users/:id`                         | DELETE  | Delete a user in account.                             |
+| `/v1/accounts/:accountId/users/:id/mfa`                     | GET     | Get 2FA Qr and code.                                  |
+| `/v1/accounts/:accountId/users/:id/mfa`                     | POST    | Confirm and enable user 2FA.                          |
+| `/v1/accounts/:accountId/users/:id/mfa`                     | DELETE  | Disable user 2FA.                                     |
 
 ### Auth routes
 
@@ -276,7 +284,9 @@ Developers using mua can rely on the seamless integration with the mua-frontend,
 | `/v1/accounts/:id/login`                                    | POST    | Log in to an account.                                 |
 | `/v1/accounts/:id/login/url-friendly-name`                  | POST    | Log in using URL-friendly name.                       |
 | `/v1/accounts/login`                                        | POST    | Log in to any account.                                |
+| `/v1/accounts/mfa-login`                                    | POST    | Enter 2FA code or recovery code to login              |
 | `/v1/system-admins/login`                                   | POST    | Log in as system admin.                               |
+| `/v1/system-admins/mfa-login`                               | POST    | Enter 2FA code or recovery code to login              |
 | `/v1/accounts/:accountId/users/:id/finalize-registration`   | POST    | Finalize user registration in account.                |
 | `/v1/accounts/:accountId/users/:userId/resend-finalize-registration` | POST | Resend finalize registration for a user.        |
 | `/v1/accounts/:accountId/users/:id/access-token`            | GET     | Retrieve user access token in account.                |
