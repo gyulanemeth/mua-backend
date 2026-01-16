@@ -107,12 +107,12 @@ export default async ({
   apiServer.get('/v1/system-admins/:id/mfa', async req => {
     allowAccessTo(req, secrets, [{ type: 'admin' }])
     const response = await readOne(SystemAdminModel, { id: req.params.id })
-    if (response.result.twoFactorEnabled) {
+    if (response.result.twoFactor?.enabled) {
       return {
         status: 200,
         result: {
           enabled: true,
-          recoverySecret: decrypt(response.result.twoFactorRecoverySecret)
+          recoverySecret: decrypt(response.result.twoFactor.recoverySecret)
         }
       }
     }
@@ -121,7 +121,7 @@ export default async ({
       issuer: `${process.env.APP_NAME}-admin-${response.result._id}`
     })
 
-    await patchOne(SystemAdminModel, { id: req.params.id }, { twoFactorSecret: encrypt(secret) })
+    await patchOne(SystemAdminModel, { id: req.params.id }, { twoFactor: { ...response.result.twoFactor || {}, secret: encrypt(secret) } })
     return {
       status: 200,
       result: {
@@ -134,13 +134,13 @@ export default async ({
   apiServer.post('/v1/system-admins/:id/mfa', async req => {
     allowAccessTo(req, secrets, [{ type: 'admin' }])
     const user = await readOne(SystemAdminModel, { id: req.params.id })
-    const ok = mfa.validate({ code: req.body.code, secret: decrypt(user.result.twoFactorSecret), window: 1 })
+    const ok = mfa.validate({ code: req.body.code, secret: decrypt(user.result.twoFactor?.secret), window: 1 })
     if (!ok) {
       throw new ValidationError('Invalid 2FA Code')
     }
 
     const { recoveryCode } = mfa.generateRecoveryCode()
-    await patchOne(SystemAdminModel, { id: req.params.id }, { twoFactorEnabled: true, twoFactorRecoverySecret: encrypt(recoveryCode) })
+    await patchOne(SystemAdminModel, { id: req.params.id }, { twoFactor: { ...user.result.twoFactor || {}, enabled: true, recoverySecret: encrypt(recoveryCode) } })
     return {
       status: 200,
       result: {
@@ -152,7 +152,8 @@ export default async ({
 
   apiServer.delete('/v1/system-admins/:id/mfa', async req => {
     allowAccessTo(req, secrets, [{ type: 'admin' }])
-    await patchOne(SystemAdminModel, { id: req.params.id }, { twoFactorEnabled: false })
+    const user = await readOne(SystemAdminModel, { id: req.params.id })
+    await patchOne(SystemAdminModel, { id: req.params.id }, { twoFactor: { ...user.result.twoFactor || {}, enabled: false } })
     return {
       status: 200,
       result: {

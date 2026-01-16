@@ -65,9 +65,11 @@ const UserSchema = new mongoose.Schema({
   profilePicture: { type: String },
   verified: { type: Boolean, default: false },
   deleted: { type: Boolean },
-  twoFactorEnabled: { type: Boolean },
-  twoFactorSecret: { type: String },
-  twoFactorRecoverySecret: { type: String }
+  twoFactor: {
+    enabled: { type: Boolean, default: false },
+    secret: { type: String },
+    recoverySecret: { type: String }
+  }
 }, { timestamps: true })
 
 export default mongoose.model('User', UserSchema)
@@ -95,9 +97,11 @@ const SystemAdminSchema = new mongoose.Schema({
   email: { type: String, lowercase: true, required: true, match: /.+[\\@].+\..+/, unique: true },
   password: { type: String },
   profilePicture: { type: String },
-  twoFactorEnabled: { type: Boolean },
-  twoFactorSecret: { type: String },
-  twoFactorRecoverySecret: { type: String }
+  twoFactor: {
+    enabled: { type: Boolean, default: false },
+    secret: { type: String },
+    recoverySecret: { type: String }
+  }
 }, { timestamps: true });
 
 export default mongoose.model('SystemAdmin', SystemAdminSchema)

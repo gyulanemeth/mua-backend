@@ -277,7 +277,7 @@ export default ({
       }
     }
 
-    if (findUser.result.items[0].twoFactorEnabled) {
+    if (findUser.result.items[0].twoFactor?.enabled) {
       payload.type = '2fa-login'
       const token = jwt.sign(payload, secrets[0], { expiresIn: '24h' })
       return {
@@ -348,7 +348,7 @@ export default ({
       })
     }
 
-    if (findUser.result.items[0].twoFactorEnabled) {
+    if (findUser.result.items[0].twoFactor?.enabled) {
       payload.type = '2fa-login'
       const token = jwt.sign(payload, secrets[0], { expiresIn: '24h' })
       return {
@@ -400,11 +400,11 @@ export default ({
     const data = allowAccessTo(req, secrets, [{ type: '2fa-login' }])
     const user = await readOne(UserModel, { id: data.user._id })
     let ok = false
-    if (req.body.recoveryCode && req.body.recoveryCode === decrypt(user.result.twoFactorRecoverySecret)) {
-      await patchOne(UserModel, { id: user.result._id }, { twoFactorEnabled: false })
+    if (req.body.recoveryCode && req.body.recoveryCode === decrypt(user.result.twoFactor?.recoverySecret)) {
+      await patchOne(UserModel, { id: user.result._id }, { twoFactor: { ...user.result.twoFactor || {}, enabled: false } })
       ok = true
     } else if (req.body.code) {
-      ok = mfa.validate({ code: req.body.code, secret: decrypt(user.result.twoFactorSecret), window: 1 })
+      ok = mfa.validate({ code: req.body.code, secret: decrypt(user.result.twoFactor?.secret), window: 1 })
     }
     if (!ok) {
       throw new AuthenticationError('Invalid 2FA Code')
@@ -427,11 +427,11 @@ export default ({
     const data = allowAccessTo(req, secrets, [{ type: '2fa-login' }])
     const user = await readOne(SystemAdminModel, { id: data.user._id })
     let ok = false
-    if (req.body.recoveryCode && req.body.recoveryCode === decrypt(user.result.twoFactorRecoverySecret)) {
-      await patchOne(SystemAdminModel, { id: user.result._id }, { twoFactorEnabled: false })
+    if (req.body.recoveryCode && req.body.recoveryCode === decrypt(user.result.twoFactor?.recoverySecret)) {
+      await patchOne(SystemAdminModel, { id: user.result._id }, { twoFactor: { ...user.result.twoFactor || {}, enabled: false } })
       ok = true
     } else if (req.body.code) {
-      ok = mfa.validate({ code: req.body.code, secret: decrypt(user.result.twoFactorSecret), window: 1 })
+      ok = mfa.validate({ code: req.body.code, secret: decrypt(user.result.twoFactor?.secret), window: 1 })
     }
     if (!ok) {
       throw new AuthenticationError('Invalid 2FA Code')
@@ -465,7 +465,7 @@ export default ({
       }
     }
 
-    if (findUser.result.items[0].twoFactorEnabled) {
+    if (findUser.result.items[0].twoFactor?.enabled) {
       payload.type = '2fa-login'
       const token = jwt.sign(payload, secrets[0], { expiresIn: '24h' })
       return {

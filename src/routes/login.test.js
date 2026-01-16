@@ -38,9 +38,11 @@ const UserTestModel = mongoose.model('UserTest', new mongoose.Schema({
   microsoftProfileId: { type: String },
   githubProfileId: { type: String },
   verified: { type: Boolean, default: false },
-  twoFactorEnabled: { type: Boolean },
-  twoFactorSecret: { type: String },
-  twoFactorRecoverySecret: { type: String }
+  twoFactor: {
+    enabled: { type: Boolean, default: false },
+    secret: { type: String },
+    recoverySecret: { type: String }
+  }
 }, { timestamps: true }))
 
 const SystemAdminTestModel = mongoose.model('SystemAdminTest', new mongoose.Schema({
@@ -48,9 +50,11 @@ const SystemAdminTestModel = mongoose.model('SystemAdminTest', new mongoose.Sche
   email: { type: String, lowercase: true, required: true, match: /.+[\\@].+\..+/, unique: true },
   password: { type: String },
   profilePicture: { type: String },
-  twoFactorEnabled: { type: Boolean },
-  twoFactorSecret: { type: String },
-  twoFactorRecoverySecret: { type: String }
+  twoFactor: {
+    enabled: { type: Boolean, default: false },
+    secret: { type: String },
+    recoverySecret: { type: String }
+  }
 }, { timestamps: true }))
 
 describe('Accounts login test ', () => {
@@ -225,7 +229,7 @@ describe('Accounts login test ', () => {
     await account1.save()
 
     const hash1 = await bcrypt.hash('user1Password', 10)
-    const user1 = new UserTestModel({ email: 'user1@gmail.com', name: 'user1', password: hash1, accountId: account1._id, verified: true, twoFactorEnabled: true })
+    const user1 = new UserTestModel({ email: 'user1@gmail.com', name: 'user1', password: hash1, accountId: account1._id, verified: true, twoFactor: { enabled: true, secret: encrypt('secret'), recoverySecret: encrypt('recoveryCode') } })
     await user1.save()
 
     const hash2 = await bcrypt.hash('user2Password', 10)
@@ -248,7 +252,7 @@ describe('Accounts login test ', () => {
     await account1.save()
 
     const hash1 = await bcrypt.hash('user1Password', 10)
-    const user1 = new UserTestModel({ email: 'user1@gmail.com', name: 'user1', password: hash1, accountId: account1._id, verified: true, twoFactorEnabled: true })
+    const user1 = new UserTestModel({ email: 'user1@gmail.com', name: 'user1', password: hash1, accountId: account1._id, verified: true, twoFactor: { enabled: true, secret: encrypt('secret'), recoverySecret: encrypt('recoveryCode') } })
     await user1.save()
 
     const hash2 = await bcrypt.hash('user2Password', 10)
@@ -272,7 +276,7 @@ describe('Accounts login test ', () => {
     await account1.save()
 
     const hash1 = await bcrypt.hash('user1Password', 10)
-    const user1 = new UserTestModel({ email: 'user1@gmail.com', name: 'user1', accountId: account1._id, verified: true, password: hash1, twoFactorEnabled: true, twoFactorSecret: encrypt('twoFactorSecretTest'), twoFactorRecoverySecret: encrypt('twoFactorRecoverySecretTest') })
+    const user1 = new UserTestModel({ email: 'user1@gmail.com', name: 'user1', accountId: account1._id, verified: true, password: hash1, twoFactor: { enabled: true, secret: encrypt('secret'), recoverySecret: encrypt('recoveryCode') } })
     await user1.save()
 
     const token = jwt.sign({ type: '2fa-login', user: { _id: user1._id, email: user1._id }, account: { _id: account1._id } }, secrets[0])
@@ -295,7 +299,7 @@ describe('Accounts login test ', () => {
     await account1.save()
 
     const hash1 = await bcrypt.hash('user1Password', 10)
-    const user1 = new UserTestModel({ email: 'user1@gmail.com', name: 'user1', accountId: account1._id, verified: true, password: hash1, twoFactorEnabled: true, twoFactorSecret: encrypt('twoFactorSecretTest'), twoFactorRecoverySecret: encrypt('twoFactorRecoverySecretTest') })
+    const user1 = new UserTestModel({ email: 'user1@gmail.com', name: 'user1', accountId: account1._id, verified: true, password: hash1, twoFactor: { enabled: true, secret: encrypt('secret'), recoverySecret: encrypt('twoFactorRecoverySecretTest') } })
     await user1.save()
 
     const token = jwt.sign({ type: '2fa-login', user: { _id: user1._id, email: user1._id }, account: { _id: account1._id } }, secrets[0])
@@ -318,7 +322,7 @@ describe('Accounts login test ', () => {
     await account1.save()
 
     const hash1 = await bcrypt.hash('user1Password', 10)
-    const user1 = new UserTestModel({ email: 'user1@gmail.com', name: 'user1', accountId: account1._id, verified: true, password: hash1, twoFactorEnabled: true, twoFactorSecret: encrypt('twoFactorSecretTest'), twoFactorRecoverySecret: encrypt('twoFactorRecoverySecretTest') })
+    const user1 = new UserTestModel({ email: 'user1@gmail.com', name: 'user1', accountId: account1._id, verified: true, password: hash1, twoFactor: { enabled: true, secret: encrypt('secret'), recoverySecret: encrypt('recoveryCode') } })
     await user1.save()
 
     const token = jwt.sign({ type: '2fa-login', user: { _id: user1._id, email: user1._id }, account: { _id: account1._id } }, secrets[0])
@@ -714,7 +718,7 @@ describe('System admin login test ', () => {
 
   test('login with 2fa', async () => {
     const hash1 = await bcrypt.hash('user1Password', 10)
-    const user1 = new SystemAdminTestModel({ email: 'user1@gmail.com', name: 'user1', password: hash1, twoFactorEnabled: true })
+    const user1 = new SystemAdminTestModel({ email: 'user1@gmail.com', name: 'user1', password: hash1, twoFactor: { enabled: true, secret: encrypt('secret'), recoverySecret: encrypt('recoveryCode') } })
     await user1.save()
 
     const hash2 = await bcrypt.hash('user2Password', 10)
@@ -734,7 +738,7 @@ describe('System admin login test ', () => {
     })
 
     const hash1 = await bcrypt.hash('user1Password', 10)
-    const user1 = new SystemAdminTestModel({ email: 'user1@gmail.com', name: 'user1', password: hash1, twoFactorEnabled: true, twoFactorSecret: encrypt('twoFactorSecretTest'), twoFactorRecoverySecret: encrypt('twoFactorRecoverySecretTest') })
+    const user1 = new SystemAdminTestModel({ email: 'user1@gmail.com', name: 'user1', password: hash1, twoFactor: { enabled: true, secret: encrypt('secret'), recoverySecret: encrypt('recoveryCode') } })
     await user1.save()
 
     const token = jwt.sign({ type: '2fa-login', user: { _id: user1._id, email: user1._id } }, secrets[0])
@@ -754,7 +758,7 @@ describe('System admin login test ', () => {
     })
 
     const hash1 = await bcrypt.hash('user1Password', 10)
-    const user1 = new SystemAdminTestModel({ email: 'user1@gmail.com', name: 'user1', password: hash1, twoFactorEnabled: true, twoFactorSecret: encrypt('twoFactorSecretTest'), twoFactorRecoverySecret: encrypt('twoFactorRecoverySecretTest') })
+    const user1 = new SystemAdminTestModel({ email: 'user1@gmail.com', name: 'user1', password: hash1, twoFactor: { enabled: true, secret: encrypt('secret'), recoverySecret: encrypt('twoFactorRecoverySecretTest') } })
     await user1.save()
 
     const token = jwt.sign({ type: '2fa-login', user: { _id: user1._id, email: user1._id } }, secrets[0])
@@ -774,7 +778,7 @@ describe('System admin login test ', () => {
     })
 
     const hash1 = await bcrypt.hash('user1Password', 10)
-    const user1 = new SystemAdminTestModel({ email: 'user1@gmail.com', name: 'user1', password: hash1, twoFactorEnabled: true, twoFactorSecret: encrypt('twoFactorSecretTest'), twoFactorRecoverySecret: encrypt('twoFactorRecoverySecretTest') })
+    const user1 = new SystemAdminTestModel({ email: 'user1@gmail.com', name: 'user1', password: hash1, twoFactor: { enabled: true, secret: encrypt('secret'), recoverySecret: encrypt('recoveryCode') } })
     await user1.save()
 
     const token = jwt.sign({ type: '2fa-login', user: { _id: user1._id, email: user1._id } }, secrets[0])

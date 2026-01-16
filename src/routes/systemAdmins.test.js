@@ -27,9 +27,11 @@ const SystemAdminTestModel = mongoose.model('Test', new mongoose.Schema({
   email: { type: String, lowercase: true, required: true, match: /.+[\\@].+\..+/, unique: true },
   password: { type: String },
   profilePicture: { type: String },
-  twoFactorEnabled: { type: Boolean },
-  twoFactorSecret: { type: String },
-  twoFactorRecoverySecret: { type: String }
+  twoFactor: {
+    enabled: { type: Boolean, default: false },
+    secret: { type: String },
+    recoverySecret: { type: String }
+  }
 }, { timestamps: true }))
 
 describe('/v1/system-admins/ ', () => {
@@ -679,7 +681,7 @@ describe('/v1/system-admins/ ', () => {
 
   test('success get mfa for user already enabled /v1/system-admins/:id/mfa', async () => {
     const hash1 = await bcrypt.hash('user1Password', 10)
-    const user1 = new SystemAdminTestModel({ email: 'user1@gmail.com', name: 'user1', password: hash1, twoFactorEnabled: true, twoFactorSecret: encrypt('secret'), twoFactorRecoverySecret: encrypt('recoveryCode') })
+    const user1 = new SystemAdminTestModel({ email: 'user1@gmail.com', name: 'user1', password: hash1, twoFactor: { enabled: true, secret: encrypt('secret'), recoverySecret: encrypt('recoveryCode') } })
     await user1.save()
 
     const token = jwt.sign({ type: 'admin' }, secrets[0])
@@ -700,7 +702,7 @@ describe('/v1/system-admins/ ', () => {
     })
 
     const hash1 = await bcrypt.hash('user1Password', 10)
-    const user1 = new SystemAdminTestModel({ email: 'user1@gmail.com', name: 'user1', password: hash1, twoFactorEnabled: false, twoFactorSecret: encrypt('secret'), twoFactorRecoverySecret: encrypt('recoveryCode') })
+    const user1 = new SystemAdminTestModel({ email: 'user1@gmail.com', name: 'user1', password: hash1, twoFactor: { enabled: false, secret: encrypt('secret'), recoverySecret: encrypt('recoveryCode') } })
     await user1.save()
 
     const token = jwt.sign({ type: 'admin' }, secrets[0])
@@ -718,7 +720,7 @@ describe('/v1/system-admins/ ', () => {
 
   test('success confirm mfa for user /v1/system-admins/:id/mfa', async () => {
     const hash1 = await bcrypt.hash('user1Password', 10)
-    const user1 = new SystemAdminTestModel({ email: 'user1@gmail.com', name: 'user1', password: hash1, twoFactorEnabled: false, twoFactorSecret: encrypt('secret'), twoFactorRecoverySecret: encrypt('recoveryCode') })
+    const user1 = new SystemAdminTestModel({ email: 'user1@gmail.com', name: 'user1', password: hash1, twoFactor: { enabled: false, secret: encrypt('secret'), recoverySecret: encrypt('recoveryCode') } })
     await user1.save()
 
     const token = jwt.sign({ type: 'admin' }, secrets[0])
@@ -734,7 +736,7 @@ describe('/v1/system-admins/ ', () => {
 
   test('success disable mfa for user /v1/system-admins/:id/mfa', async () => {
     const hash1 = await bcrypt.hash('user1Password', 10)
-    const user1 = new SystemAdminTestModel({ email: 'user1@gmail.com', name: 'user1', password: hash1, twoFactorEnabled: true, twoFactorSecret: encrypt('secret'), twoFactorRecoverySecret: encrypt('recoveryCode') })
+    const user1 = new SystemAdminTestModel({ email: 'user1@gmail.com', name: 'user1', password: hash1, twoFactor: { enabled: true, secret: encrypt('secret'), recoverySecret: encrypt('recoveryCode') } })
     await user1.save()
 
     const token = jwt.sign({ type: 'admin' }, secrets[0])
