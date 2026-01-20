@@ -338,3 +338,70 @@ Developers using mua can rely on the seamless integration with the mua-frontend,
 |-------------------------------------------------------------|---------|-------------------------------------------------------|
 | `/v1/statistics/accounts/`                                  | GET     | Retrieve statistics for accounts.                     |
 | `/v1/statistics/users/`                                     | GET     | Retrieve statistics for users.                        |
+
+
+## 📧 Email Templates – Available Merge Tags
+
+This section documents the available merge tags for each BlueFox email template.  
+Merge tags are dynamic placeholders that will be replaced with actual values when the email is sent.
+
+## 🔐 Admin Templates
+
+### Invitation
+**Merge Tags:**
+- `{{inviter.name}}` – Invited admin name
+- `{{link}}` – button link
+---
+
+### Change email address
+**Merge Tags:**
+- `{{name}}` – Admin name
+- `{{link}}` – button link
+---
+
+### Forgot password
+**Merge Tags:**
+- `{{name}}` – Admin name
+- `{{link}}` – button link
+---
+
+
+## 👤 Account Templates
+
+### Select account
+**Merge Tags:**
+- `{{link}}` – button link
+---
+
+### Invitation
+**Merge Tags:**
+- `{{accountName}}` – Account name
+- `{{inviter}}` – Inviter name
+- `{{link}}` – button link
+---
+
+### Finalize registration
+**Merge Tags:**
+- `{{name}}` – User name
+- `{{link}}` – button link
+---
+
+### Change email address
+**Merge Tags:**
+- `{{name}}` – User name
+- `{{link}}` – button link
+---
+
+### Add password
+**Merge Tags:**
+- `{{name}}` – User name
+- `{{link}}` – button link
+---
+
+### Forgot password
+**Merge Tags:**
+- `{{name}}` – User name
+- `{{link}}` – button link
+---
+
+
