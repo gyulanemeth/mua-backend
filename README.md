@@ -244,7 +244,6 @@ Merge tags are dynamic placeholders that will be replaced with actual values whe
 **Merge Tags:**
 - `{{name}}` – Admin name
 - `{{link}}` – button link
----
 
 
 ## 👤 Account Templates
