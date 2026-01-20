@@ -283,7 +283,6 @@ Merge tags are dynamic placeholders that will be replaced with actual values whe
 **Merge Tags:**
 - `{{name}}` – User name
 - `{{link}}` – button link
----
 
 ## API Routes
 
