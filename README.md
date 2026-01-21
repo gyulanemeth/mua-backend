@@ -255,7 +255,7 @@ Merge tags are dynamic placeholders that will be replaced with actual values whe
 
 ### Invitation
 **Merge Tags:**
-- `{{accountName}}` – Account name
+- `{{account.name}}` – Account name
 - `{{inviter.name}}` – Inviter name
 - `{{link}}` – button link
 ---
