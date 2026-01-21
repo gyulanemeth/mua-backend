@@ -80,7 +80,7 @@ export default async ({
     allowAccessTo(req, secrets, [{ type: 'admin' }])
     const response = await createOne(AccountModel, req.params, req.body)
     let postRes
-    if (hooks.createAccount?.post) {
+    if (hooks?.createAccount?.post) {
       postRes = await hooks.createAccount.post(req.body, response.result)
     }
     return postRes || response
@@ -109,7 +109,7 @@ export default async ({
     deleteMany(UserModel, { accountId: req.params.id })
     const deletedAccount = await deleteOne(AccountModel, { id: req.params.id })
     let postRes
-    if (hooks.deleteAccount?.post) {
+    if (hooks?.deleteAccount?.post) {
       postRes = await hooks.deleteAccount.post(req.params, req.body, deletedAccount.result)
     }
     return postRes || {
@@ -151,18 +151,18 @@ export default async ({
     }
     let newUser
     try {
-      await hooks.checkEmail(req.body.user.email)
+      await hooks?.checkEmail(req.body.user.email)
       newUser = await createOne(UserModel, req.params, userData)
     } catch (error) {
       const deletedAccount = await deleteOne(AccountModel, { id: newAccount.result._id })
-      if (hooks.deleteAccount?.post) {
+      if (hooks?.deleteAccount?.post) {
         await hooks.deleteAccount.post(req.params, req.body, deletedAccount.result)
       }
       throw error
     }
-    hooks.createNewUser.post({ accountId: newAccount.result._id, name: newUser.result.name, email: newUser.result.email })
+    hooks?.createNewUser?.post({ accountId: newAccount.result._id, name: newUser.result.name, email: newUser.result.email })
     let postRes
-    if (hooks.createAccount?.post) {
+    if (hooks?.createAccount?.post) {
       postRes = await hooks.createAccount.post(req.body, newAccount.result)
     }
     if (newUser.result.verified) {
