@@ -906,7 +906,7 @@ describe('Accounts invitation test', () => {
       .post('/v1/system-admins/invitation/accept')
       .set('authorization', 'Bearer ' + token)
       .send({ newPassword: 'userPasswordUpdated', newPasswordAgain: 'userPasswordUpdated' })
-    expect(res.body.status).toBe(401)
+    expect(res.body.status).toBe(404)
   })
 })
 
@@ -1233,6 +1233,6 @@ describe('System admin invitation test', () => {
       .post('/v1/system-admins/invitation/accept')
       .set('authorization', 'Bearer ' + token)
       .send({ newPassword: 'userPasswordUpdated', newPasswordAgain: 'userPasswordUpdated' })
-    expect(res.body.status).toBe(401)
+    expect(res.body.status).toBe(404)
   })
 })

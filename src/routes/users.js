@@ -245,9 +245,9 @@ export default async ({
   apiServer.patch('/v1/accounts/:accountId/users/:id/email-confirm', async req => {
     const data = await allowAccessTo(req, secrets, [{ type: 'verfiy-email', user: { _id: req.params.id }, account: { _id: req.params.accountId } }])
     const getUserData = await readOne(UserModel, { id: req.params.id, accountId: req.params.accountId })
-    await hooks.checkEmail(data.newEmail)
+    await hooks?.checkEmail(data.newEmail)
     const user = await patchOne(UserModel, { id: req.params.id }, { email: data.newEmail, googleProfileId: null, microsoftProfileId: null, githubProfileId: null })
-    hooks.updateUserEmail.post({ accountId: req.params.accountId, oldEmail: getUserData.result.email, newEmail: data.newEmail })
+    hooks?.updateUserEmail?.post({ accountId: req.params.accountId, oldEmail: getUserData.result.email, newEmail: data.newEmail })
     const payload = {
       type: 'user',
       user: {
@@ -400,10 +400,10 @@ export default async ({
       throw new MethodNotAllowedError('User exist')
     }
     const hash = await bcrypt.hash(req.body.password, 10)
-    await hooks.checkEmail(req.body.email)
+    await hooks?.checkEmail(req.body.email)
     const newUser = await createOne(UserModel, req.params, { ...req.body, password: hash, verified: true })
     if (!isClient) {
-      hooks.createNewUser.post({ accountId: req.params.accountId, name: newUser.result.name, email: newUser.result.email })
+      hooks?.createNewUser?.post({ accountId: req.params.accountId, name: newUser.result.name, email: newUser.result.email })
     }
     return newUser
   })

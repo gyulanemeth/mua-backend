@@ -2,7 +2,7 @@ import bcrypt from 'bcrypt'
 import jwt from 'jsonwebtoken'
 
 import { list, readOne, patchOne, createOne, deleteOne } from 'mongoose-crudl'
-import { MethodNotAllowedError, ValidationError, AuthenticationError } from 'standard-api-errors'
+import { MethodNotAllowedError, ValidationError } from 'standard-api-errors'
 import allowAccessTo from 'bearer-jwt-auth'
 
 export default ({
@@ -49,7 +49,7 @@ export default ({
     if (isClient && (!req.body.projectsAccess || !req.body.projectsAccess.length)) {
       throw new ValidationError('Missing client projectsAccess')
     }
-    await hooks.checkEmail(req.body.email)
+    await hooks?.checkEmail(req.body.email)
     const newUser = await createOne(UserModel, { accountId: req.params.id }, req.body)
     const payload = {
       type: 'invitation',
@@ -111,7 +111,7 @@ export default ({
     if (response.result.count !== 0) {
       throw new MethodNotAllowedError('User exist')
     }
-    await hooks.checkEmail(req.body.email)
+    await hooks?.checkEmail(req.body.email)
     const newAdmin = await createOne(SystemAdminModel, req.body, req.query)
     const inviterData = await readOne(SystemAdminModel, { id: tokenData.user._id })
 
@@ -240,7 +240,7 @@ export default ({
     const hash = await bcrypt.hash(req.body.newPassword, 10)
     const updatedUser = await patchOne(UserModel, { id: data.user._id }, { password: hash, name: req.body.name, verified: true })
     if (updatedUser.result.role !== 'client') {
-      hooks.createNewUser.post({ accountId: req.params.id, name: updatedUser.result.name, email: updatedUser.result.email })
+      hooks?.createNewUser?.post({ accountId: req.params.id, name: updatedUser.result.name, email: updatedUser.result.email })
     }
     const payload = {
       type: 'login',
@@ -269,11 +269,8 @@ export default ({
 
   apiServer.post('/v1/system-admins/invitation/accept', async req => {
     const data = allowAccessTo(req, secrets, [{ type: 'invitation' }])
-    const response = await list(SystemAdminModel, { id: data.user._id, email: data.user.email }, req.query)
-    if (response.result.count === 0) {
-      throw new AuthenticationError('Check user name')
-    }
-    if (response.result.items[0].password) { // check if user accepted the invitation before and completed the necessary data.
+    const response = await readOne(SystemAdminModel, { id: data.user._id, email: data.user.email }, req.query)
+    if (response.result.password) { // check if user accepted the invitation before and completed the necessary data.
       throw new MethodNotAllowedError('Token already used, user exists')
     }
     if (req.body.newPassword !== req.body.newPasswordAgain) { // check password matching
