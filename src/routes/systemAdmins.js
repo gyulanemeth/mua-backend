@@ -33,7 +33,10 @@ export default async ({
     })
     const res = await response.json()
     if (res.status !== 200) {
-      throw res
+      const error = new Error(res.error?.message)
+      error.status = res.status
+      error.name = res.error.name
+      throw error
     }
     return res
   }

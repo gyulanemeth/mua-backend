@@ -70,7 +70,7 @@ export default ({ apiServer, UserModel, SystemAdminModel, AccountModel }) => {
     if (!validationResult) {
       throw new ValidationError('Invalid CAPTCHA. Please try again.')
     }
-    const response = await list(SystemAdminModel, req.body, { select: { password: 0 } })
+    const response = await list(SystemAdminModel, { email: req.body.email }, { select: { password: 0 } })
     if (response.result.count === 0) {
       throw new AuthenticationError('Check user name')
     }
