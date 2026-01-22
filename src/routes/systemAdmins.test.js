@@ -504,7 +504,7 @@ describe('/v1/system-admins/ ', () => {
     fetchSpy.mockResolvedValue({
       ok: true,
       headers: { get: () => 'application/json' },
-      json: () => Promise.resolve({ status: 400 })
+      json: () => Promise.resolve({ error: { name: 'error', message: 'error test' }, status: 400 })
     })
 
     const hash1 = await bcrypt.hash('user1Password', 10)
