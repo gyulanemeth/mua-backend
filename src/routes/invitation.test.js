@@ -128,7 +128,7 @@ describe('Accounts invitation test', () => {
     const token = jwt.sign({ type: 'admin', user: { _id: admin1._id } }, secrets[0])
 
     const res = await request(app)
-      .post('/v1/accounts/' + account1._id + '/invitation/send').set('authorization', 'Bearer ' + token).send({ email: 'user3@gmail.com' })
+      .post('/v1/accounts/' + account1._id + '/invitation/send').set('authorization', 'Bearer ' + token).send({ email: 'user3@gmail.com', confirmEmail: 'user3@gmail.com' })
 
     expect(res.body.status).toBe(201)
     expect(res.body.result.success).toBe(true)
@@ -163,6 +163,7 @@ describe('Accounts invitation test', () => {
     const res = await request(app)
       .post('/v1/accounts/' + account1._id + '/invitation/send').set('authorization', 'Bearer ' + token).send({
         email: 'user3@gmail.com',
+        confirmEmail: 'user3@gmail.com',
         role: 'client',
         projectsAccess: [{
           projectId: mongoose.Types.ObjectId(),
@@ -233,7 +234,7 @@ describe('Accounts invitation test', () => {
     const token = jwt.sign({ type: 'user', role: 'admin', user: { _id: user1._id } }, secrets[0])
 
     const res = await request(app)
-      .post('/v1/accounts/' + account1._id + '/invitation/send').set('authorization', 'Bearer ' + token).send({ email: 'user3@gmail.com' })
+      .post('/v1/accounts/' + account1._id + '/invitation/send').set('authorization', 'Bearer ' + token).send({ email: 'user3@gmail.com', confirmEmail: 'user3@gmail.com' })
 
     expect(res.body.status).toBe(400)
     await fetchSpy.mockRestore()
@@ -361,7 +362,7 @@ describe('Accounts invitation test', () => {
     const token = jwt.sign({ type: 'user', role: 'admin', user: { _id: user1._id } }, secrets[0])
 
     const res = await request(app)
-      .post('/v1/accounts/' + account1._id + '/invitation/send').set('authorization', 'Bearer ' + token).send({ email: 'user3@gmail.com' })
+      .post('/v1/accounts/' + account1._id + '/invitation/send').set('authorization', 'Bearer ' + token).send({ email: 'user3@gmail.com', confirmEmail: 'user3@gmail.com' })
 
     expect(res.body.status).toBe(201)
     expect(res.body.result.success).toBe(true)
@@ -383,9 +384,29 @@ describe('Accounts invitation test', () => {
     const token = jwt.sign({ type: 'admin', user: { _id: user1._id } }, secrets[0])
 
     const res = await request(app)
-      .post('/v1/accounts/' + account1._id + '/invitation/send').set('authorization', 'Bearer ' + token).send({ email: 'user1@gmail.com' })
+      .post('/v1/accounts/' + account1._id + '/invitation/send').set('authorization', 'Bearer ' + token).send({ email: 'user1@gmail.com', confirmEmail: 'user1@gmail.com' })
 
     expect(res.body.status).toBe(405)
+  })
+
+  test('send invitation error email not match  /v1/accounts/:accountId/invitation/send', async () => {
+    const account1 = new AccountTestModel({ name: 'accountExample1', urlFriendlyName: 'urlFriendlyNameExample1' })
+    await account1.save()
+
+    const hash1 = await bcrypt.hash('user1Password', 10)
+    const user1 = new UserTestModel({ email: 'user1@gmail.com', name: 'user1', password: hash1, accountId: account1._id })
+    await user1.save()
+
+    const hash2 = await bcrypt.hash('user2Password', 10)
+    const user2 = new UserTestModel({ email: 'user2@gmail.com', name: 'user2', password: hash2, accountId: account1._id })
+    await user2.save()
+
+    const token = jwt.sign({ type: 'admin', user: { _id: user1._id } }, secrets[0])
+
+    const res = await request(app)
+      .post('/v1/accounts/' + account1._id + '/invitation/send').set('authorization', 'Bearer ' + token).send({ email: 'user9@gmail.com', confirmEmail: 'user8@gmail.com' })
+
+    expect(res.body.status).toBe(400)
   })
 
   test('resend invitation error user alread verified  /v1/accounts/:accountId/invitation/resend', async () => {
@@ -423,7 +444,7 @@ describe('Accounts invitation test', () => {
     const token = jwt.sign({ type: 'admin', user: { _id: user1._id } }, secrets[0])
 
     const res = await request(app)
-      .post('/v1/accounts/' + account1._id + '/invitation/resend').set('authorization', 'Bearer ' + token).send({ email: 'user3@gmail.com' })
+      .post('/v1/accounts/' + account1._id + '/invitation/resend').set('authorization', 'Bearer ' + token).send({ email: 'user3@gmail.com', confirmEmail: 'user3@gmail.com' })
 
     expect(res.body.status).toBe(405)
   })
@@ -469,7 +490,7 @@ describe('Accounts invitation test', () => {
     app = app._expressServer
 
     const res = await request(app)
-      .post('/v1/accounts/' + account1._id + '/invitation/send').set('authorization', 'Bearer ' + token).send({ email: 'user3@gmail.com' })
+      .post('/v1/accounts/' + account1._id + '/invitation/send').set('authorization', 'Bearer ' + token).send({ email: 'user3@gmail.com', confirmEmail: 'user3@gmail.com' })
 
     expect(res.body.error.message).toEqual('test mock send email error')
     await fetchSpy.mockRestore()
@@ -490,7 +511,7 @@ describe('Accounts invitation test', () => {
     const token = jwt.sign({ type: 'value' }, secrets[0])
 
     const res = await request(app)
-      .post('/v1/accounts/' + account1._id + '/invitation/send').set('authorization', 'Bearer ' + token).send({ email: 'user3@gmail.com' })
+      .post('/v1/accounts/' + account1._id + '/invitation/send').set('authorization', 'Bearer ' + token).send({ email: 'user3@gmail.com', confirmEmail: 'user3@gmail.com' })
 
     expect(res.body.status).toBe(403)
   })
@@ -666,10 +687,35 @@ describe('Accounts invitation test', () => {
     const token = jwt.sign({ type: 'admin', user: { _id: user1._id } }, secrets[0])
 
     const res = await request(app)
-      .post('/v1/system-admins/invitation/send').set('authorization', 'Bearer ' + token).send({ email: 'user3@gmail.com' })
+      .post('/v1/system-admins/invitation/send').set('authorization', 'Bearer ' + token).send({ email: 'user3@gmail.com', confirmEmail: 'user3@gmail.com' })
 
     expect(res.body.status).toBe(201)
     expect(res.body.result.success).toBe(true)
+    await fetchSpy.mockRestore()
+  })
+
+  test('success error invitation emails not matched /v1/system-admins/invitation/send', async () => {
+    const fetchSpy = vi.spyOn(global, 'fetch')
+    fetchSpy.mockResolvedValue({
+      ok: true,
+      headers: { get: () => 'application/json' },
+      json: () => Promise.resolve({ result: { success: true }, status: 200 })
+    })
+
+    const hash1 = await bcrypt.hash('user1Password', 10)
+    const user1 = new SystemAdminTestModel({ email: 'user1@gmail.com', name: 'user1', password: hash1 })
+    await user1.save()
+
+    const hash2 = await bcrypt.hash('user2Password', 10)
+    const user2 = new SystemAdminTestModel({ email: 'user2@gmail.com', name: 'user2', password: hash2 })
+    await user2.save()
+
+    const token = jwt.sign({ type: 'admin', user: { _id: user1._id } }, secrets[0])
+
+    const res = await request(app)
+      .post('/v1/system-admins/invitation/send').set('authorization', 'Bearer ' + token).send({ email: 'user3@gmail.com', confirmEmail: 'user5@gmail.com' })
+
+    expect(res.body.status).toBe(400)
     await fetchSpy.mockRestore()
   })
 
@@ -692,7 +738,7 @@ describe('Accounts invitation test', () => {
     const token = jwt.sign({ type: 'admin', user: { _id: user1._id } }, secrets[0])
 
     const res = await request(app)
-      .post('/v1/system-admins/invitation/send').set('authorization', 'Bearer ' + token).send({ email: 'user3@gmail.com' })
+      .post('/v1/system-admins/invitation/send').set('authorization', 'Bearer ' + token).send({ email: 'user3@gmail.com', confirmEmail: 'user3@gmail.com' })
 
     expect(res.body.status).toBe(400)
     await fetchSpy.mockRestore()
@@ -751,7 +797,7 @@ describe('Accounts invitation test', () => {
 
     const token = jwt.sign({ type: 'admin', user: { _id: user1._id } }, secrets[0])
     const res = await request(app)
-      .post('/v1/system-admins/invitation/resend').set('authorization', 'Bearer ' + token).send({ email: 'user3@gmail.com' })
+      .post('/v1/system-admins/invitation/resend').set('authorization', 'Bearer ' + token).send({ email: 'user3@gmail.com', confirmEmail: 'user3@gmail.com' })
 
     expect(res.body.status).toBe(405)
   })
@@ -784,7 +830,7 @@ describe('Accounts invitation test', () => {
     const token = jwt.sign({ type: 'value' }, secrets[0])
 
     const res = await request(app)
-      .post('/v1/system-admins/invitation/send').set('authorization', 'Bearer ' + token).send({ email: 'user3@gmail.com' })
+      .post('/v1/system-admins/invitation/send').set('authorization', 'Bearer ' + token).send({ email: 'user3@gmail.com', confirmEmail: 'user3@gmail.com' })
 
     expect(res.body.status).toBe(403)
   })
@@ -816,7 +862,7 @@ describe('Accounts invitation test', () => {
     const token = jwt.sign({ type: 'admin', user: { _id: user1._id } }, secrets[0])
 
     const res = await request(app)
-      .post('/v1/system-admins/invitation/send').set('authorization', 'Bearer ' + token).send({ email: 'user3@gmail.com' })
+      .post('/v1/system-admins/invitation/send').set('authorization', 'Bearer ' + token).send({ email: 'user3@gmail.com', confirmEmail: 'user3@gmail.com' })
 
     expect(res.body.error.message).toEqual('test mock send email error')
   })
@@ -993,7 +1039,7 @@ describe('System admin invitation test', () => {
     const token = jwt.sign({ type: 'admin', user: { _id: user1._id } }, secrets[0])
 
     const res = await request(app)
-      .post('/v1/system-admins/invitation/send').set('authorization', 'Bearer ' + token).send({ email: 'user3@gmail.com' })
+      .post('/v1/system-admins/invitation/send').set('authorization', 'Bearer ' + token).send({ email: 'user3@gmail.com', confirmEmail: 'user3@gmail.com' })
 
     expect(res.body.status).toBe(201)
     expect(res.body.result.success).toBe(true)
@@ -1019,7 +1065,7 @@ describe('System admin invitation test', () => {
     const token = jwt.sign({ type: 'admin', user: { _id: user1._id } }, secrets[0])
 
     const res = await request(app)
-      .post('/v1/system-admins/invitation/send').set('authorization', 'Bearer ' + token).send({ email: 'user3@gmail.com' })
+      .post('/v1/system-admins/invitation/send').set('authorization', 'Bearer ' + token).send({ email: 'user3@gmail.com', confirmEmail: 'user3@gmail.com' })
 
     expect(res.body.status).toBe(400)
     await fetchSpy.mockRestore()
@@ -1078,7 +1124,7 @@ describe('System admin invitation test', () => {
 
     const token = jwt.sign({ type: 'admin', user: { _id: user1._id } }, secrets[0])
     const res = await request(app)
-      .post('/v1/system-admins/invitation/resend').set('authorization', 'Bearer ' + token).send({ email: 'user3@gmail.com' })
+      .post('/v1/system-admins/invitation/resend').set('authorization', 'Bearer ' + token).send({ email: 'user3@gmail.com', confirmEmail: 'user3@gmail.com' })
 
     expect(res.body.status).toBe(405)
   })
@@ -1111,7 +1157,7 @@ describe('System admin invitation test', () => {
     const token = jwt.sign({ type: 'value' }, secrets[0])
 
     const res = await request(app)
-      .post('/v1/system-admins/invitation/send').set('authorization', 'Bearer ' + token).send({ email: 'user3@gmail.com' })
+      .post('/v1/system-admins/invitation/send').set('authorization', 'Bearer ' + token).send({ email: 'user3@gmail.com', confirmEmail: 'user3@gmail.com' })
 
     expect(res.body.status).toBe(403)
   })
@@ -1143,7 +1189,7 @@ describe('System admin invitation test', () => {
     const token = jwt.sign({ type: 'admin', user: { _id: user1._id } }, secrets[0])
 
     const res = await request(app)
-      .post('/v1/system-admins/invitation/send').set('authorization', 'Bearer ' + token).send({ email: 'user3@gmail.com' })
+      .post('/v1/system-admins/invitation/send').set('authorization', 'Bearer ' + token).send({ email: 'user3@gmail.com', confirmEmail: 'user3@gmail.com' })
 
     expect(res.body.error.message).toEqual('test mock send email error')
   })

@@ -132,6 +132,9 @@ export default async ({
     if (!req.body.user.password && !req.body.user.googleProfileId && !req.body.user.microsoftProfileId && !req.body.user.githubProfileId) {
       throw new ValidationError('Please provide password or create using Google, Microsoft or Github')
     }
+    if (req.body.user.password && (req.body.user.password !== req.body.user.newPasswordAgain)) {
+      throw new ValidationError("Validation error passwords didn't match ")
+    }
     const newAccount = await createOne(AccountModel, req.params, { name: req.body.account.name, urlFriendlyName: req.body.account.urlFriendlyName })
     const userData = {
       name: req.body.user.name,
