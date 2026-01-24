@@ -49,6 +49,9 @@ export default ({
     if (isClient && (!req.body.projectsAccess || !req.body.projectsAccess.length)) {
       throw new ValidationError('Missing client projectsAccess')
     }
+    if (req.body.email !== req.body.confirmEmail) {
+      throw new ValidationError("Validation error emails didn't match ")
+    }
     await hooks?.checkEmail(req.body.email)
     const newUser = await createOne(UserModel, { accountId: req.params.id }, req.body)
     const payload = {
@@ -110,6 +113,9 @@ export default ({
     const response = await list(SystemAdminModel, req.body, { select: { password: 0 } })
     if (response.result.count !== 0) {
       throw new MethodNotAllowedError('User exist')
+    }
+    if (req.body.email !== req.body.confirmEmail) {
+      throw new ValidationError("Validation error emails didn't match ")
     }
     await hooks?.checkEmail(req.body.email)
     const newAdmin = await createOne(SystemAdminModel, req.body, req.query)

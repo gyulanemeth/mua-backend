@@ -86,7 +86,7 @@ describe('accounts test', () => {
           message: e.message
         }
       }
-    }, () => {})
+    }, () => { })
     accounts({ apiServer: app, UserModel: UserTestModel, AccountModel: AccountTestModel })
     app = app._expressServer
 
@@ -530,11 +530,34 @@ describe('accounts test', () => {
       .send({
         captchaText: captchaData.text,
         captchaProbe: captchaData.probe,
-        user: { name: 'user1', email: 'user1@gmail.com', password: 'userPassword' },
+        user: { name: 'user1', email: 'user1@gmail.com', password: 'userPassword', newPasswordAgain: 'userPassword' },
         account: { name: 'account1', urlFriendlyName: 'account1UrlFriendlyName' }
       })
 
     expect(res.body.status).toBe(200)
+    await fetchSpy.mockRestore()
+  })
+
+  test('error create account password not matched  /v1/accounts/create', async () => {
+    const fetchSpy = vi.spyOn(global, 'fetch')
+    fetchSpy.mockResolvedValue({
+      ok: true,
+      headers: { get: () => 'application/json' },
+      json: () => Promise.resolve({ result: { success: true }, status: 200 })
+    })
+
+    const captchaData = await captcha.generate(secrets)
+
+    const res = await request(app)
+      .post('/v1/accounts/create')
+      .send({
+        captchaText: captchaData.text,
+        captchaProbe: captchaData.probe,
+        user: { name: 'user1', email: 'user1@gmail.com', password: 'userPassword', newPasswordAgain: 'userPassword123' },
+        account: { name: 'account1', urlFriendlyName: 'account1UrlFriendlyName' }
+      })
+
+    expect(res.body.status).toBe(400)
     await fetchSpy.mockRestore()
   })
 
@@ -600,7 +623,7 @@ describe('accounts test', () => {
       .send({
         captchaText: captchaData.text,
         captchaProbe: captchaData.probe,
-        user: { name: 'user1', email: 'user1@gmail.com', password: 'userPassword' },
+        user: { name: 'user1', email: 'user1@gmail.com', password: 'userPassword', newPasswordAgain: 'userPassword' },
         account: { name: 'account1', urlFriendlyName: 'account1UrlFriendlyName' }
       })
 
@@ -612,7 +635,7 @@ describe('accounts test', () => {
     const res = await request(app)
       .post('/v1/accounts/create')
       .send({
-        user: { name: 'user1', email: 'user1@gmail.com', password: 'userPassword' },
+        user: { name: 'user1', email: 'user1@gmail.com', password: 'userPassword', newPasswordAgain: 'userPassword' },
         account: { name: 'account1', urlFriendlyName: 'account1UrlFriendlyName' }
       })
     expect(res.body.status).toBe(400)
@@ -629,7 +652,7 @@ describe('accounts test', () => {
       .send({
         captchaText: captchaData.text,
         captchaProbe: captchaData.probe,
-        user: { name: 'user1', email: 'user1@gmail.com', password: 'userPassword' },
+        user: { name: 'user1', email: 'user1@gmail.com', password: 'userPassword', newPasswordAgain: 'userPassword' },
         account: { name: 'account1', urlFriendlyName: 'urlFriendlyNameExample1' }
       })
 
@@ -647,7 +670,7 @@ describe('accounts test', () => {
       .send({
         captchaText: captchaData.text,
         captchaProbe: captchaData.probe,
-        user: { name: 'user1', email: 'user1@z', password: 'userPassword' },
+        user: { name: 'user1', email: 'user1@z', password: 'userPassword', newPasswordAgain: 'userPassword' },
         account: { name: 'account1', urlFriendlyName: 'urlFriendlyNameExample12' }
       })
 
@@ -741,7 +764,7 @@ describe('accounts test', () => {
           message: e.message
         }
       }
-    }, () => {})
+    }, () => { })
     accounts({ apiServer: sizeTestApp, UserModel: UserTestModel, AccountModel: AccountTestModel })
     sizeTestApp = sizeTestApp._expressServer
 
