@@ -135,7 +135,7 @@ export default async ({
     if (req.body.user.password && (req.body.user.password !== req.body.user.newPasswordAgain)) {
       throw new ValidationError("Validation error passwords didn't match ")
     }
-    const newAccount = await createOne(AccountModel, req.params, { name: req.body.account.name, urlFriendlyName: req.body.account.urlFriendlyName })
+    const newAccount = await createOne(AccountModel, req.params, { name: req.body.account.name, urlFriendlyName: req.body.account.urlFriendlyName, utmTags: req.body.account.utmTags || [] })
     const userData = {
       name: req.body.user.name,
       email: req.body.user.email,
