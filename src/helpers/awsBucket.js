@@ -1,4 +1,3 @@
-
 import AWS from 'aws-sdk'
 import AWSMock from 'mock-aws-s3'
 
