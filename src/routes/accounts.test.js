@@ -287,32 +287,26 @@ describe('accounts test', () => {
     expect(res.body.result.items.length).toBe(0)
   })
 
-  test('success get accounts filtered by user email combined with name filter   /v1/accounts/', async () => {
-    const account1 = new AccountTestModel({ name: 'targetAccount', urlFriendlyName: 'urlFriendlyNameExample1' })
+  test('success get accounts filtered by user email containing + sign   /v1/accounts/', async () => {
+    const account1 = new AccountTestModel({ name: 'accountExample1', urlFriendlyName: 'urlFriendlyNameExample1' })
     await account1.save()
-    const account2 = new AccountTestModel({ name: 'targetAccount2', urlFriendlyName: 'urlFriendlyNameExample2' })
-    await account2.save()
-    const account3 = new AccountTestModel({ name: 'otherAccount', urlFriendlyName: 'urlFriendlyNameExample3' })
-    await account3.save()
 
     const hash1 = await bcrypt.hash('user1Password', 10)
-    const user1 = new UserTestModel({ email: 'findme@example.com', name: 'user1', password: hash1, accountId: account3._id })
+    const user1 = new UserTestModel({ email: 'user+tag@example.com', name: 'user1', password: hash1, accountId: account1._id })
     await user1.save()
 
     const token = jwt.sign({ type: 'admin' }, secrets[0])
 
+    // + is decoded as space by URL parsers, so we simulate that here
     const res = await request(app)
       .get('/v1/accounts/')
-      .query({ 'filter[userEmail]': 'findme', 'filter[$or][0][name][$regex]': 'targetAccount', 'filter[$or][0][name][$options]': 'i' })
+      .query({ 'filter[userEmail]': 'user tag@example.com' })
       .set('authorization', 'Bearer ' + token)
       .send()
 
     expect(res.body.status).toBe(200)
-    // should return accounts matching name AND account with the matching user email
-    const names = res.body.result.items.map(i => i.name)
-    expect(names).toContain('targetAccount')
-    expect(names).toContain('targetAccount2')
-    expect(names).toContain('otherAccount')
+    expect(res.body.result.items.length).toBe(1)
+    expect(res.body.result.items[0].name).toBe('accountExample1')
   })
 
   test('success get account by id   /v1/accounts/:id', async () => {

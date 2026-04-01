@@ -72,23 +72,18 @@ export default async ({
 
   apiServer.get('/v1/accounts/', async req => {
     allowAccessTo(req, secrets, [{ type: 'admin' }])
-    const userEmail = req.query.filter?.userEmail
+    const userEmail = req.query.filter?.userEmail?.replace(/ /g, '+')
     if (userEmail) {
-      delete req.query.filter.userEmail
+      const escapedEmail = userEmail.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
       const usersRes = await list(UserModel, {}, {
-        filter: { email: { $regex: userEmail, $options: 'i' } },
+        filter: { email: { $regex: escapedEmail, $options: 'i' } },
         select: { accountId: 1 },
         limit: 'unlimited'
       })
-      const accountIds = usersRes.result.items.map(u => u.accountId)
-      if (!req.query.filter) {
-        req.query.filter = {}
-      }
-      if (req.query.filter.$or) {
-        req.query.filter.$or.push({ _id: { $in: accountIds } })
-      } else {
-        req.query.filter.$or = [{ _id: { $in: accountIds } }]
-      }
+      const accountIds = [...new Set(usersRes.result.items.map(u => String(u.accountId)))]
+      const { userEmail: _, ...restFilter } = req.query.filter
+      const response = await list(AccountModel, req.params, { ...req.query, filter: { ...restFilter, $or: [{ _id: { $in: accountIds } }] } })
+      return response
     }
     const response = await list(AccountModel, req.params, req.query)
     return response
