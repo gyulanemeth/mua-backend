@@ -72,6 +72,24 @@ export default async ({
 
   apiServer.get('/v1/accounts/', async req => {
     allowAccessTo(req, secrets, [{ type: 'admin' }])
+    const userEmail = req.query.filter?.userEmail
+    if (userEmail) {
+      delete req.query.filter.userEmail
+      const usersRes = await list(UserModel, {}, {
+        filter: { email: { $regex: userEmail, $options: 'i' } },
+        select: { accountId: 1 },
+        limit: 'unlimited'
+      })
+      const accountIds = usersRes.result.items.map(u => u.accountId)
+      if (!req.query.filter) {
+        req.query.filter = {}
+      }
+      if (req.query.filter.$or) {
+        req.query.filter.$or.push({ _id: { $in: accountIds } })
+      } else {
+        req.query.filter.$or = [{ _id: { $in: accountIds } }]
+      }
+    }
     const response = await list(AccountModel, req.params, req.query)
     return response
   })

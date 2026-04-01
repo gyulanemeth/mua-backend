@@ -219,6 +219,102 @@ describe('accounts test', () => {
     expect(res.body.status).toBe(403)
   })
 
+  test('success get accounts filtered by user email   /v1/accounts/', async () => {
+    const account1 = new AccountTestModel({ name: 'accountExample1', urlFriendlyName: 'urlFriendlyNameExample1' })
+    await account1.save()
+    const account2 = new AccountTestModel({ name: 'accountExample2', urlFriendlyName: 'urlFriendlyNameExample2' })
+    await account2.save()
+
+    const hash1 = await bcrypt.hash('user1Password', 10)
+    const user1 = new UserTestModel({ email: 'findme@example.com', name: 'user1', password: hash1, accountId: account1._id })
+    await user1.save()
+
+    const hash2 = await bcrypt.hash('user2Password', 10)
+    const user2 = new UserTestModel({ email: 'other@example.com', name: 'user2', password: hash2, accountId: account2._id })
+    await user2.save()
+
+    const token = jwt.sign({ type: 'admin' }, secrets[0])
+
+    const res = await request(app)
+      .get('/v1/accounts/')
+      .query({ 'filter[userEmail]': 'findme' })
+      .set('authorization', 'Bearer ' + token)
+      .send()
+
+    expect(res.body.status).toBe(200)
+    expect(res.body.result.items.length).toBe(1)
+    expect(res.body.result.items[0].name).toBe('accountExample1')
+  })
+
+  test('success get accounts filtered by user email case insensitive   /v1/accounts/', async () => {
+    const account1 = new AccountTestModel({ name: 'accountExample1', urlFriendlyName: 'urlFriendlyNameExample1' })
+    await account1.save()
+
+    const hash1 = await bcrypt.hash('user1Password', 10)
+    const user1 = new UserTestModel({ email: 'FindMe@example.com', name: 'user1', password: hash1, accountId: account1._id })
+    await user1.save()
+
+    const token = jwt.sign({ type: 'admin' }, secrets[0])
+
+    const res = await request(app)
+      .get('/v1/accounts/')
+      .query({ 'filter[userEmail]': 'FINDME' })
+      .set('authorization', 'Bearer ' + token)
+      .send()
+
+    expect(res.body.status).toBe(200)
+    expect(res.body.result.items.length).toBe(1)
+    expect(res.body.result.items[0].name).toBe('accountExample1')
+  })
+
+  test('success get accounts filtered by user email with no matches   /v1/accounts/', async () => {
+    const account1 = new AccountTestModel({ name: 'accountExample1', urlFriendlyName: 'urlFriendlyNameExample1' })
+    await account1.save()
+
+    const hash1 = await bcrypt.hash('user1Password', 10)
+    const user1 = new UserTestModel({ email: 'user1@example.com', name: 'user1', password: hash1, accountId: account1._id })
+    await user1.save()
+
+    const token = jwt.sign({ type: 'admin' }, secrets[0])
+
+    const res = await request(app)
+      .get('/v1/accounts/')
+      .query({ 'filter[userEmail]': 'notexist@example.com' })
+      .set('authorization', 'Bearer ' + token)
+      .send()
+
+    expect(res.body.status).toBe(200)
+    expect(res.body.result.items.length).toBe(0)
+  })
+
+  test('success get accounts filtered by user email combined with name filter   /v1/accounts/', async () => {
+    const account1 = new AccountTestModel({ name: 'targetAccount', urlFriendlyName: 'urlFriendlyNameExample1' })
+    await account1.save()
+    const account2 = new AccountTestModel({ name: 'targetAccount2', urlFriendlyName: 'urlFriendlyNameExample2' })
+    await account2.save()
+    const account3 = new AccountTestModel({ name: 'otherAccount', urlFriendlyName: 'urlFriendlyNameExample3' })
+    await account3.save()
+
+    const hash1 = await bcrypt.hash('user1Password', 10)
+    const user1 = new UserTestModel({ email: 'findme@example.com', name: 'user1', password: hash1, accountId: account3._id })
+    await user1.save()
+
+    const token = jwt.sign({ type: 'admin' }, secrets[0])
+
+    const res = await request(app)
+      .get('/v1/accounts/')
+      .query({ 'filter[userEmail]': 'findme', 'filter[$or][0][name][$regex]': 'targetAccount', 'filter[$or][0][name][$options]': 'i' })
+      .set('authorization', 'Bearer ' + token)
+      .send()
+
+    expect(res.body.status).toBe(200)
+    // should return accounts matching name AND account with the matching user email
+    const names = res.body.result.items.map(i => i.name)
+    expect(names).toContain('targetAccount')
+    expect(names).toContain('targetAccount2')
+    expect(names).toContain('otherAccount')
+  })
+
   test('success get account by id   /v1/accounts/:id', async () => {
     const account1 = new AccountTestModel({ name: 'accountExample1', urlFriendlyName: 'urlFriendlyNameExample1' })
     await account1.save()
