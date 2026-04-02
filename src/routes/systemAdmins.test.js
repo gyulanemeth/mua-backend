@@ -627,7 +627,7 @@ describe('/v1/system-admins/ ', () => {
         }
       }
     }, () => { })
-    admins({ apiServer: sizeTestApp, SystemAdminModel: SystemAdminTestModel })
+    await admins({ apiServer: sizeTestApp, SystemAdminModel: SystemAdminTestModel })
     sizeTestApp = sizeTestApp._expressServer
 
     const res = await request(sizeTestApp).post(`/v1/system-admins/${user1._id}/profile-picture`)
