@@ -374,8 +374,33 @@ export default ({
     if (findUserIds.result.count === 0) {
       throw new AuthenticationError('Invalid email')
     }
-    const ids = findUserIds.result.items.map(item => item.accountId.toString())
 
+    if (findUserIds.result.count === 1) {
+      const magicLinkPayload = {
+        type: 'magic-link',
+        user: {
+          _id: findUserIds.result.items[0]._id,
+          email: req.body.email
+        },
+        account: {
+          _id: findUserIds.result.items[0].accountId
+        }
+      }
+      const magicToken = jwt.sign(magicLinkPayload, secrets[0], { expiresIn: '15m' })
+      const info = await sendLogin(req.body.email, process.env.BLUEFOX_TEMPLATE_ID_ACCOUNT_MAGIC_LINK, {
+        link: `${process.env.APP_URL}accounts/login/magic-link/verify?token=${magicToken}`
+      })
+      return {
+        status: 201,
+        result: {
+          success: true,
+          singleAccount: true,
+          info: info.result.info
+        }
+      }
+    }
+
+    const ids = findUserIds.result.items.map(item => item.accountId.toString())
     const getAccounts = await list(AccountModel, {}, { filter: { _id: { $in: ids } }, select: { name: 1, urlFriendlyName: 1, logo: 1, _id: 1, createdAt: 1, updatedAt: 1 }, limit: 'unlimited' })
     const payload = {
       type: 'login',
@@ -392,6 +417,96 @@ export default ({
       result: {
         success: true,
         info: info.result.info
+      }
+    }
+  })
+
+  apiServer.post('/v1/accounts/:id/login/magic-link', async req => {
+    const data = allowAccessTo(req, secrets, [{ type: 'login' }])
+    if (!data.accounts) {
+      throw new AuthenticationError('Invalid token')
+    }
+    const accountInToken = data.accounts.find(a => a._id.toString() === req.params.id)
+    if (!accountInToken) {
+      throw new AuthenticationError('Invalid account')
+    }
+    const findUser = await list(UserModel, { email: data.user.email, accountId: req.params.id })
+    if (findUser.result.count === 0) {
+      throw new AuthenticationError('Invalid email')
+    }
+    const magicLinkPayload = {
+      type: 'magic-link',
+      user: {
+        _id: findUser.result.items[0]._id,
+        email: data.user.email
+      },
+      account: {
+        _id: req.params.id
+      }
+    }
+    const magicToken = jwt.sign(magicLinkPayload, secrets[0], { expiresIn: '15m' })
+    const info = await sendLogin(data.user.email, process.env.BLUEFOX_TEMPLATE_ID_ACCOUNT_MAGIC_LINK, {
+      link: `${process.env.APP_URL}accounts/login/magic-link/verify?token=${magicToken}`
+    })
+    return {
+      status: 201,
+      result: {
+        success: true,
+        info: info.result.info
+      }
+    }
+  })
+
+  apiServer.post('/v1/accounts/:id/login/magic-link/verify', async req => {
+    const data = allowAccessTo(req, secrets, [{ type: 'magic-link' }])
+    if (data.account._id.toString() !== req.params.id) {
+      throw new AuthenticationError('Invalid token')
+    }
+    const findUser = await list(UserModel, { email: data.user.email, accountId: req.params.id })
+    if (findUser.result.count === 0) {
+      throw new AuthenticationError('Invalid email')
+    }
+    if (!findUser.result.items[0].verified) {
+      const payload = {
+        type: 'registration',
+        user: {
+          _id: findUser.result.items[0]._id,
+          email: findUser.result.items[0].email
+        },
+        account: {
+          _id: req.params.id
+        }
+      }
+      const regToken = jwt.sign(payload, secrets[0], { expiresIn: '24h' })
+      await sendRegistration(findUser.result.items[0].email, process.env.BLUEFOX_TEMPLATE_ID_ACCOUNT_FINALIZE_REGISTRATION, regToken)
+      throw new MethodNotAllowedError('Please verify your email')
+    }
+    const getAccount = await readOne(AccountModel, { id: req.params.id })
+    const loginPayload = {
+      type: 'login',
+      user: {
+        _id: findUser.result.items[0]._id,
+        email: findUser.result.items[0].email
+      },
+      account: {
+        _id: getAccount.result._id
+      }
+    }
+    if (findUser.result.items[0].twoFactor?.enabled) {
+      loginPayload.type = '2fa-login'
+      const token = jwt.sign(loginPayload, secrets[0], { expiresIn: '24h' })
+      return {
+        status: 200,
+        result: {
+          twoFactorLoginToken: token
+        }
+      }
+    }
+    const token = jwt.sign(loginPayload, secrets[0], { expiresIn: '24h' })
+    return {
+      status: 200,
+      result: {
+        loginToken: token
       }
     }
   })
