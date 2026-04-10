@@ -368,6 +368,42 @@ export default ({
     }
   })
 
+  apiServer.post('/v1/accounts/:id/login/url-friendly-name/magic-link', async req => {
+    const email = req.body.email?.toLowerCase()
+    let getAccount
+    let findUser
+    try {
+      getAccount = await list(AccountModel, { urlFriendlyName: req.params.id })
+      findUser = await list(UserModel, { email, accountId: getAccount.result.items[0]._id })
+      if (!getAccount.result.count || !findUser.result.count) {
+        throw new Error()
+      }
+    } catch (error) {
+      throw new AuthenticationError('Invalid urlFriendlyName or email')
+    }
+    const magicLinkPayload = {
+      type: 'magic-link',
+      user: {
+        _id: findUser.result.items[0]._id,
+        email
+      },
+      account: {
+        _id: getAccount.result.items[0]._id
+      }
+    }
+    const magicToken = jwt.sign(magicLinkPayload, secrets[0], { expiresIn: '15m' })
+    const info = await sendLogin(email, process.env.BLUEFOX_TEMPLATE_ID_ACCOUNT_MAGIC_LINK, {
+      link: `${process.env.APP_URL}accounts/login/magic-link/verify?token=${magicToken}`
+    })
+    return {
+      status: 201,
+      result: {
+        success: true,
+        info: info.result.info
+      }
+    }
+  })
+
   apiServer.post('/v1/accounts/login', async req => {
     req.body.email = req.body.email.toLowerCase()
     const findUserIds = await list(UserModel, { email: req.body.email }, { select: { accountId: 1 }, limit: 'unlimited' })
@@ -411,42 +447,7 @@ export default ({
         getAccounts.result.items
     }
     const token = jwt.sign(payload, secrets[0], { expiresIn: '24h' })
-    return {
-      status: 201,
-      result: {
-        success: true,
-        token
-      }
-    }
-  })
-
-  apiServer.post('/v1/accounts/:id/login/magic-link', async req => {
-    const data = allowAccessTo(req, secrets, [{ type: 'login' }])
-    if (!data.accounts) {
-      throw new AuthenticationError('Invalid token')
-    }
-    const accountInToken = data.accounts.find(a => a._id.toString() === req.params.id)
-    if (!accountInToken) {
-      throw new AuthenticationError('Invalid account')
-    }
-    const findUser = await list(UserModel, { email: data.user.email, accountId: req.params.id })
-    if (findUser.result.count === 0) {
-      throw new AuthenticationError('Invalid email')
-    }
-    const magicLinkPayload = {
-      type: 'magic-link',
-      user: {
-        _id: findUser.result.items[0]._id,
-        email: data.user.email
-      },
-      account: {
-        _id: req.params.id
-      }
-    }
-    const magicToken = jwt.sign(magicLinkPayload, secrets[0], { expiresIn: '15m' })
-    const info = await sendLogin(data.user.email, process.env.BLUEFOX_TEMPLATE_ID_ACCOUNT_MAGIC_LINK, {
-      link: `${process.env.APP_URL}accounts/login/magic-link/verify?token=${magicToken}`
-    })
+    const info = await sendLogin(req.body.email, process.env.BLUEFOX_TEMPLATE_ID_ACCOUNT_LOGIN_SELECT, { link: `${process.env.APP_URL}accounts/login-select?token=${token}` })
     return {
       status: 201,
       result: {

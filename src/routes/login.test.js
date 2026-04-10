@@ -640,7 +640,14 @@ describe('Accounts login test ', () => {
     expect(res.body.status).toBe(401)
   })
 
-  test('login with multiple accounts returns token with accounts list', async () => {
+  test('login with multiple accounts sends select account email', async () => {
+    const fetchSpy = vi.spyOn(global, 'fetch')
+    fetchSpy.mockResolvedValue({
+      ok: true,
+      headers: { get: () => 'application/json' },
+      json: () => Promise.resolve({ result: { info: 'sent' }, status: 200 })
+    })
+
     const account1 = new AccountTestModel({ name: 'accountExample1', urlFriendlyName: 'urlFriendlyNameExample1' })
     await account1.save()
     const account2 = new AccountTestModel({ name: 'accountExample2', urlFriendlyName: 'urlFriendlyNameExample2' })
@@ -657,8 +664,9 @@ describe('Accounts login test ', () => {
       .send({ email: user1.email })
 
     expect(res.body.status).toBe(201)
-    expect(res.body.result.token).toBeDefined()
+    expect(res.body.result.success).toBe(true)
     expect(res.body.result.singleAccount).toBeUndefined()
+    await fetchSpy.mockRestore()
   })
 
   test('login with single account sends magic link directly', async () => {
@@ -706,81 +714,6 @@ describe('Accounts login test ', () => {
 
     expect(res.body.status).toBe(400)
     fetchSpy.mockRestore()
-  })
-
-  test('send magic link for selected account (multi-account)', async () => {
-    const fetchSpy = vi.spyOn(global, 'fetch')
-    fetchSpy.mockResolvedValue({
-      ok: true,
-      headers: { get: () => 'application/json' },
-      json: () => Promise.resolve({ result: { info: 'sent' }, status: 200 })
-    })
-
-    const account1 = new AccountTestModel({ name: 'accountExample1', urlFriendlyName: 'urlFriendlyNameExample1' })
-    await account1.save()
-    const account2 = new AccountTestModel({ name: 'accountExample2', urlFriendlyName: 'urlFriendlyNameExample2' })
-    await account2.save()
-
-    const hash1 = await bcrypt.hash('user1Password', 10)
-    const user1 = new UserTestModel({ email: 'user1@gmail.com', name: 'user1', password: hash1, accountId: account1._id, verified: true })
-    await user1.save()
-    const user2 = new UserTestModel({ email: 'user1@gmail.com', name: 'user1acc2', password: hash1, accountId: account2._id, verified: true })
-    await user2.save()
-
-    const token = jwt.sign({ type: 'login', user: { email: user1.email }, accounts: [{ _id: account1._id }, { _id: account2._id }] }, secrets[0])
-
-    const res = await request(app)
-      .post('/v1/accounts/' + account1._id + '/login/magic-link')
-      .set('authorization', 'Bearer ' + token)
-      .send()
-
-    expect(res.body.status).toBe(201)
-    expect(res.body.result.success).toBe(true)
-    fetchSpy.mockRestore()
-  })
-
-  test('send magic link with no accounts in token returns 401', async () => {
-    const account1 = new AccountTestModel({ name: 'accountExample1', urlFriendlyName: 'urlFriendlyNameExample1' })
-    await account1.save()
-
-    const token = jwt.sign({ type: 'login', user: { email: 'user1@gmail.com' } }, secrets[0])
-
-    const res = await request(app)
-      .post('/v1/accounts/' + account1._id + '/login/magic-link')
-      .set('authorization', 'Bearer ' + token)
-      .send()
-
-    expect(res.body.status).toBe(401)
-  })
-
-  test('send magic link with account not in token returns 401', async () => {
-    const account1 = new AccountTestModel({ name: 'accountExample1', urlFriendlyName: 'urlFriendlyNameExample1' })
-    await account1.save()
-    const account2 = new AccountTestModel({ name: 'accountExample2', urlFriendlyName: 'urlFriendlyNameExample2' })
-    await account2.save()
-
-    const token = jwt.sign({ type: 'login', user: { email: 'user1@gmail.com' }, accounts: [{ _id: account1._id }] }, secrets[0])
-
-    const res = await request(app)
-      .post('/v1/accounts/' + account2._id + '/login/magic-link')
-      .set('authorization', 'Bearer ' + token)
-      .send()
-
-    expect(res.body.status).toBe(401)
-  })
-
-  test('send magic link with user not found returns 401', async () => {
-    const account1 = new AccountTestModel({ name: 'accountExample1', urlFriendlyName: 'urlFriendlyNameExample1' })
-    await account1.save()
-
-    const token = jwt.sign({ type: 'login', user: { email: 'notfound@gmail.com' }, accounts: [{ _id: account1._id }] }, secrets[0])
-
-    const res = await request(app)
-      .post('/v1/accounts/' + account1._id + '/login/magic-link')
-      .set('authorization', 'Bearer ' + token)
-      .send()
-
-    expect(res.body.status).toBe(401)
   })
 
   test('verify magic link returns loginToken', async () => {
@@ -879,6 +812,41 @@ describe('Accounts login test ', () => {
 
     expect(res.body.status).toBe(405)
     fetchSpy.mockRestore()
+  })
+
+  test('send magic link with urlFriendlyName success', async () => {
+    const fetchSpy = vi.spyOn(global, 'fetch')
+    fetchSpy.mockResolvedValue({
+      ok: true,
+      headers: { get: () => 'application/json' },
+      json: () => Promise.resolve({ result: { info: 'sent' }, status: 200 })
+    })
+
+    const account1 = new AccountTestModel({ name: 'accountExample1', urlFriendlyName: 'urlFriendlyNameExample1' })
+    await account1.save()
+
+    const hash1 = await bcrypt.hash('user1Password', 10)
+    const user1 = new UserTestModel({ email: 'user1@gmail.com', name: 'user1', password: hash1, accountId: account1._id, verified: true })
+    await user1.save()
+
+    const res = await request(app)
+      .post('/v1/accounts/' + account1.urlFriendlyName + '/login/url-friendly-name/magic-link')
+      .send({ email: user1.email })
+
+    expect(res.body.status).toBe(201)
+    expect(res.body.result.success).toBe(true)
+    fetchSpy.mockRestore()
+  })
+
+  test('send magic link with urlFriendlyName invalid email returns 401', async () => {
+    const account1 = new AccountTestModel({ name: 'accountExample1', urlFriendlyName: 'urlFriendlyNameExample1' })
+    await account1.save()
+
+    const res = await request(app)
+      .post('/v1/accounts/' + account1.urlFriendlyName + '/login/url-friendly-name/magic-link')
+      .send({ email: 'notfound@gmail.com' })
+
+    expect(res.body.status).toBe(401)
   })
 
   test('login select returns loginToken', async () => {
