@@ -640,14 +640,7 @@ describe('Accounts login test ', () => {
     expect(res.body.status).toBe(401)
   })
 
-  test('login with multiple accounts sends login-select email', async () => {
-    const fetchSpy = vi.spyOn(global, 'fetch')
-    fetchSpy.mockResolvedValue({
-      ok: true,
-      headers: { get: () => 'application/json' },
-      json: () => Promise.resolve({ result: { info: 'sent' }, status: 200 })
-    })
-
+  test('login with multiple accounts returns token with accounts list', async () => {
     const account1 = new AccountTestModel({ name: 'accountExample1', urlFriendlyName: 'urlFriendlyNameExample1' })
     await account1.save()
     const account2 = new AccountTestModel({ name: 'accountExample2', urlFriendlyName: 'urlFriendlyNameExample2' })
@@ -664,8 +657,8 @@ describe('Accounts login test ', () => {
       .send({ email: user1.email })
 
     expect(res.body.status).toBe(201)
+    expect(res.body.result.token).toBeDefined()
     expect(res.body.result.singleAccount).toBeUndefined()
-    await fetchSpy.mockRestore()
   })
 
   test('login with single account sends magic link directly', async () => {
@@ -881,6 +874,114 @@ describe('Accounts login test ', () => {
 
     const res = await request(app)
       .post('/v1/accounts/' + account1._id + '/login/magic-link/verify')
+      .set('authorization', 'Bearer ' + token)
+      .send()
+
+    expect(res.body.status).toBe(405)
+    fetchSpy.mockRestore()
+  })
+
+  test('login select returns loginToken', async () => {
+    const account1 = new AccountTestModel({ name: 'accountExample1', urlFriendlyName: 'urlFriendlyNameExample1' })
+    await account1.save()
+
+    const hash1 = await bcrypt.hash('user1Password', 10)
+    const user1 = new UserTestModel({ email: 'user1@gmail.com', name: 'user1', password: hash1, accountId: account1._id, verified: true })
+    await user1.save()
+
+    const token = jwt.sign({ type: 'login', user: { email: user1.email }, accounts: [{ _id: account1._id }] }, secrets[0])
+
+    const res = await request(app)
+      .post('/v1/accounts/' + account1._id + '/login/select')
+      .set('authorization', 'Bearer ' + token)
+      .send()
+
+    expect(res.body.status).toBe(200)
+    expect(res.body.result.loginToken).toBeDefined()
+  })
+
+  test('login select with 2fa enabled returns twoFactorLoginToken', async () => {
+    const account1 = new AccountTestModel({ name: 'accountExample1', urlFriendlyName: 'urlFriendlyNameExample1' })
+    await account1.save()
+
+    const hash1 = await bcrypt.hash('user1Password', 10)
+    const user1 = new UserTestModel({ email: 'user1@gmail.com', name: 'user1', password: hash1, accountId: account1._id, verified: true, twoFactor: { enabled: true, secret: encrypt('secret'), recoverySecret: encrypt('recoveryCode') } })
+    await user1.save()
+
+    const token = jwt.sign({ type: 'login', user: { email: user1.email }, accounts: [{ _id: account1._id }] }, secrets[0])
+
+    const res = await request(app)
+      .post('/v1/accounts/' + account1._id + '/login/select')
+      .set('authorization', 'Bearer ' + token)
+      .send()
+
+    expect(res.body.status).toBe(200)
+    expect(res.body.result.twoFactorLoginToken).toBeDefined()
+  })
+
+  test('login select with no accounts in token returns 401', async () => {
+    const account1 = new AccountTestModel({ name: 'accountExample1', urlFriendlyName: 'urlFriendlyNameExample1' })
+    await account1.save()
+
+    const token = jwt.sign({ type: 'login', user: { email: 'user1@gmail.com' } }, secrets[0])
+
+    const res = await request(app)
+      .post('/v1/accounts/' + account1._id + '/login/select')
+      .set('authorization', 'Bearer ' + token)
+      .send()
+
+    expect(res.body.status).toBe(401)
+  })
+
+  test('login select with account not in token returns 401', async () => {
+    const account1 = new AccountTestModel({ name: 'accountExample1', urlFriendlyName: 'urlFriendlyNameExample1' })
+    await account1.save()
+    const account2 = new AccountTestModel({ name: 'accountExample2', urlFriendlyName: 'urlFriendlyNameExample2' })
+    await account2.save()
+
+    const token = jwt.sign({ type: 'login', user: { email: 'user1@gmail.com' }, accounts: [{ _id: account1._id }] }, secrets[0])
+
+    const res = await request(app)
+      .post('/v1/accounts/' + account2._id + '/login/select')
+      .set('authorization', 'Bearer ' + token)
+      .send()
+
+    expect(res.body.status).toBe(401)
+  })
+
+  test('login select with user not found returns 401', async () => {
+    const account1 = new AccountTestModel({ name: 'accountExample1', urlFriendlyName: 'urlFriendlyNameExample1' })
+    await account1.save()
+
+    const token = jwt.sign({ type: 'login', user: { email: 'notfound@gmail.com' }, accounts: [{ _id: account1._id }] }, secrets[0])
+
+    const res = await request(app)
+      .post('/v1/accounts/' + account1._id + '/login/select')
+      .set('authorization', 'Bearer ' + token)
+      .send()
+
+    expect(res.body.status).toBe(401)
+  })
+
+  test('login select with unverified user sends registration email and returns 405', async () => {
+    const fetchSpy = vi.spyOn(global, 'fetch')
+    fetchSpy.mockResolvedValue({
+      ok: true,
+      headers: { get: () => 'application/json' },
+      json: () => Promise.resolve({ result: { info: 'sent' }, status: 200 })
+    })
+
+    const account1 = new AccountTestModel({ name: 'accountExample1', urlFriendlyName: 'urlFriendlyNameExample1' })
+    await account1.save()
+
+    const hash1 = await bcrypt.hash('user1Password', 10)
+    const user1 = new UserTestModel({ email: 'user1@gmail.com', name: 'user1', password: hash1, accountId: account1._id, verified: false })
+    await user1.save()
+
+    const token = jwt.sign({ type: 'login', user: { email: user1.email }, accounts: [{ _id: account1._id }] }, secrets[0])
+
+    const res = await request(app)
+      .post('/v1/accounts/' + account1._id + '/login/select')
       .set('authorization', 'Bearer ' + token)
       .send()
 
