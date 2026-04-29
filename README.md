@@ -123,12 +123,26 @@ MuaBackend({
   AccountModel,
   UserModel,
   SystemAdminModel,
-  ProjectModel
+  ProjectModel,
   hooks: {} // optional  
 })
 
 ```
-4. Add to `.env` file
+4. Model Validation
+
+`mua-backend` validates all required models and their schema fields on startup. If a model is missing or lacks a required field, an error is thrown immediately so misconfiguration is caught early rather than at runtime.
+
+The following fields are required on each model:
+
+| Model | Required fields |
+|---|---|
+| `AccountModel` | `name`, `urlFriendlyName`, `logo`, `deleted` |
+| `UserModel` | `email`, `password`, `role`, `accountId`, `verified`, `deleted`, `twoFactor.enabled`, `twoFactor.secret`, `twoFactor.recoverySecret` |
+| `SystemAdminModel` | `email`, `password`, `twoFactor.enabled`, `twoFactor.secret`, `twoFactor.recoverySecret` |
+
+You can extend any model with additional fields as needed — only the fields above are enforced.
+
+5. Add to `.env` file
 
 You need to provide the following environment variables in a .env file for Mua to function properly.
 
