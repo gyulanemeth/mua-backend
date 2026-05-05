@@ -51,6 +51,20 @@ if (process.env.MICROSOFT_CLIENT_ID && process.env.MICROSOFT_CLIENT_SECRET) {
   }))
 }
 
+function validateModel (model, name, requiredPaths) {
+  if (!model) {
+    throw new Error(`mua-backend: ${name} is required but was not provided.`)
+  }
+  if (!model.schema) {
+    throw new Error(`mua-backend: ${name} does not appear to be a valid Mongoose model.`)
+  }
+  for (const path of requiredPaths) {
+    if (!model.schema.path(path)) {
+      throw new Error(`mua-backend: ${name} is missing required schema field "${path}".`)
+    }
+  }
+}
+
 export default ({
   apiServer, UserModel, AccountModel, SystemAdminModel, ProjectModel, hooks =
   {
@@ -61,6 +75,10 @@ export default ({
     updateUserEmail: { post: (params) => { } }
   }
 }) => {
+  validateModel(AccountModel, 'AccountModel', ['name', 'urlFriendlyName', 'logo', 'deleted'])
+  validateModel(UserModel, 'UserModel', ['email', 'password', 'role', 'accountId', 'verified', 'deleted', 'twoFactor.enabled', 'twoFactor.secret', 'twoFactor.recoverySecret'])
+  validateModel(SystemAdminModel, 'SystemAdminModel', ['email', 'password', 'twoFactor.enabled', 'twoFactor.secret', 'twoFactor.recoverySecret'])
+
   systemAdmins({ apiServer, SystemAdminModel })
   users({ apiServer, UserModel, AccountModel, ProjectModel, hooks })
   login({ apiServer, UserModel, AccountModel, SystemAdminModel })
