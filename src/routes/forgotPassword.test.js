@@ -127,6 +127,56 @@ describe('Accounts forgot-password test', () => {
     await fetchSpy.mockRestore()
   })
 
+  test('success send forget password with turnstile token  /v1/accounts/:accountId/forgot-password/send', async () => {
+    const fetchSpy = vi.spyOn(global, 'fetch')
+    fetchSpy.mockResolvedValueOnce({
+      json: () => Promise.resolve({ success: true })
+    }).mockResolvedValueOnce({
+      ok: true,
+      headers: { get: () => 'application/json' },
+      json: () => Promise.resolve({ result: { success: true }, status: 200 })
+    })
+    process.env.TURNSTILE_SECRET_KEY = 'test-secret-key'
+
+    const account1 = new AccountTestModel({ name: 'accountExample1', urlFriendlyName: 'urlFriendlyNameExample1' })
+    await account1.save()
+
+    const hash1 = await bcrypt.hash('user1Password', 10)
+    const user1 = new UserTestModel({ name: 'user1', email: 'user1@gmail.com', password: hash1, accountId: account1._id })
+    await user1.save()
+
+    const res = await request(app)
+      .post('/v1/accounts/' + account1._id + '/forgot-password/send')
+      .send({ email: user1.email, turnstileToken: 'valid-turnstile-token' })
+
+    expect(res.body.status).toBe(200)
+    expect(res.body.result.success).toBe(true)
+    await fetchSpy.mockRestore()
+  })
+
+  test('error send forget password with invalid turnstile token  /v1/accounts/:accountId/forgot-password/send', async () => {
+    const fetchSpy = vi.spyOn(global, 'fetch')
+    fetchSpy.mockResolvedValue({
+      json: () => Promise.resolve({ success: false })
+    })
+    process.env.TURNSTILE_SECRET_KEY = 'test-secret-key'
+
+    const account1 = new AccountTestModel({ name: 'accountExample1', urlFriendlyName: 'urlFriendlyNameExample1' })
+    await account1.save()
+
+    const hash1 = await bcrypt.hash('user1Password', 10)
+    const user1 = new UserTestModel({ name: 'user1', email: 'user1@gmail.com', password: hash1, accountId: account1._id })
+    await user1.save()
+
+    const res = await request(app)
+      .post('/v1/accounts/' + account1._id + '/forgot-password/send')
+      .send({ email: user1.email, turnstileToken: 'invalid-turnstile-token' })
+
+    expect(res.body.status).toBe(400)
+    expect(res.body.error.message).toBe('Security check failed. Please try again.')
+    await fetchSpy.mockRestore()
+  })
+
   test('error captcha send forget password  /v1/accounts/:accountId/forgot-password/send', async () => {
     const fetchSpy = vi.spyOn(global, 'fetch')
     fetchSpy.mockResolvedValue({
@@ -397,6 +447,50 @@ describe('System admins forgot-password test', () => {
 
     expect(res.body.status).toBe(200)
     expect(res.body.result.success).toBe(true)
+  })
+
+  test('success send forget password with turnstile token  /v1/system-admins/forgot-password/send', async () => {
+    const fetchSpy = vi.spyOn(global, 'fetch')
+    fetchSpy.mockResolvedValueOnce({
+      json: () => Promise.resolve({ success: true })
+    }).mockResolvedValueOnce({
+      ok: true,
+      headers: { get: () => 'application/json' },
+      json: () => Promise.resolve({ result: { success: true }, status: 200 })
+    })
+    process.env.TURNSTILE_SECRET_KEY = 'test-secret-key'
+
+    const hash2 = await bcrypt.hash('user2Password', 10)
+    const user2 = new SystemAdminTestModel({ email: 'user2@gmail.com', name: 'user2', password: hash2 })
+    await user2.save()
+
+    const res = await request(app)
+      .post('/v1/system-admins/forgot-password/send')
+      .send({ email: user2.email, turnstileToken: 'valid-turnstile-token' })
+
+    expect(res.body.status).toBe(200)
+    expect(res.body.result.success).toBe(true)
+    await fetchSpy.mockRestore()
+  })
+
+  test('error send forget password with invalid turnstile token  /v1/system-admins/forgot-password/send', async () => {
+    const fetchSpy = vi.spyOn(global, 'fetch')
+    fetchSpy.mockResolvedValue({
+      json: () => Promise.resolve({ success: false })
+    })
+    process.env.TURNSTILE_SECRET_KEY = 'test-secret-key'
+
+    const hash2 = await bcrypt.hash('user2Password', 10)
+    const user2 = new SystemAdminTestModel({ email: 'user2@gmail.com', name: 'user2', password: hash2 })
+    await user2.save()
+
+    const res = await request(app)
+      .post('/v1/system-admins/forgot-password/send')
+      .send({ email: user2.email, turnstileToken: 'invalid-turnstile-token' })
+
+    expect(res.body.status).toBe(400)
+    expect(res.body.error.message).toBe('Security check failed. Please try again.')
+    await fetchSpy.mockRestore()
   })
 
   test('error captcha send forget password  /v1/system-admins/forgot-password/send', async () => {
