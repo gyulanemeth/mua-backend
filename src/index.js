@@ -7,6 +7,8 @@ import systemAdmins from './routes/systemAdmins.js'
 import systemStats from './routes/stats.js'
 import captchaHandler from './helpers/captcha.js'
 import captcha from './routes/captcha.js'
+import turnstileHandler from './helpers/turnstile.js'
+import turnstile from './routes/turnstile.js'
 
 import passport from 'passport'
 import { Strategy as GoogleStrategy } from 'passport-google-oauth20'
@@ -87,6 +89,7 @@ export default ({
   account({ apiServer, UserModel, AccountModel, hooks })
   systemStats({ apiServer, UserModel, AccountModel })
   captcha({ apiServer })
+  turnstile({ apiServer })
 }
 
-export { captchaHandler }
+export { captchaHandler, turnstileHandler }

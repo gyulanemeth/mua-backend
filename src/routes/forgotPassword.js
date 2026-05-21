@@ -6,6 +6,7 @@ import { list, patchOne, readOne } from 'mongoose-crudl'
 import allowAccessTo from 'bearer-jwt-auth'
 import { ValidationError, AuthenticationError } from 'standard-api-errors'
 import captcha from '../helpers/captcha.js'
+import turnstile from '../helpers/turnstile.js'
 
 export default ({ apiServer, UserModel, SystemAdminModel, AccountModel }) => {
   const secrets = process.env.SECRETS.split(' ')
@@ -33,9 +34,16 @@ export default ({ apiServer, UserModel, SystemAdminModel, AccountModel }) => {
   }
 
   apiServer.post('/v1/accounts/:id/forgot-password/send', async req => {
-    const validationResult = await captcha.validate(secrets, { text: req.body.captchaText, probe: req.body.captchaProbe })
-    if (!validationResult) {
-      throw new ValidationError('Invalid CAPTCHA. Please try again.')
+    if (req.body.turnstileToken) {
+      const valid = await turnstile.validate(req.body.turnstileToken)
+      if (!valid) {
+        throw new ValidationError('Security check failed. Please try again.')
+      }
+    } else {
+      const valid = await captcha.validate(secrets, { text: req.body.captchaText, probe: req.body.captchaProbe })
+      if (!valid) {
+        throw new ValidationError('Invalid CAPTCHA. Please try again.')
+      }
     }
     const response = await list(UserModel, { email: req.body.email, accountId: req.params.id }, { select: { password: 0, googleProfileId: 0, microsoftProfileId: 0, githubProfileId: 0 } })
     if (response.result.count === 0) {
@@ -66,9 +74,16 @@ export default ({ apiServer, UserModel, SystemAdminModel, AccountModel }) => {
   })
 
   apiServer.post('/v1/system-admins/forgot-password/send', async req => {
-    const validationResult = await captcha.validate(secrets, { text: req.body.captchaText, probe: req.body.captchaProbe })
-    if (!validationResult) {
-      throw new ValidationError('Invalid CAPTCHA. Please try again.')
+    if (req.body.turnstileToken) {
+      const valid = await turnstile.validate(req.body.turnstileToken)
+      if (!valid) {
+        throw new ValidationError('Security check failed. Please try again.')
+      }
+    } else {
+      const valid = await captcha.validate(secrets, { text: req.body.captchaText, probe: req.body.captchaProbe })
+      if (!valid) {
+        throw new ValidationError('Invalid CAPTCHA. Please try again.')
+      }
     }
     const response = await list(SystemAdminModel, { email: req.body.email }, { select: { password: 0 } })
     if (response.result.count === 0) {
