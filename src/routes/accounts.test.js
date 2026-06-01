@@ -731,6 +731,51 @@ describe('accounts test', () => {
     expect(res.body.status).toBe(400)
   })
 
+  test('success create account with turnstile token  /v1/accounts/create', async () => {
+    const fetchSpy = vi.spyOn(global, 'fetch')
+    fetchSpy.mockResolvedValueOnce({
+      json: () => Promise.resolve({ success: true })
+    }).mockResolvedValueOnce({
+      ok: true,
+      headers: { get: () => 'application/json' },
+      json: () => Promise.resolve({ result: { success: true }, status: 200 })
+    })
+
+    process.env.TURNSTILE_SECRET_KEY = 'test-secret-key'
+
+    const res = await request(app)
+      .post('/v1/accounts/create')
+      .send({
+        turnstileToken: 'valid-turnstile-token',
+        user: { name: 'user1', email: 'user1@gmail.com', password: 'userPassword', newPasswordAgain: 'userPassword' },
+        account: { name: 'account1', urlFriendlyName: 'account1UrlFriendlyName' }
+      })
+
+    expect(res.body.status).toBe(200)
+    await fetchSpy.mockRestore()
+  })
+
+  test('error create account with invalid turnstile token  /v1/accounts/create', async () => {
+    const fetchSpy = vi.spyOn(global, 'fetch')
+    fetchSpy.mockResolvedValue({
+      json: () => Promise.resolve({ success: false })
+    })
+
+    process.env.TURNSTILE_SECRET_KEY = 'test-secret-key'
+
+    const res = await request(app)
+      .post('/v1/accounts/create')
+      .send({
+        turnstileToken: 'invalid-turnstile-token',
+        user: { name: 'user1', email: 'user1@gmail.com', password: 'userPassword', newPasswordAgain: 'userPassword' },
+        account: { name: 'account1', urlFriendlyName: 'account1UrlFriendlyName' }
+      })
+
+    expect(res.body.status).toBe(400)
+    expect(res.body.error.message).toBe('Security check failed. Please try again.')
+    await fetchSpy.mockRestore()
+  })
+
   test('create account urlFriendlyName exist   /v1/accounts/create', async () => {
     const account1 = new AccountTestModel({ name: 'accountExample1', urlFriendlyName: 'urlFriendlyNameExample1' })
     await account1.save()

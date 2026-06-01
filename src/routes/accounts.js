@@ -8,6 +8,7 @@ import allowAccessTo from 'bearer-jwt-auth'
 import { ConflictError, NotFoundError, ValidationError } from 'standard-api-errors'
 import { list, readOne, deleteOne, deleteMany, patchOne, createOne } from 'mongoose-crudl'
 import captcha from '../helpers/captcha.js'
+import turnstile from '../helpers/turnstile.js'
 
 import aws from '../helpers/awsBucket.js'
 
@@ -134,9 +135,16 @@ export default async ({
   })
 
   apiServer.post('/v1/accounts/create', async req => {
-    const validationResult = await captcha.validate(secrets, { text: req.body.captchaText, probe: req.body.captchaProbe })
-    if (!validationResult) {
-      throw new ValidationError('Invalid CAPTCHA. Please try again.')
+    if (req.body.turnstileToken) {
+      const valid = await turnstile.validate(req.body.turnstileToken)
+      if (!valid) {
+        throw new ValidationError('Security check failed. Please try again.')
+      }
+    } else {
+      const valid = await captcha.validate(secrets, { text: req.body.captchaText, probe: req.body.captchaProbe })
+      if (!valid) {
+        throw new ValidationError('Invalid CAPTCHA. Please try again.')
+      }
     }
     const response = await list(AccountModel, { urlFriendlyName: req.body.account.urlFriendlyName }, req.query)
     if (response.result.count > 0) {
