@@ -12,6 +12,7 @@ import login from './login.js'
 import { encrypt } from '../helpers/decryptEncryptHandler.js'
 
 import mfa from '../helpers/mfa.js'
+import captcha from '../helpers/captcha.js'
 
 const mongooseMemoryServer = createMongooseMemoryServer(mongoose)
 
@@ -669,6 +670,49 @@ describe('Accounts login test ', () => {
     await fetchSpy.mockRestore()
   })
 
+  test('login get accounts with valid captcha ', async () => {
+    const fetchSpy = vi.spyOn(global, 'fetch')
+    fetchSpy.mockResolvedValue({
+      ok: true,
+      headers: { get: () => 'application/json' },
+      json: () => Promise.resolve({ result: { info: 'sent' }, status: 200 })
+    })
+
+    const account1 = new AccountTestModel({ name: 'accountExample1', urlFriendlyName: 'urlFriendlyNameExample1' })
+    await account1.save()
+
+    const hash1 = await bcrypt.hash('user1Password', 10)
+    const user1 = new UserTestModel({ email: 'user1@gmail.com', name: 'user1', password: hash1, accountId: account1._id, verified: true })
+    await user1.save()
+
+    const captchaData = await captcha.generate(secrets)
+
+    const res = await request(app)
+      .post('/v1/accounts/login')
+      .send({ email: user1.email, captchaText: captchaData.text, captchaProbe: captchaData.probe })
+
+    expect(res.body.status).toBe(201)
+    await fetchSpy.mockRestore()
+  })
+
+  test('login get accounts with invalid captcha returns 400', async () => {
+    const account1 = new AccountTestModel({ name: 'accountExample1', urlFriendlyName: 'urlFriendlyNameExample1' })
+    await account1.save()
+
+    const hash1 = await bcrypt.hash('user1Password', 10)
+    const user1 = new UserTestModel({ email: 'user1@gmail.com', name: 'user1', password: hash1, accountId: account1._id, verified: true })
+    await user1.save()
+
+    const captchaData = await captcha.generate(secrets)
+
+    const res = await request(app)
+      .post('/v1/accounts/login')
+      .send({ email: user1.email, captchaText: 'wrong', captchaProbe: captchaData.probe })
+
+    expect(res.body.status).toBe(400)
+    expect(res.body.error.message).toBe('Invalid CAPTCHA. Please try again.')
+  })
+
   test('login with multiple accounts sends select account email', async () => {
     const fetchSpy = vi.spyOn(global, 'fetch')
     fetchSpy.mockResolvedValueOnce({
@@ -918,6 +962,50 @@ describe('Accounts login test ', () => {
     expect(res.body.status).toBe(400)
     expect(res.body.error.message).toBe('Security check failed. Please try again.')
     await fetchSpy.mockRestore()
+  })
+
+  test('send magic link with urlFriendlyName valid captcha', async () => {
+    const fetchSpy = vi.spyOn(global, 'fetch')
+    fetchSpy.mockResolvedValue({
+      ok: true,
+      headers: { get: () => 'application/json' },
+      json: () => Promise.resolve({ result: { info: 'sent' }, status: 200 })
+    })
+
+    const account1 = new AccountTestModel({ name: 'accountExample1', urlFriendlyName: 'urlFriendlyNameExample1' })
+    await account1.save()
+
+    const hash1 = await bcrypt.hash('user1Password', 10)
+    const user1 = new UserTestModel({ email: 'user1@gmail.com', name: 'user1', password: hash1, accountId: account1._id, verified: true })
+    await user1.save()
+
+    const captchaData = await captcha.generate(secrets)
+
+    const res = await request(app)
+      .post('/v1/accounts/' + account1.urlFriendlyName + '/login/url-friendly-name/magic-link')
+      .send({ email: user1.email, captchaText: captchaData.text, captchaProbe: captchaData.probe })
+
+    expect(res.body.status).toBe(201)
+    expect(res.body.result.success).toBe(true)
+    fetchSpy.mockRestore()
+  })
+
+  test('send magic link with urlFriendlyName invalid captcha returns 400', async () => {
+    const account1 = new AccountTestModel({ name: 'accountExample1', urlFriendlyName: 'urlFriendlyNameExample1' })
+    await account1.save()
+
+    const hash1 = await bcrypt.hash('user1Password', 10)
+    const user1 = new UserTestModel({ email: 'user1@gmail.com', name: 'user1', password: hash1, accountId: account1._id, verified: true })
+    await user1.save()
+
+    const captchaData = await captcha.generate(secrets)
+
+    const res = await request(app)
+      .post('/v1/accounts/' + account1.urlFriendlyName + '/login/url-friendly-name/magic-link')
+      .send({ email: user1.email, captchaText: 'wrong', captchaProbe: captchaData.probe })
+
+    expect(res.body.status).toBe(400)
+    expect(res.body.error.message).toBe('Invalid CAPTCHA. Please try again.')
   })
 
   test('login select returns loginToken', async () => {
