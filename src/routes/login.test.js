@@ -569,11 +569,14 @@ describe('Accounts login test ', () => {
 
   test('login get accounts with valid email ', async () => {
     const fetchSpy = vi.spyOn(global, 'fetch')
-    fetchSpy.mockResolvedValue({
+    fetchSpy.mockResolvedValueOnce({
+      json: () => Promise.resolve({ success: true })
+    }).mockResolvedValueOnce({
       ok: true,
       headers: { get: () => 'application/json' },
       json: () => Promise.resolve({ result: { success: true }, status: 200 })
     })
+    process.env.TURNSTILE_SECRET_KEY = 'test-secret-key'
 
     const account1 = new AccountTestModel({ name: 'accountExample1', urlFriendlyName: 'urlFriendlyNameExample1' })
     await account1.save()
@@ -588,7 +591,7 @@ describe('Accounts login test ', () => {
 
     const res = await request(app)
       .post('/v1/accounts/login')
-      .send({ email: user1.email })
+      .send({ email: user1.email, turnstileToken: 'valid-turnstile-token' })
 
     expect(res.body.status).toBe(201)
     await fetchSpy.mockRestore()
@@ -596,11 +599,14 @@ describe('Accounts login test ', () => {
 
   test('error fetch', async () => {
     const fetchSpy = vi.spyOn(global, 'fetch')
-    fetchSpy.mockResolvedValue({
+    fetchSpy.mockResolvedValueOnce({
+      json: () => Promise.resolve({ success: true })
+    }).mockResolvedValueOnce({
       ok: true,
       headers: { get: () => 'application/json' },
       json: () => Promise.resolve({ error: { name: 'error', message: 'error test' }, status: 400 })
     })
+    process.env.TURNSTILE_SECRET_KEY = 'test-secret-key'
 
     const account1 = new AccountTestModel({ name: 'accountExample1', urlFriendlyName: 'urlFriendlyNameExample1' })
     await account1.save()
@@ -615,13 +621,19 @@ describe('Accounts login test ', () => {
 
     const res = await request(app)
       .post('/v1/accounts/login')
-      .send({ email: user1.email })
+      .send({ email: user1.email, turnstileToken: 'valid-turnstile-token' })
 
     expect(res.body.status).toBe(400)
     await fetchSpy.mockRestore()
   })
 
   test('login get accounts with unvalid email ', async () => {
+    const fetchSpy = vi.spyOn(global, 'fetch')
+    fetchSpy.mockResolvedValue({
+      json: () => Promise.resolve({ success: true })
+    })
+    process.env.TURNSTILE_SECRET_KEY = 'test-secret-key'
+
     const account1 = new AccountTestModel({ name: 'accountExample1', urlFriendlyName: 'urlFriendlyNameExample1' })
     await account1.save()
 
@@ -635,18 +647,38 @@ describe('Accounts login test ', () => {
 
     const res = await request(app)
       .post('/v1/accounts/login')
-      .send({ email: 'wrongTest@gmail.com' })
+      .send({ email: 'wrongTest@gmail.com', turnstileToken: 'valid-turnstile-token' })
 
     expect(res.body.status).toBe(401)
+    await fetchSpy.mockRestore()
+  })
+
+  test('login get accounts with invalid turnstile token returns 400', async () => {
+    const fetchSpy = vi.spyOn(global, 'fetch')
+    fetchSpy.mockResolvedValue({
+      json: () => Promise.resolve({ success: false })
+    })
+    process.env.TURNSTILE_SECRET_KEY = 'test-secret-key'
+
+    const res = await request(app)
+      .post('/v1/accounts/login')
+      .send({ email: 'user1@gmail.com', turnstileToken: 'invalid-turnstile-token' })
+
+    expect(res.body.status).toBe(400)
+    expect(res.body.error.message).toBe('Security check failed. Please try again.')
+    await fetchSpy.mockRestore()
   })
 
   test('login with multiple accounts sends select account email', async () => {
     const fetchSpy = vi.spyOn(global, 'fetch')
-    fetchSpy.mockResolvedValue({
+    fetchSpy.mockResolvedValueOnce({
+      json: () => Promise.resolve({ success: true })
+    }).mockResolvedValueOnce({
       ok: true,
       headers: { get: () => 'application/json' },
       json: () => Promise.resolve({ result: { info: 'sent' }, status: 200 })
     })
+    process.env.TURNSTILE_SECRET_KEY = 'test-secret-key'
 
     const account1 = new AccountTestModel({ name: 'accountExample1', urlFriendlyName: 'urlFriendlyNameExample1' })
     await account1.save()
@@ -661,7 +693,7 @@ describe('Accounts login test ', () => {
 
     const res = await request(app)
       .post('/v1/accounts/login')
-      .send({ email: user1.email })
+      .send({ email: user1.email, turnstileToken: 'valid-turnstile-token' })
 
     expect(res.body.status).toBe(201)
     expect(res.body.result.success).toBe(true)
@@ -671,11 +703,14 @@ describe('Accounts login test ', () => {
 
   test('login with single account sends magic link directly', async () => {
     const fetchSpy = vi.spyOn(global, 'fetch')
-    fetchSpy.mockResolvedValue({
+    fetchSpy.mockResolvedValueOnce({
+      json: () => Promise.resolve({ success: true })
+    }).mockResolvedValueOnce({
       ok: true,
       headers: { get: () => 'application/json' },
       json: () => Promise.resolve({ result: { info: 'sent' }, status: 200 })
     })
+    process.env.TURNSTILE_SECRET_KEY = 'test-secret-key'
 
     const account1 = new AccountTestModel({ name: 'accountExample1', urlFriendlyName: 'urlFriendlyNameExample1' })
     await account1.save()
@@ -686,7 +721,7 @@ describe('Accounts login test ', () => {
 
     const res = await request(app)
       .post('/v1/accounts/login')
-      .send({ email: user1.email })
+      .send({ email: user1.email, turnstileToken: 'valid-turnstile-token' })
 
     expect(res.body.status).toBe(201)
     expect(res.body.result.singleAccount).toBe(true)
@@ -695,11 +730,14 @@ describe('Accounts login test ', () => {
 
   test('login with single account fetch error', async () => {
     const fetchSpy = vi.spyOn(global, 'fetch')
-    fetchSpy.mockResolvedValue({
+    fetchSpy.mockResolvedValueOnce({
+      json: () => Promise.resolve({ success: true })
+    }).mockResolvedValueOnce({
       ok: true,
       headers: { get: () => 'application/json' },
       json: () => Promise.resolve({ error: { name: 'error', message: 'email error' }, status: 400 })
     })
+    process.env.TURNSTILE_SECRET_KEY = 'test-secret-key'
 
     const account1 = new AccountTestModel({ name: 'accountExample1', urlFriendlyName: 'urlFriendlyNameExample1' })
     await account1.save()
@@ -710,7 +748,7 @@ describe('Accounts login test ', () => {
 
     const res = await request(app)
       .post('/v1/accounts/login')
-      .send({ email: user1.email })
+      .send({ email: user1.email, turnstileToken: 'valid-turnstile-token' })
 
     expect(res.body.status).toBe(400)
     fetchSpy.mockRestore()
@@ -816,11 +854,14 @@ describe('Accounts login test ', () => {
 
   test('send magic link with urlFriendlyName success', async () => {
     const fetchSpy = vi.spyOn(global, 'fetch')
-    fetchSpy.mockResolvedValue({
+    fetchSpy.mockResolvedValueOnce({
+      json: () => Promise.resolve({ success: true })
+    }).mockResolvedValueOnce({
       ok: true,
       headers: { get: () => 'application/json' },
       json: () => Promise.resolve({ result: { info: 'sent' }, status: 200 })
     })
+    process.env.TURNSTILE_SECRET_KEY = 'test-secret-key'
 
     const account1 = new AccountTestModel({ name: 'accountExample1', urlFriendlyName: 'urlFriendlyNameExample1' })
     await account1.save()
@@ -831,7 +872,7 @@ describe('Accounts login test ', () => {
 
     const res = await request(app)
       .post('/v1/accounts/' + account1.urlFriendlyName + '/login/url-friendly-name/magic-link')
-      .send({ email: user1.email })
+      .send({ email: user1.email, turnstileToken: 'valid-turnstile-token' })
 
     expect(res.body.status).toBe(201)
     expect(res.body.result.success).toBe(true)
@@ -839,14 +880,44 @@ describe('Accounts login test ', () => {
   })
 
   test('send magic link with urlFriendlyName invalid email returns 401', async () => {
+    const fetchSpy = vi.spyOn(global, 'fetch')
+    fetchSpy.mockResolvedValue({
+      json: () => Promise.resolve({ success: true })
+    })
+    process.env.TURNSTILE_SECRET_KEY = 'test-secret-key'
+
     const account1 = new AccountTestModel({ name: 'accountExample1', urlFriendlyName: 'urlFriendlyNameExample1' })
     await account1.save()
 
     const res = await request(app)
       .post('/v1/accounts/' + account1.urlFriendlyName + '/login/url-friendly-name/magic-link')
-      .send({ email: 'notfound@gmail.com' })
+      .send({ email: 'notfound@gmail.com', turnstileToken: 'valid-turnstile-token' })
 
     expect(res.body.status).toBe(401)
+    await fetchSpy.mockRestore()
+  })
+
+  test('send magic link with urlFriendlyName invalid turnstile token returns 400', async () => {
+    const fetchSpy = vi.spyOn(global, 'fetch')
+    fetchSpy.mockResolvedValue({
+      json: () => Promise.resolve({ success: false })
+    })
+    process.env.TURNSTILE_SECRET_KEY = 'test-secret-key'
+
+    const account1 = new AccountTestModel({ name: 'accountExample1', urlFriendlyName: 'urlFriendlyNameExample1' })
+    await account1.save()
+
+    const hash1 = await bcrypt.hash('user1Password', 10)
+    const user1 = new UserTestModel({ email: 'user1@gmail.com', name: 'user1', password: hash1, accountId: account1._id, verified: true })
+    await user1.save()
+
+    const res = await request(app)
+      .post('/v1/accounts/' + account1.urlFriendlyName + '/login/url-friendly-name/magic-link')
+      .send({ email: user1.email, turnstileToken: 'invalid-turnstile-token' })
+
+    expect(res.body.status).toBe(400)
+    expect(res.body.error.message).toBe('Security check failed. Please try again.')
+    await fetchSpy.mockRestore()
   })
 
   test('login select returns loginToken', async () => {
