@@ -6,11 +6,27 @@ import passport from 'passport'
 import verifyAndUpgradePassword from '../helpers/verifyAndUpgradePassword.js'
 import mfa from '../helpers/mfa.js'
 import { decrypt } from '../helpers/decryptEncryptHandler.js'
+import captcha from '../helpers/captcha.js'
+import turnstile from '../helpers/turnstile.js'
 
 export default ({
   apiServer, UserModel, AccountModel, SystemAdminModel
 }) => {
   const secrets = process.env.SECRETS.split(' ')
+
+  const validateCaptcha = async (req) => {
+    if (req.body.turnstileToken) {
+      const valid = await turnstile.validate(req.body.turnstileToken)
+      if (!valid) {
+        throw new ValidationError('Security check failed. Please try again.')
+      }
+    } else {
+      const valid = await captcha.validate(secrets, { text: req.body.captchaText, probe: req.body.captchaProbe })
+      if (!valid) {
+        throw new ValidationError('Invalid CAPTCHA. Please try again.')
+      }
+    }
+  }
   const sendLogin = async (email, transactionalId, data) => {
     const response = await fetch(process.env.BLUEFOX_TRANSACTIONAL_EMAIL_API_URL, {
       method: 'POST',
@@ -369,6 +385,7 @@ export default ({
   })
 
   apiServer.post('/v1/accounts/:id/login/url-friendly-name/magic-link', async req => {
+    await validateCaptcha(req)
     const email = req.body.email?.toLowerCase()
     let getAccount
     let findUser
@@ -405,6 +422,7 @@ export default ({
   })
 
   apiServer.post('/v1/accounts/login', async req => {
+    await validateCaptcha(req)
     req.body.email = req.body.email.toLowerCase()
     const findUserIds = await list(UserModel, { email: req.body.email }, { select: { accountId: 1 }, limit: 'unlimited' })
     if (findUserIds.result.count === 0) {
