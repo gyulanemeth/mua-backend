@@ -766,7 +766,7 @@ export default ({
     if (req.body.accountId && req.body.userId) {
       const getAccount = await readOne(AccountModel, { id: req.body.accountId })
       const getUser = await readOne(UserModel, { id: req.body.userId, accountId: req.body.accountId }, { select: { password: 0, googleProfileId: 0, microsoftProfileId: 0, githubProfileId: 0 } })
-      data.account = getAccount.result
+      data.account = { _id: getAccount.result._id, name: getAccount.result.name, urlFriendlyName: getAccount.result.urlFriendlyName }
       data.user = getUser.result
     }
     const state = Buffer.from(JSON.stringify(data)).toString('base64')
