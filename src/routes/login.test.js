@@ -1301,6 +1301,7 @@ describe('System admin login test ', () => {
 describe('System admin login test ', () => {
   let app
   let req, res
+  const createNewUserHook = vi.fn()
   beforeAll(async () => {
     await mongooseMemoryServer.start()
     await mongooseMemoryServer.connect('test-db')
@@ -1345,7 +1346,7 @@ describe('System admin login test ', () => {
         }
       }
     }, () => { })
-    login({ apiServer: app, UserModel: UserTestModel, AccountModel: AccountTestModel, SystemAdminModel: SystemAdminTestModel })
+    login({ apiServer: app, UserModel: UserTestModel, AccountModel: AccountTestModel, SystemAdminModel: SystemAdminTestModel, hooks: { createNewUser: { post: createNewUserHook } } })
     app = app._expressServer
   })
 
@@ -1985,6 +1986,61 @@ describe('System admin login test ', () => {
     expect(response.status).toBe(302)
 
     expect(response.header.location).toContain(`${process.env.APP_URL}provider-auth?loginToken`)
+    expect(createNewUserHook).toHaveBeenCalledWith({ accountId: account1._id.toString(), name: user1.name, email: user1.email })
+    mockAuthenticate.mockRestore()
+  })
+
+  test('create from invitation with google provider callback skips hook for client', async () => {
+    const account1 = new AccountTestModel({ name: 'accountExample1', urlFriendlyName: 'urlFriendlyNameExample1' })
+    await account1.save()
+
+    const user1 = new UserTestModel({ email: 'user1@gmail.com', name: 'user1', accountId: account1._id, role: 'client' })
+    await user1.save()
+
+    const state = Buffer.from(JSON.stringify({ type: 'create', account: { _id: account1._id, name: account1.name, urlFriendlyName: account1.urlFriendlyName }, user: { _id: user1._id, email: user1.email } })).toString('base64')
+
+    const mockAuthenticate = vi.spyOn(passport, 'authenticate').mockImplementation((provider, options, callback) => {
+      return (req, res, next) => {
+        const user = { id: 'id123123', email: user1.email, name: user1.name, profilePicture: user1.profilePicture }
+        callback(null, user)
+      }
+    })
+
+    const response = await request(app)
+      .get('/v1/accounts/provider/google/callback?state=' + state, req)
+      .send()
+
+    expect(response.status).toBe(302)
+
+    expect(response.header.location).toContain(`${process.env.APP_URL}provider-auth?loginToken`)
+    expect(createNewUserHook).not.toHaveBeenCalled()
+    mockAuthenticate.mockRestore()
+  })
+
+  test('create from invitation with google provider callback skips hook for already verified user', async () => {
+    const account1 = new AccountTestModel({ name: 'accountExample1', urlFriendlyName: 'urlFriendlyNameExample1' })
+    await account1.save()
+
+    const user1 = new UserTestModel({ email: 'user1@gmail.com', name: 'user1', accountId: account1._id, verified: true })
+    await user1.save()
+
+    const state = Buffer.from(JSON.stringify({ type: 'create', account: { _id: account1._id, name: account1.name, urlFriendlyName: account1.urlFriendlyName }, user: { _id: user1._id, email: user1.email, verified: true } })).toString('base64')
+
+    const mockAuthenticate = vi.spyOn(passport, 'authenticate').mockImplementation((provider, options, callback) => {
+      return (req, res, next) => {
+        const user = { id: 'id123123', email: user1.email, name: user1.name, profilePicture: user1.profilePicture }
+        callback(null, user)
+      }
+    })
+
+    const response = await request(app)
+      .get('/v1/accounts/provider/google/callback?state=' + state, req)
+      .send()
+
+    expect(response.status).toBe(302)
+
+    expect(response.header.location).toContain(`${process.env.APP_URL}provider-auth?loginToken`)
+    expect(createNewUserHook).not.toHaveBeenCalled()
     mockAuthenticate.mockRestore()
   })
 

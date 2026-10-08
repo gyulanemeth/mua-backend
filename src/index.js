@@ -83,7 +83,7 @@ export default ({
 
   systemAdmins({ apiServer, SystemAdminModel })
   users({ apiServer, UserModel, AccountModel, ProjectModel, hooks })
-  login({ apiServer, UserModel, AccountModel, SystemAdminModel })
+  login({ apiServer, UserModel, AccountModel, SystemAdminModel, hooks })
   invitation({ apiServer, UserModel, AccountModel, ProjectModel, SystemAdminModel, hooks })
   forgotPassword({ apiServer, UserModel, AccountModel, SystemAdminModel })
   account({ apiServer, UserModel, AccountModel, hooks })
