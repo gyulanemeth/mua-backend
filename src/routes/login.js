@@ -10,7 +10,7 @@ import captcha from '../helpers/captcha.js'
 import turnstile from '../helpers/turnstile.js'
 
 export default ({
-  apiServer, UserModel, AccountModel, SystemAdminModel
+  apiServer, UserModel, AccountModel, SystemAdminModel, hooks
 }) => {
   const secrets = process.env.SECRETS.split(' ')
 
@@ -182,6 +182,9 @@ export default ({
             break
         }
         const userData = await patchOne(UserModel, { id: data.user._id, accountId: data.account._id, email: user.email }, { ...userBody, name: user.name, profilePicture: user.profilePicture, verified: true }) // solve static googleProfileId
+        if (!data.user.verified && userData.result.role !== 'client') {
+          hooks?.createNewUser?.post({ accountId: data.account._id, name: userData.result.name, email: userData.result.email })
+        }
         payload = {
           type: 'login',
           user: {
