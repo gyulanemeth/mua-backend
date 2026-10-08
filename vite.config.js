@@ -3,6 +3,7 @@ import { defineConfig } from 'vitest/config'
 export default defineConfig({
   test: {
     setupFiles: ['dotenv/config'],
+    globalSetup: ['./vitest.globalSetup.js'],
     testTimeout: 10000,
     coverage: {
       reporter: ['text', 'json', 'html'],
