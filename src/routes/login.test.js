@@ -1590,6 +1590,9 @@ describe('System admin login test ', () => {
     expect(mockAuthenticate).toHaveBeenCalledWith('google', expect.anything())
 
     expect(response.body.result.redirectUrl).toContain('https://test/provider/google/callback')
+    const state = JSON.parse(Buffer.from(mockAuthenticate.mock.calls[0][1].state, 'base64').toString())
+    expect(state.account).toEqual({ _id: account1._id.toString(), name: account1.name, urlFriendlyName: account1.urlFriendlyName })
+    expect(state.user).toMatchObject({ _id: user1._id.toString(), email: user1.email, verified: false })
     mockAuthenticate.mockRestore()
   })
 
