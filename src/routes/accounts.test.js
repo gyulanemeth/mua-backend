@@ -87,7 +87,7 @@ describe('accounts test', () => {
         }
       }
     }, () => { })
-    accounts({ apiServer: app, UserModel: UserTestModel, AccountModel: AccountTestModel })
+    await accounts({ apiServer: app, UserModel: UserTestModel, AccountModel: AccountTestModel })
     app = app._expressServer
 
     s3 = await aws()
@@ -583,9 +583,9 @@ describe('accounts test', () => {
     expect(res.body.status).toBe(200)
   })
 
-  function createHookedApp (hooks) {
+  async function createHookedApp (hooks) {
     const hookedApp = createApiServer((e) => ({ status: e.status, error: { name: e.name, message: e.message } }), () => { })
-    accounts({ apiServer: hookedApp, UserModel: UserTestModel, AccountModel: AccountTestModel, hooks })
+    await accounts({ apiServer: hookedApp, UserModel: UserTestModel, AccountModel: AccountTestModel, hooks })
     return hookedApp._expressServer
   }
 
@@ -596,7 +596,7 @@ describe('accounts test', () => {
     const pre = vi.fn()
     const post = vi.fn()
     const token = jwt.sign({ type: 'delete' }, secrets[0])
-    const res = await request(createHookedApp({ deleteAccount: { pre, post } }))
+    const res = await request(await createHookedApp({ deleteAccount: { pre, post } }))
       .delete('/v1/accounts/' + account1._id)
       .set('authorization', 'Bearer ' + token)
       .send()
@@ -624,7 +624,7 @@ describe('accounts test', () => {
       throw error
     }
     const token = jwt.sign({ type: 'delete' }, secrets[0])
-    const res = await request(createHookedApp({ deleteAccount: { pre, post } }))
+    const res = await request(await createHookedApp({ deleteAccount: { pre, post } }))
       .delete('/v1/accounts/' + account1._id)
       .set('authorization', 'Bearer ' + token)
       .send()
@@ -953,7 +953,7 @@ describe('accounts test', () => {
         }
       }
     }, () => { })
-    accounts({ apiServer: sizeTestApp, UserModel: UserTestModel, AccountModel: AccountTestModel })
+    await accounts({ apiServer: sizeTestApp, UserModel: UserTestModel, AccountModel: AccountTestModel })
     sizeTestApp = sizeTestApp._expressServer
 
     const res = await request(sizeTestApp).post(`/v1/accounts/${account1._id}/logo`)
