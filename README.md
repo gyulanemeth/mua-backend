@@ -209,7 +209,10 @@ MuaBackend({
       // Custom logic for checking email before creating or patching user or system admin (if you want to prevent spicific email you can throw error insde here for example disposable email and this will prevent the creation / update of the user email)
     },
     deleteAccount: {
-      post: (params) => {
+      pre: async (params, body, account) => {
+        // Custom logic before deleting an account (throw an error here to abort the deletion, nothing is deleted)
+      },
+      post: (params, body, deletedAccount) => {
         // Custom logic after deleting an account
       },
     },
@@ -233,7 +236,7 @@ MuaBackend({
 
 ```
 
-Each hook accepts an object with a `post` method that executes custom logic after the associated action is completed.
+Each hook accepts an object with a `post` method that executes custom logic after the associated action is completed. `deleteAccount` also accepts a `pre` method that runs before anything is deleted; if it throws, the deletion is aborted and the error is returned.
 
 ## 📧 Email Templates – Available Merge Tags
 

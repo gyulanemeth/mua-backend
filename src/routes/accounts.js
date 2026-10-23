@@ -120,6 +120,10 @@ export default async ({
 
   apiServer.delete('/v1/accounts/:id', async req => {
     allowAccessTo(req, secrets, [{ type: 'delete' }])
+    if (hooks?.deleteAccount?.pre) {
+      const account = await readOne(AccountModel, { id: req.params.id })
+      await hooks.deleteAccount.pre(req.params, req.body, account.result)
+    }
     deleteMany(UserModel, { accountId: req.params.id })
     const deletedAccount = await deleteOne(AccountModel, { id: req.params.id })
     let postRes
