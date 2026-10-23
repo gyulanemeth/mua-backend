@@ -583,6 +583,59 @@ describe('accounts test', () => {
     expect(res.body.status).toBe(200)
   })
 
+  function createHookedApp (hooks) {
+    const hookedApp = createApiServer((e) => ({ status: e.status, error: { name: e.name, message: e.message } }), () => { })
+    accounts({ apiServer: hookedApp, UserModel: UserTestModel, AccountModel: AccountTestModel, hooks })
+    return hookedApp._expressServer
+  }
+
+  test('delete account runs the pre hook with the account before deleting  /v1/accounts/:id', async () => {
+    const account1 = new AccountTestModel({ name: 'accountExample1', urlFriendlyName: 'urlFriendlyNameExample1' })
+    await account1.save()
+
+    const pre = vi.fn()
+    const post = vi.fn()
+    const token = jwt.sign({ type: 'delete' }, secrets[0])
+    const res = await request(createHookedApp({ deleteAccount: { pre, post } }))
+      .delete('/v1/accounts/' + account1._id)
+      .set('authorization', 'Bearer ' + token)
+      .send()
+
+    expect(res.body.status).toBe(200)
+    expect(pre).toHaveBeenCalledTimes(1)
+    expect(pre.mock.calls[0][2].name).toBe('accountExample1')
+    expect(post).toHaveBeenCalledTimes(1)
+    expect(await AccountTestModel.findById(account1._id)).toBeNull()
+  })
+
+  test('delete account aborts when the pre hook throws  /v1/accounts/:id', async () => {
+    const account1 = new AccountTestModel({ name: 'accountExample1', urlFriendlyName: 'urlFriendlyNameExample1' })
+    await account1.save()
+
+    const hash1 = await bcrypt.hash('user1Password', 10)
+    const user1 = new UserTestModel({ email: 'user1@gmail.com', name: 'user1', password: hash1, accountId: account1._id })
+    await user1.save()
+
+    const post = vi.fn()
+    const pre = () => {
+      const error = new Error('Could not cancel subscription')
+      error.status = 400
+      error.name = 'VALIDATION_ERROR'
+      throw error
+    }
+    const token = jwt.sign({ type: 'delete' }, secrets[0])
+    const res = await request(createHookedApp({ deleteAccount: { pre, post } }))
+      .delete('/v1/accounts/' + account1._id)
+      .set('authorization', 'Bearer ' + token)
+      .send()
+
+    expect(res.body.status).toBe(400)
+    expect(res.body.error.message).toBe('Could not cancel subscription')
+    expect(post).not.toHaveBeenCalled()
+    expect(await AccountTestModel.findById(account1._id)).not.toBeNull()
+    expect(await UserTestModel.findById(user1._id)).not.toBeNull()
+  })
+
   test('delete account error unAuthorized header   /v1/accounts/:id', async () => {
     const account1 = new AccountTestModel({ name: 'accountExample1', urlFriendlyName: 'urlFriendlyNameExample1' })
     await account1.save()
