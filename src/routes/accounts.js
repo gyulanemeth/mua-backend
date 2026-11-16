@@ -107,19 +107,19 @@ export default async ({
   })
 
   apiServer.patch('/v1/accounts/:id/name', async req => {
-    allowAccessTo(req, secrets, [{ type: 'admin' }, { type: 'user', role: 'admin' }])
+    allowAccessTo(req, secrets, [{ type: 'admin' }, { type: 'user', role: 'admin', account: { _id: req.params.id } }])
     const response = await patchOne(AccountModel, { id: req.params.id }, { name: req.body.name })
     return response
   })
 
   apiServer.patch('/v1/accounts/:id/urlFriendlyName', async req => {
-    allowAccessTo(req, secrets, [{ type: 'admin' }, { type: 'user', role: 'admin' }])
+    allowAccessTo(req, secrets, [{ type: 'admin' }, { type: 'user', role: 'admin', account: { _id: req.params.id } }])
     const response = await patchOne(AccountModel, { id: req.params.id }, { urlFriendlyName: req.body.urlFriendlyName })
     return response
   })
 
   apiServer.delete('/v1/accounts/:id', async req => {
-    allowAccessTo(req, secrets, [{ type: 'delete' }])
+    allowAccessTo(req, secrets, [{ type: 'delete', systemAdmin: true }, { type: 'delete', role: 'admin', account: { _id: req.params.id } }])
     if (hooks?.deleteAccount?.pre) {
       const account = await readOne(AccountModel, { id: req.params.id })
       await hooks.deleteAccount.pre(req.params, req.body, account.result)
@@ -235,7 +235,7 @@ export default async ({
   })
 
   apiServer.postBinary('/v1/accounts/:id/logo', { mimeTypes: ['image/jpeg', 'image/png', 'image/gif'], fieldName: 'logo', maxFileSize: process.env.MAX_FILE_SIZE }, async req => {
-    allowAccessTo(req, secrets, [{ type: 'admin' }, { type: 'user', role: 'admin' }])
+    allowAccessTo(req, secrets, [{ type: 'admin' }, { type: 'user', role: 'admin', account: { _id: req.params.id } }])
     const type = await fileTypeFromBuffer(req.file.buffer)
     const uploadParams = {
       Bucket: process.env.AWS_BUCKET_NAME,
@@ -255,7 +255,7 @@ export default async ({
   })
 
   apiServer.delete('/v1/accounts/:id/logo', async req => {
-    allowAccessTo(req, secrets, [{ type: 'admin' }, { type: 'user', role: 'admin' }])
+    allowAccessTo(req, secrets, [{ type: 'admin' }, { type: 'user', role: 'admin', account: { _id: req.params.id } }])
     const accountData = await readOne(AccountModel, { id: req.params.id }, req.query)
     const key = accountData.result.logo.substring(accountData.result.logo.lastIndexOf('/') + 1)
 

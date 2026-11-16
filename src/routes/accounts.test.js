@@ -574,7 +574,7 @@ describe('accounts test', () => {
     const user4 = new UserTestModel({ email: 'user4@gmail.com', name: 'user4', password: hash4, accountId: account1._id })
     await user4.save()
 
-    const token = jwt.sign({ type: 'delete' }, secrets[0])
+    const token = jwt.sign({ type: 'delete', systemAdmin: true }, secrets[0])
     const res = await request(app)
       .delete('/v1/accounts/' + account1._id)
       .set('authorization', 'Bearer ' + token)
@@ -595,7 +595,7 @@ describe('accounts test', () => {
 
     const pre = vi.fn()
     const post = vi.fn()
-    const token = jwt.sign({ type: 'delete' }, secrets[0])
+    const token = jwt.sign({ type: 'delete', systemAdmin: true }, secrets[0])
     const res = await request(await createHookedApp({ deleteAccount: { pre, post } }))
       .delete('/v1/accounts/' + account1._id)
       .set('authorization', 'Bearer ' + token)
@@ -623,7 +623,7 @@ describe('accounts test', () => {
       error.name = 'VALIDATION_ERROR'
       throw error
     }
-    const token = jwt.sign({ type: 'delete' }, secrets[0])
+    const token = jwt.sign({ type: 'delete', systemAdmin: true }, secrets[0])
     const res = await request(await createHookedApp({ deleteAccount: { pre, post } }))
       .delete('/v1/accounts/' + account1._id)
       .set('authorization', 'Bearer ' + token)
@@ -990,5 +990,74 @@ describe('accounts test', () => {
     const pic = await fetch(uploadRes.body.result.logo)
     expect(pic.status).toBe(404)
     expect(res.body.status).toBe(200)
+  })
+
+  test('success delete own account by account admin  /v1/accounts/:id', async () => {
+    const account1 = new AccountTestModel({ name: 'accountExample1', urlFriendlyName: 'urlFriendlyNameExample1' })
+    await account1.save()
+
+    const token = jwt.sign({ type: 'delete', role: 'admin', user: { _id: '123' }, account: { _id: account1._id } }, secrets[0])
+    const res = await request(app)
+      .delete('/v1/accounts/' + account1._id)
+      .set('authorization', 'Bearer ' + token)
+      .send()
+
+    expect(res.body.status).toBe(200)
+  })
+
+  test('delete another account by account admin is forbidden  /v1/accounts/:id', async () => {
+    const account1 = new AccountTestModel({ name: 'accountExample1', urlFriendlyName: 'urlFriendlyNameExample1' })
+    await account1.save()
+    const account2 = new AccountTestModel({ name: 'accountExample2', urlFriendlyName: 'urlFriendlyNameExample2' })
+    await account2.save()
+
+    const token = jwt.sign({ type: 'delete', role: 'admin', user: { _id: '123' }, account: { _id: account2._id } }, secrets[0])
+    const res = await request(app)
+      .delete('/v1/accounts/' + account1._id)
+      .set('authorization', 'Bearer ' + token)
+      .send()
+
+    expect(res.body.status).toBe(403)
+    const stillThere = await AccountTestModel.findById(account1._id)
+    expect(stillThere).not.toBeNull()
+  })
+
+  test('delete account by account user with role user is forbidden  /v1/accounts/:id', async () => {
+    const account1 = new AccountTestModel({ name: 'accountExample1', urlFriendlyName: 'urlFriendlyNameExample1' })
+    await account1.save()
+
+    const token = jwt.sign({ type: 'delete', role: 'user', user: { _id: '123' }, account: { _id: account1._id } }, secrets[0])
+    const res = await request(app)
+      .delete('/v1/accounts/' + account1._id)
+      .set('authorization', 'Bearer ' + token)
+      .send()
+
+    expect(res.body.status).toBe(403)
+  })
+
+  test('update another account name, urlFriendlyName and logo by account admin is forbidden', async () => {
+    const account1 = new AccountTestModel({ name: 'accountExample1', urlFriendlyName: 'urlFriendlyNameExample1' })
+    await account1.save()
+    const account2 = new AccountTestModel({ name: 'accountExample2', urlFriendlyName: 'urlFriendlyNameExample2' })
+    await account2.save()
+
+    const token = jwt.sign({ type: 'user', role: 'admin', account: { _id: account2._id } }, secrets[0])
+    const resName = await request(app)
+      .patch('/v1/accounts/' + account1._id + '/name')
+      .set('authorization', 'Bearer ' + token)
+      .send({ name: 'hacked' })
+    expect(resName.body.status).toBe(403)
+
+    const resUrl = await request(app)
+      .patch('/v1/accounts/' + account1._id + '/urlFriendlyName')
+      .set('authorization', 'Bearer ' + token)
+      .send({ urlFriendlyName: 'hacked' })
+    expect(resUrl.body.status).toBe(403)
+
+    const resLogo = await request(app)
+      .delete('/v1/accounts/' + account1._id + '/logo')
+      .set('authorization', 'Bearer ' + token)
+      .send()
+    expect(resLogo.body.status).toBe(403)
   })
 })

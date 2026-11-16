@@ -1300,13 +1300,14 @@ describe('System admin login test ', () => {
 
 describe('System admin login test ', () => {
   let app
-  let req, res
+  let req, res, secrets
   const createNewUserHook = vi.fn()
   beforeAll(async () => {
     await mongooseMemoryServer.start()
     await mongooseMemoryServer.connect('test-db')
     process.env.NODE_ENV = 'development'
     process.env.SECRETS = 'verylongsecret1 verylongsecret2'
+    secrets = process.env.SECRETS.split(' ')
     process.env.APP_URL = 'http://app.emailfox.link/'
     process.env.BLUEFOX_TRANSACTIONAL_EMAIL_API_URL = 'http://app.emailfox.link/v1/send-transactional'
     process.env.BLUEFOX_API_KEY = '<your_bluefox_api_key>'
@@ -1483,9 +1484,14 @@ describe('System admin login test ', () => {
     const user1 = new UserTestModel({ email: 'user1@gmail.com', name: 'user1', password: hash1, accountId: account1._id })
     await user1.save()
 
+    const token = jwt.sign({ type: 'user', user: { _id: user1._id }, account: { _id: account1._id } }, secrets[0])
     const response = await request(app)
       .post(`/v1/accounts/${account1._id}/users/${user1._id}/link/provider/google`, req)
+      .set('authorization', 'Bearer ' + token)
       .send()
+
+    const state = jwt.verify(mockAuthenticate.mock.calls[0][1].state, secrets[0]).data
+    expect(state).toEqual({ type: 'link', account: { _id: account1._id.toString() }, user: { _id: user1._id.toString() } })
 
     expect(mockAuthenticate).toHaveBeenCalledWith('google', expect.anything())
 
@@ -1506,8 +1512,10 @@ describe('System admin login test ', () => {
     const user1 = new SystemAdminTestModel({ email: 'user1@gmail.com', name: 'user1', password: hash1 })
     await user1.save()
 
+    const token = jwt.sign({ type: 'admin', user: { _id: user1._id } }, secrets[0])
     const response = await request(app)
       .post(`/v1/system-admins/${user1._id}/link`, req)
+      .set('authorization', 'Bearer ' + token)
       .send()
 
     expect(mockAuthenticate).toHaveBeenCalledWith('google', expect.anything())
@@ -1590,9 +1598,9 @@ describe('System admin login test ', () => {
     expect(mockAuthenticate).toHaveBeenCalledWith('google', expect.anything())
 
     expect(response.body.result.redirectUrl).toContain('https://test/provider/google/callback')
-    const state = JSON.parse(Buffer.from(mockAuthenticate.mock.calls[0][1].state, 'base64').toString())
+    const state = jwt.verify(mockAuthenticate.mock.calls[0][1].state, secrets[0]).data
     expect(state.account).toEqual({ _id: account1._id.toString(), name: account1.name, urlFriendlyName: account1.urlFriendlyName })
-    expect(state.user).toMatchObject({ _id: user1._id.toString(), email: user1.email, verified: false })
+    expect(state.user).toEqual({ _id: user1._id.toString(), verified: false })
     mockAuthenticate.mockRestore()
   })
 
@@ -1626,7 +1634,7 @@ describe('System admin login test ', () => {
     const user1 = new SystemAdminTestModel({ email: 'user1@gmail.com', name: 'user1', googleProfileId: 'id123123' })
     await user1.save()
 
-    const state = Buffer.from(JSON.stringify({ type: 'login' })).toString('base64')
+    const state = jwt.sign({ type: 'provider-state', data: { type: 'login' } }, secrets[0])
 
     const mockAuthenticate = vi.spyOn(passport, 'authenticate').mockImplementation((provider, options, callback) => {
       return (req, res, next) => {
@@ -1653,7 +1661,7 @@ describe('System admin login test ', () => {
     const user1 = new UserTestModel({ email: 'user1@gmail.com', name: 'user1', googleProfileId: 'id123123', accountId: account1._id })
     await user1.save()
 
-    const state = Buffer.from(JSON.stringify({ type: 'login', account: { _id: account1._id, name: account1.name, urlFriendlyName: account1.urlFriendlyName } })).toString('base64')
+    const state = jwt.sign({ type: 'provider-state', data: { type: 'login', account: { _id: account1._id, name: account1.name, urlFriendlyName: account1.urlFriendlyName } } }, secrets[0])
 
     const mockAuthenticate = vi.spyOn(passport, 'authenticate').mockImplementation((provider, options, callback) => {
       return (req, res, next) => {
@@ -1673,7 +1681,7 @@ describe('System admin login test ', () => {
   })
 
   test('admin login with google callback error AUTHENTICATION_ERROR', async () => {
-    const state = Buffer.from(JSON.stringify({ type: 'login' })).toString('base64')
+    const state = jwt.sign({ type: 'provider-state', data: { type: 'login' } }, secrets[0])
 
     const mockAuthenticate = vi.spyOn(passport, 'authenticate').mockImplementation((provider, options, callback) => {
       return (req, res, next) => {
@@ -1696,7 +1704,7 @@ describe('System admin login test ', () => {
     const account1 = new AccountTestModel({ name: 'accountExample1', urlFriendlyName: 'urlFriendlyNameExample1' })
     await account1.save()
 
-    const state = Buffer.from(JSON.stringify({ type: 'login', account: { _id: account1._id, name: account1.name, urlFriendlyName: account1.urlFriendlyName } })).toString('base64')
+    const state = jwt.sign({ type: 'provider-state', data: { type: 'login', account: { _id: account1._id, name: account1.name, urlFriendlyName: account1.urlFriendlyName } } }, secrets[0])
 
     const mockAuthenticate = vi.spyOn(passport, 'authenticate').mockImplementation((provider, options, callback) => {
       return (req, res, next) => {
@@ -1722,7 +1730,7 @@ describe('System admin login test ', () => {
     const user1 = new UserTestModel({ email: 'user1@gmail.com', name: 'user1', microsoftProfileId: 'id123123', accountId: account1._id })
     await user1.save()
 
-    const state = Buffer.from(JSON.stringify({ type: 'login', account: { _id: account1._id, name: account1.name, urlFriendlyName: account1.urlFriendlyName } })).toString('base64')
+    const state = jwt.sign({ type: 'provider-state', data: { type: 'login', account: { _id: account1._id, name: account1.name, urlFriendlyName: account1.urlFriendlyName } } }, secrets[0])
 
     const mockAuthenticate = vi.spyOn(passport, 'authenticate').mockImplementation((provider, options, callback) => {
       return (req, res, next) => {
@@ -1748,7 +1756,7 @@ describe('System admin login test ', () => {
     const user1 = new UserTestModel({ email: 'user1@gmail.com', name: 'user1', githubProfileId: 'id123123', accountId: account1._id })
     await user1.save()
 
-    const state = Buffer.from(JSON.stringify({ type: 'login', account: { _id: account1._id, name: account1.name, urlFriendlyName: account1.urlFriendlyName } })).toString('base64')
+    const state = jwt.sign({ type: 'provider-state', data: { type: 'login', account: { _id: account1._id, name: account1.name, urlFriendlyName: account1.urlFriendlyName } } }, secrets[0])
 
     const mockAuthenticate = vi.spyOn(passport, 'authenticate').mockImplementation((provider, options, callback) => {
       return (req, res, next) => {
@@ -1774,7 +1782,7 @@ describe('System admin login test ', () => {
     const user1 = new UserTestModel({ email: 'user1@gmail.com', name: 'user1', accountId: account1._id })
     await user1.save()
 
-    const state = Buffer.from(JSON.stringify({ type: 'link', account: { _id: account1._id, name: account1.name, urlFriendlyName: account1.urlFriendlyName }, user: { _id: user1._id, email: user1.email } })).toString('base64')
+    const state = jwt.sign({ type: 'provider-state', data: { type: 'link', account: { _id: account1._id, name: account1.name, urlFriendlyName: account1.urlFriendlyName }, user: { _id: user1._id, email: user1.email } } }, secrets[0])
 
     const mockAuthenticate = vi.spyOn(passport, 'authenticate').mockImplementation((provider, options, callback) => {
       return (req, res, next) => {
@@ -1797,7 +1805,7 @@ describe('System admin login test ', () => {
     const user1 = new SystemAdminTestModel({ email: 'user1@gmail.com', name: 'user1' })
     await user1.save()
 
-    const state = Buffer.from(JSON.stringify({ type: 'link', user: { _id: user1._id, email: user1.email } })).toString('base64')
+    const state = jwt.sign({ type: 'provider-state', data: { type: 'link', user: { _id: user1._id, email: user1.email } } }, secrets[0])
 
     const mockAuthenticate = vi.spyOn(passport, 'authenticate').mockImplementation((provider, options, callback) => {
       return (req, res, next) => {
@@ -1820,7 +1828,7 @@ describe('System admin login test ', () => {
     const user1 = new SystemAdminTestModel({ email: 'user122@gmail.com', name: 'user1' })
     await user1.save()
 
-    const state = Buffer.from(JSON.stringify({ type: 'link', user: { _id: user1._id, email: user1.email } })).toString('base64')
+    const state = jwt.sign({ type: 'provider-state', data: { type: 'link', user: { _id: user1._id, email: user1.email } } }, secrets[0])
 
     const mockAuthenticate = vi.spyOn(passport, 'authenticate').mockImplementation((provider, options, callback) => {
       return (req, res, next) => {
@@ -1843,7 +1851,7 @@ describe('System admin login test ', () => {
     const user1 = new SystemAdminTestModel({ email: 'user122@gmail.com', name: 'user1' })
     await user1.save()
 
-    const state = Buffer.from(JSON.stringify({ type: 'link', user: { _id: user1._id, email: user1.email } })).toString('base64')
+    const state = jwt.sign({ type: 'provider-state', data: { type: 'link', user: { _id: user1._id, email: user1.email } } }, secrets[0])
 
     const mockAuthenticate = vi.spyOn(passport, 'authenticate').mockImplementation((provider, options, callback) => {
       return (req, res, next) => {
@@ -1869,7 +1877,7 @@ describe('System admin login test ', () => {
     const user1 = new UserTestModel({ email: 'user122@gmail.com', name: 'user1', accountId: account1._id })
     await user1.save()
 
-    const state = Buffer.from(JSON.stringify({ type: 'link', account: { _id: account1._id, name: account1.name, urlFriendlyName: account1.urlFriendlyName }, user: { _id: user1._id, email: user1.email } })).toString('base64')
+    const state = jwt.sign({ type: 'provider-state', data: { type: 'link', account: { _id: account1._id, name: account1.name, urlFriendlyName: account1.urlFriendlyName }, user: { _id: user1._id, email: user1.email } } }, secrets[0])
 
     const mockAuthenticate = vi.spyOn(passport, 'authenticate').mockImplementation((provider, options, callback) => {
       return (req, res, next) => {
@@ -1895,7 +1903,7 @@ describe('System admin login test ', () => {
     const user1 = new UserTestModel({ email: 'user1@gmail.com', name: 'user1', accountId: account1._id })
     await user1.save()
 
-    const state = Buffer.from(JSON.stringify({ type: 'link', account: { _id: account1._id, name: account1.name, urlFriendlyName: account1.urlFriendlyName }, user: { _id: user1._id, email: user1.email } })).toString('base64')
+    const state = jwt.sign({ type: 'provider-state', data: { type: 'link', account: { _id: account1._id, name: account1.name, urlFriendlyName: account1.urlFriendlyName }, user: { _id: user1._id, email: user1.email } } }, secrets[0])
 
     const mockAuthenticate = vi.spyOn(passport, 'authenticate').mockImplementation((provider, options, callback) => {
       return (req, res, next) => {
@@ -1921,7 +1929,7 @@ describe('System admin login test ', () => {
     const user1 = new UserTestModel({ email: 'user1@gmail.com', name: 'user1', accountId: account1._id })
     await user1.save()
 
-    const state = Buffer.from(JSON.stringify({ type: 'link', account: { _id: account1._id, name: account1.name, urlFriendlyName: account1.urlFriendlyName }, user: { _id: user1._id, email: user1.email } })).toString('base64')
+    const state = jwt.sign({ type: 'provider-state', data: { type: 'link', account: { _id: account1._id, name: account1.name, urlFriendlyName: account1.urlFriendlyName }, user: { _id: user1._id, email: user1.email } } }, secrets[0])
 
     const mockAuthenticate = vi.spyOn(passport, 'authenticate').mockImplementation((provider, options, callback) => {
       return (req, res, next) => {
@@ -1947,7 +1955,7 @@ describe('System admin login test ', () => {
     const user1 = new UserTestModel({ email: 'user1@gmail.com', name: 'user1', googleProfileId: 'id123123', accountId: account1._id })
     await user1.save()
 
-    const state = Buffer.from(JSON.stringify({ type: 'create' })).toString('base64')
+    const state = jwt.sign({ type: 'provider-state', data: { type: 'create' } }, secrets[0])
 
     const mockAuthenticate = vi.spyOn(passport, 'authenticate').mockImplementation((provider, options, callback) => {
       return (req, res, next) => {
@@ -1973,7 +1981,7 @@ describe('System admin login test ', () => {
     const user1 = new UserTestModel({ email: 'user1@gmail.com', name: 'user1', accountId: account1._id })
     await user1.save()
 
-    const state = Buffer.from(JSON.stringify({ type: 'create', account: { _id: account1._id, name: account1.name, urlFriendlyName: account1.urlFriendlyName }, user: { _id: user1._id, email: user1.email } })).toString('base64')
+    const state = jwt.sign({ type: 'provider-state', data: { type: 'create', account: { _id: account1._id, name: account1.name, urlFriendlyName: account1.urlFriendlyName }, user: { _id: user1._id, email: user1.email } } }, secrets[0])
 
     const mockAuthenticate = vi.spyOn(passport, 'authenticate').mockImplementation((provider, options, callback) => {
       return (req, res, next) => {
@@ -2000,7 +2008,7 @@ describe('System admin login test ', () => {
     const user1 = new UserTestModel({ email: 'user1@gmail.com', name: 'user1', accountId: account1._id, role: 'client' })
     await user1.save()
 
-    const state = Buffer.from(JSON.stringify({ type: 'create', account: { _id: account1._id, name: account1.name, urlFriendlyName: account1.urlFriendlyName }, user: { _id: user1._id, email: user1.email } })).toString('base64')
+    const state = jwt.sign({ type: 'provider-state', data: { type: 'create', account: { _id: account1._id, name: account1.name, urlFriendlyName: account1.urlFriendlyName }, user: { _id: user1._id, email: user1.email } } }, secrets[0])
 
     const mockAuthenticate = vi.spyOn(passport, 'authenticate').mockImplementation((provider, options, callback) => {
       return (req, res, next) => {
@@ -2027,7 +2035,7 @@ describe('System admin login test ', () => {
     const user1 = new UserTestModel({ email: 'user1@gmail.com', name: 'user1', accountId: account1._id, verified: true })
     await user1.save()
 
-    const state = Buffer.from(JSON.stringify({ type: 'create', account: { _id: account1._id, name: account1.name, urlFriendlyName: account1.urlFriendlyName }, user: { _id: user1._id, email: user1.email, verified: true } })).toString('base64')
+    const state = jwt.sign({ type: 'provider-state', data: { type: 'create', account: { _id: account1._id, name: account1.name, urlFriendlyName: account1.urlFriendlyName }, user: { _id: user1._id, email: user1.email, verified: true } } }, secrets[0])
 
     const mockAuthenticate = vi.spyOn(passport, 'authenticate').mockImplementation((provider, options, callback) => {
       return (req, res, next) => {
@@ -2054,7 +2062,7 @@ describe('System admin login test ', () => {
     const user1 = new UserTestModel({ email: 'user122@gmail.com', accountId: account1._id })
     await user1.save()
 
-    const state = Buffer.from(JSON.stringify({ type: 'create', account: { _id: account1._id, name: account1.name, urlFriendlyName: account1.urlFriendlyName }, user: { _id: user1._id, email: user1.email } })).toString('base64')
+    const state = jwt.sign({ type: 'provider-state', data: { type: 'create', account: { _id: account1._id, name: account1.name, urlFriendlyName: account1.urlFriendlyName }, user: { _id: user1._id, email: user1.email } } }, secrets[0])
 
     const mockAuthenticate = vi.spyOn(passport, 'authenticate').mockImplementation((provider, options, callback) => {
       return (req, res, next) => {
@@ -2080,7 +2088,7 @@ describe('System admin login test ', () => {
     const user1 = new UserTestModel({ email: 'user1@gmail.com', name: 'user1', accountId: account1._id })
     await user1.save()
 
-    const state = Buffer.from(JSON.stringify({ type: 'create', account: { _id: account1._id, name: account1.name, urlFriendlyName: account1.urlFriendlyName }, user: { _id: user1._id, email: user1.name } })).toString('base64')
+    const state = jwt.sign({ type: 'provider-state', data: { type: 'create', account: { _id: account1._id, name: account1.name, urlFriendlyName: account1.urlFriendlyName }, user: { _id: user1._id, email: user1.name } } }, secrets[0])
 
     const mockAuthenticate = vi.spyOn(passport, 'authenticate').mockImplementation((provider, options, callback) => {
       return (req, res, next) => {
@@ -2106,7 +2114,7 @@ describe('System admin login test ', () => {
     const user1 = new UserTestModel({ email: 'user1@gmail.com', name: 'user1', accountId: account1._id })
     await user1.save()
 
-    const state = Buffer.from(JSON.stringify({ type: 'create', account: { _id: account1._id, name: account1.name, urlFriendlyName: account1.urlFriendlyName }, user: { _id: user1._id, email: user1.name } })).toString('base64')
+    const state = jwt.sign({ type: 'provider-state', data: { type: 'create', account: { _id: account1._id, name: account1.name, urlFriendlyName: account1.urlFriendlyName }, user: { _id: user1._id, email: user1.name } } }, secrets[0])
 
     const mockAuthenticate = vi.spyOn(passport, 'authenticate').mockImplementation((provider, options, callback) => {
       return (req, res, next) => {
@@ -2132,7 +2140,7 @@ describe('System admin login test ', () => {
     const user1 = new UserTestModel({ email: 'user1@gmail.com', name: 'user1', accountId: account1._id })
     await user1.save()
 
-    const state = Buffer.from(JSON.stringify({ type: 'create', account: { _id: account1._id, name: account1.name, urlFriendlyName: account1.urlFriendlyName }, user: { _id: user1._id, email: user1.name } })).toString('base64')
+    const state = jwt.sign({ type: 'provider-state', data: { type: 'create', account: { _id: account1._id, name: account1.name, urlFriendlyName: account1.urlFriendlyName }, user: { _id: user1._id, email: user1.name } } }, secrets[0])
 
     const mockAuthenticate = vi.spyOn(passport, 'authenticate').mockImplementation((provider, options, callback) => {
       return (req, res, next) => {
@@ -2157,7 +2165,7 @@ describe('System admin login test ', () => {
     const user1 = new UserTestModel({ email: 'user1@gmail.com', name: 'user1', accountId: account1._id })
     await user1.save()
 
-    const state = Buffer.from(JSON.stringify({ type: 'create', account: { _id: account1._id, name: account1.name, urlFriendlyName: account1.urlFriendlyName }, user: { _id: user1._id, email: user1.name } })).toString('base64')
+    const state = jwt.sign({ type: 'provider-state', data: { type: 'create', account: { _id: account1._id, name: account1.name, urlFriendlyName: account1.urlFriendlyName }, user: { _id: user1._id, email: user1.name } } }, secrets[0])
 
     const mockAuthenticate = vi.spyOn(passport, 'authenticate').mockImplementation((provider, options, callback) => {
       return (req, res, next) => {
@@ -2179,7 +2187,7 @@ describe('System admin login test ', () => {
     const user1 = new SystemAdminTestModel({ email: 'user1@gmail.com', name: 'user1' })
     await user1.save()
 
-    const state = Buffer.from(JSON.stringify({ type: 'create', user: { _id: user1._id, email: user1.name } })).toString('base64')
+    const state = jwt.sign({ type: 'provider-state', data: { type: 'create', user: { _id: user1._id, email: user1.name } } }, secrets[0])
 
     const mockAuthenticate = vi.spyOn(passport, 'authenticate').mockImplementation((provider, options, callback) => {
       return (req, res, next) => {
@@ -2204,7 +2212,7 @@ describe('System admin login test ', () => {
     const user1 = new UserTestModel({ email: 'user1@gmail.com', name: 'user1', accountId: account1._id })
     await user1.save()
 
-    const state = Buffer.from(JSON.stringify({ type: 'create', account: { _id: account1._id, name: account1.name, urlFriendlyName: account1.urlFriendlyName }, user: { _id: user1._id, email: user1.name } })).toString('base64')
+    const state = jwt.sign({ type: 'provider-state', data: { type: 'create', account: { _id: account1._id, name: account1.name, urlFriendlyName: account1.urlFriendlyName }, user: { _id: user1._id, email: user1.name } } }, secrets[0])
 
     const mockAuthenticate = vi.spyOn(passport, 'authenticate').mockImplementation((provider, options, callback) => {
       return (req, res, next) => {
@@ -2226,7 +2234,7 @@ describe('System admin login test ', () => {
     const user1 = new SystemAdminTestModel({ email: 'user1@gmail.com', name: 'user1' })
     await user1.save()
 
-    const state = Buffer.from(JSON.stringify({ type: 'create', user: { _id: user1._id, email: user1.name } })).toString('base64')
+    const state = jwt.sign({ type: 'provider-state', data: { type: 'create', user: { _id: user1._id, email: user1.name } } }, secrets[0])
 
     const mockAuthenticate = vi.spyOn(passport, 'authenticate').mockImplementation((provider, options, callback) => {
       return (req, res, next) => {
@@ -2240,6 +2248,101 @@ describe('System admin login test ', () => {
 
     expect(response.status).toBe(302)
 
+    expect(response.header.location).toContain(`${process.env.APP_URL}provider-auth?failed=AUTHENTICATION_ERROR`)
+    mockAuthenticate.mockRestore()
+  })
+
+  test('link with provider without token is rejected', async () => {
+    process.env.GOOGLE_CLIENT_ID = 'googleClientId'
+    process.env.GOOGLE_CLIENT_SECRET = 'googleSecret'
+    const account1 = new AccountTestModel({ name: 'accountExample1', urlFriendlyName: 'urlFriendlyNameExample1' })
+    await account1.save()
+
+    const user1 = new UserTestModel({ email: 'user1@gmail.com', name: 'user1', accountId: account1._id })
+    await user1.save()
+
+    const response = await request(app)
+      .post(`/v1/accounts/${account1._id}/users/${user1._id}/link/provider/google`, req)
+      .send()
+
+    expect(response.body.status).toBe(401)
+  })
+
+  test('link with provider for another user is forbidden', async () => {
+    process.env.GOOGLE_CLIENT_ID = 'googleClientId'
+    process.env.GOOGLE_CLIENT_SECRET = 'googleSecret'
+    const account1 = new AccountTestModel({ name: 'accountExample1', urlFriendlyName: 'urlFriendlyNameExample1' })
+    await account1.save()
+
+    const user1 = new UserTestModel({ email: 'user1@gmail.com', name: 'user1', accountId: account1._id })
+    await user1.save()
+    const user2 = new UserTestModel({ email: 'user2@gmail.com', name: 'user2', accountId: account1._id })
+    await user2.save()
+
+    const token = jwt.sign({ type: 'user', user: { _id: user2._id }, account: { _id: account1._id } }, secrets[0])
+    const response = await request(app)
+      .post(`/v1/accounts/${account1._id}/users/${user1._id}/link/provider/google`, req)
+      .set('authorization', 'Bearer ' + token)
+      .send()
+
+    expect(response.body.status).toBe(403)
+  })
+
+  test('admin link with provider for another admin is forbidden', async () => {
+    process.env.GOOGLE_CLIENT_ID = 'googleClientId'
+    process.env.GOOGLE_CLIENT_SECRET = 'googleSecret'
+    const user1 = new SystemAdminTestModel({ email: 'user1@gmail.com', name: 'user1' })
+    await user1.save()
+
+    const token = jwt.sign({ type: 'admin', user: { _id: '123' } }, secrets[0])
+    const response = await request(app)
+      .post(`/v1/system-admins/${user1._id}/link`, req)
+      .set('authorization', 'Bearer ' + token)
+      .send()
+
+    expect(response.body.status).toBe(403)
+  })
+
+  test('provider callback with forged unsigned state fails', async () => {
+    const account1 = new AccountTestModel({ name: 'accountExample1', urlFriendlyName: 'urlFriendlyNameExample1' })
+    await account1.save()
+
+    const user1 = new UserTestModel({ email: 'user1@gmail.com', name: 'user1', accountId: account1._id })
+    await user1.save()
+
+    const state = Buffer.from(JSON.stringify({ type: 'link', account: { _id: account1._id }, user: { _id: user1._id } })).toString('base64')
+
+    const mockAuthenticate = vi.spyOn(passport, 'authenticate').mockImplementation((provider, options, callback) => {
+      return (req, res, next) => {
+        callback(null, { id: 'attackerGoogleId', email: user1.email })
+      }
+    })
+
+    const response = await request(app)
+      .get('/v1/accounts/provider/google/callback?state=' + state, req)
+      .send()
+
+    expect(response.status).toBe(302)
+    expect(response.header.location).toContain(`${process.env.APP_URL}provider-auth?failed=AUTHENTICATION_ERROR`)
+    const user = await UserTestModel.findById(user1._id)
+    expect(user.googleProfileId).toBeUndefined()
+    mockAuthenticate.mockRestore()
+  })
+
+  test('provider callback with a signed token that is not a provider state fails', async () => {
+    const state = jwt.sign({ type: 'user', data: { type: 'login' } }, secrets[0])
+
+    const mockAuthenticate = vi.spyOn(passport, 'authenticate').mockImplementation((provider, options, callback) => {
+      return (req, res, next) => {
+        callback(null, { id: 'id123123', email: 'user1@gmail.com' })
+      }
+    })
+
+    const response = await request(app)
+      .get('/v1/system-admins/provider/google/callback?state=' + state, req)
+      .send()
+
+    expect(response.status).toBe(302)
     expect(response.header.location).toContain(`${process.env.APP_URL}provider-auth?failed=AUTHENTICATION_ERROR`)
     mockAuthenticate.mockRestore()
   })

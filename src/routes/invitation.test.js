@@ -231,7 +231,7 @@ describe('Accounts invitation test', () => {
     const user2 = new UserTestModel({ email: 'user2@gmail.com', name: 'user2', password: hash2, accountId: account1._id })
     await user2.save()
 
-    const token = jwt.sign({ type: 'user', role: 'admin', user: { _id: user1._id } }, secrets[0])
+    const token = jwt.sign({ type: 'user', role: 'admin', user: { _id: user1._id }, account: { _id: account1._id } }, secrets[0])
 
     const res = await request(app)
       .post('/v1/accounts/' + account1._id + '/invitation/send').set('authorization', 'Bearer ' + token).send({ email: 'user3@gmail.com', confirmEmail: 'user3@gmail.com' })
@@ -258,7 +258,7 @@ describe('Accounts invitation test', () => {
     const user2 = new UserTestModel({ email: 'user2@gmail.com', name: 'user2', role: 'admin', password: hash2, accountId: account1._id })
     await user2.save()
 
-    const token = jwt.sign({ type: 'user', role: 'admin', user: { _id: user2._id } }, secrets[0])
+    const token = jwt.sign({ type: 'user', role: 'admin', user: { _id: user2._id }, account: { _id: account1._id } }, secrets[0])
 
     const res = await request(app)
       .post('/v1/accounts/' + account1._id + '/invitation/resend').set('authorization', 'Bearer ' + token).send({ email: 'user1@gmail.com' })
@@ -294,7 +294,7 @@ describe('Accounts invitation test', () => {
     const user2 = new UserTestModel({ email: 'user2@gmail.com', name: 'user2', role: 'admin', password: hash2, accountId: account1._id })
     await user2.save()
 
-    const token = jwt.sign({ type: 'user', role: 'admin', user: { _id: user2._id } }, secrets[0])
+    const token = jwt.sign({ type: 'user', role: 'admin', user: { _id: user2._id }, account: { _id: account1._id } }, secrets[0])
 
     const res = await request(app)
       .post('/v1/accounts/' + account1._id + '/invitation/resend').set('authorization', 'Bearer ' + token).send({
@@ -359,7 +359,7 @@ describe('Accounts invitation test', () => {
     const user2 = new UserTestModel({ email: 'user2@gmail.com', name: 'user2', password: hash2, accountId: account1._id })
     await user2.save()
 
-    const token = jwt.sign({ type: 'user', role: 'admin', user: { _id: user1._id } }, secrets[0])
+    const token = jwt.sign({ type: 'user', role: 'admin', user: { _id: user1._id }, account: { _id: account1._id } }, secrets[0])
 
     const res = await request(app)
       .post('/v1/accounts/' + account1._id + '/invitation/send').set('authorization', 'Bearer ' + token).send({ email: 'user3@gmail.com', confirmEmail: 'user3@gmail.com' })
@@ -953,6 +953,26 @@ describe('Accounts invitation test', () => {
       .set('authorization', 'Bearer ' + token)
       .send({ newPassword: 'userPasswordUpdated', newPasswordAgain: 'userPasswordUpdated' })
     expect(res.body.status).toBe(404)
+  })
+
+  test('send and resend invitation to another account by account admin is forbidden', async () => {
+    const account1 = new AccountTestModel({ name: 'accountExample1', urlFriendlyName: 'urlFriendlyNameExample1' })
+    await account1.save()
+    const account2 = new AccountTestModel({ name: 'accountExample2', urlFriendlyName: 'urlFriendlyNameExample2' })
+    await account2.save()
+
+    const token = jwt.sign({ type: 'user', role: 'admin', user: { _id: '123' }, account: { _id: account2._id } }, secrets[0])
+
+    const resSend = await request(app)
+      .post('/v1/accounts/' + account1._id + '/invitation/send').set('authorization', 'Bearer ' + token).send({ email: 'attacker@gmail.com', confirmEmail: 'attacker@gmail.com', role: 'admin' })
+    expect(resSend.body.status).toBe(403)
+
+    const resResend = await request(app)
+      .post('/v1/accounts/' + account1._id + '/invitation/resend').set('authorization', 'Bearer ' + token).send({ email: 'attacker@gmail.com' })
+    expect(resResend.body.status).toBe(403)
+
+    const users = await UserTestModel.find({ accountId: account1._id })
+    expect(users.length).toBe(0)
   })
 })
 

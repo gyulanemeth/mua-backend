@@ -48,6 +48,7 @@ const UserTestModel = mongoose.model('UserTest', new mongoose.Schema({
   googleProfileId: { type: String },
   microsoftProfileId: { type: String },
   githubProfileId: { type: String },
+  verified: { type: Boolean, default: false },
   twoFactor: {
     enabled: { type: Boolean, default: false },
     secret: { type: String },
@@ -638,7 +639,7 @@ describe('users test', () => {
     const user1 = new UserTestModel({ email: 'user1@gmail.com', name: 'user1', password: hash1, accountId: account1._id })
     await user1.save()
 
-    const token = jwt.sign({ type: 'delete' }, secrets[0])
+    const token = jwt.sign({ type: 'delete', systemAdmin: true }, secrets[0])
 
     const res = await request(app)
       .delete('/v1/accounts/' + account1._id + '/users/' + user1._id)
@@ -678,7 +679,7 @@ describe('users test', () => {
     const user2 = new UserTestModel({ email: 'user2@gmail.com', name: 'user2', role: 'admin', password: hash2, accountId: account1._id })
     await user2.save()
 
-    const token = jwt.sign({ type: 'delete' }, secrets[0])
+    const token = jwt.sign({ type: 'delete', systemAdmin: true }, secrets[0])
 
     const res = await request(app)
       .delete('/v1/accounts/' + account1._id + '/users/' + user1._id)
@@ -993,7 +994,7 @@ describe('users test', () => {
     const user1 = new UserTestModel({ email: 'user1@gmail.com', name: 'user1', password: hash1, accountId: account1._id })
     await user1.save()
 
-    const token = jwt.sign({ type: 'user', role: 'user' }, secrets[0])
+    const token = jwt.sign({ type: 'user', role: 'user', account: { _id: account1._id } }, secrets[0])
 
     const res = await request(app)
       .get('/v1/accounts/' + account1._id + '/users')
@@ -1022,8 +1023,8 @@ describe('users test', () => {
   })
 
   test('get all account users account not found  /v1/accounts/:accountId/users', async () => {
-    const token = jwt.sign({ type: 'user', role: 'user' }, secrets[0])
     const id = new mongoose.Types.ObjectId()
+    const token = jwt.sign({ type: 'user', role: 'user', account: { _id: id } }, secrets[0])
     const res = await request(app)
       .get('/v1/accounts/' + id + '/users')
       .set('authorization', 'Bearer ' + token)
@@ -1050,7 +1051,7 @@ describe('users test', () => {
     expect(res.body.status).toBe(201)
   })
 
-  test('success add user by user  /v1/accounts/:accountId/users', async () => {
+  test('success add user by account admin  /v1/accounts/:accountId/users', async () => {
     const account1 = new AccountTestModel({ name: 'accountExample1', urlFriendlyName: 'urlFriendlyNameExample1' })
     await account1.save()
 
@@ -1058,7 +1059,7 @@ describe('users test', () => {
     const user1 = new UserTestModel({ email: 'user1@gmail.com', name: 'user1', password: hash1, accountId: account1._id })
     await user1.save()
 
-    const token = jwt.sign({ type: 'user', role: 'user' }, secrets[0])
+    const token = jwt.sign({ type: 'user', role: 'admin', account: { _id: account1._id } }, secrets[0])
 
     const res = await request(app)
       .post('/v1/accounts/' + account1._id + '/users')
@@ -1112,7 +1113,7 @@ describe('users test', () => {
     const user1 = new UserTestModel({ email: 'user1@gmail.com', name: 'user1', password: hash1, accountId: account1._id })
     await user1.save()
 
-    const token = jwt.sign({ type: 'user', role: 'user' }, secrets[0])
+    const token = jwt.sign({ type: 'admin' }, secrets[0])
     const id = new mongoose.Types.ObjectId()
     const res = await request(app)
       .post('/v1/accounts/' + id + '/users')
@@ -1432,7 +1433,7 @@ describe('users test', () => {
     const user2 = new UserTestModel({ email: 'user2@gmail.com', name: 'user2', password: hash2, accountId: account1._id })
     await user2.save()
 
-    const token = jwt.sign({ type: 'user', user: { email: 'user1@gmail.com' } }, secrets[0])
+    const token = jwt.sign({ type: 'user', user: { email: 'user1@gmail.com' }, account: { _id: account1._id } }, secrets[0])
 
     const res = await request(app)
       .post('/v1/accounts/permission/delete').set('authorization', 'Bearer ' + token)
@@ -1453,7 +1454,7 @@ describe('users test', () => {
     const user2 = new UserTestModel({ email: 'user2@gmail.com', name: 'user2', password: hash2, accountId: account1._id })
     await user2.save()
 
-    const token = jwt.sign({ type: 'user', user: { email: 'user1@gmail.com' } }, secrets[0])
+    const token = jwt.sign({ type: 'user', user: { email: 'user1@gmail.com' }, account: { _id: account1._id } }, secrets[0])
 
     const res = await request(app)
       .post('/v1/accounts/permission/delete').set('authorization', 'Bearer ' + token)
@@ -1626,7 +1627,7 @@ describe('users test', () => {
     const user1 = new UserTestModel({ email: 'user1@gmail.com', name: 'user1', password: hash1, accountId: account1._id, googleProfileId: '123123' })
     await user1.save()
 
-    const token = jwt.sign({ type: 'disconnect', account: { _id: account1._id } }, secrets[0])
+    const token = jwt.sign({ type: 'disconnect', user: { _id: user1._id }, account: { _id: account1._id } }, secrets[0])
 
     const res = await request(app)
       .patch('/v1/accounts/' + account1._id + '/users/' + user1._id + '/provider/google')
@@ -1644,7 +1645,7 @@ describe('users test', () => {
     const user1 = new UserTestModel({ email: 'user1@gmail.com', name: 'user1', password: hash1, accountId: account1._id, microsoftProfileId: '123123' })
     await user1.save()
 
-    const token = jwt.sign({ type: 'disconnect', account: { _id: account1._id } }, secrets[0])
+    const token = jwt.sign({ type: 'disconnect', user: { _id: user1._id }, account: { _id: account1._id } }, secrets[0])
 
     const res = await request(app)
       .patch('/v1/accounts/' + account1._id + '/users/' + user1._id + '/provider/microsoft')
@@ -1662,7 +1663,7 @@ describe('users test', () => {
     const user1 = new UserTestModel({ email: 'user1@gmail.com', name: 'user1', password: hash1, accountId: account1._id, githubProfileId: '123123' })
     await user1.save()
 
-    const token = jwt.sign({ type: 'disconnect', account: { _id: account1._id } }, secrets[0])
+    const token = jwt.sign({ type: 'disconnect', user: { _id: user1._id }, account: { _id: account1._id } }, secrets[0])
 
     const res = await request(app)
       .patch('/v1/accounts/' + account1._id + '/users/' + user1._id + '/provider/github')
@@ -1679,7 +1680,7 @@ describe('users test', () => {
     const user1 = new UserTestModel({ email: 'user1@gmail.com', name: 'user1', accountId: account1._id, githubProfileId: '123123' })
     await user1.save()
 
-    const token = jwt.sign({ type: 'disconnect', account: { _id: account1._id } }, secrets[0])
+    const token = jwt.sign({ type: 'disconnect', user: { _id: user1._id }, account: { _id: account1._id } }, secrets[0])
 
     const res = await request(app)
       .patch('/v1/accounts/' + account1._id + '/users/' + user1._id + '/provider/github')
@@ -1803,5 +1804,291 @@ describe('users test', () => {
 
     expect(res.body.status).toBe(200)
     expect(res.body.result.enabled).toBe(false)
+  })
+
+  test('add user to another account by account admin is forbidden  /v1/accounts/:accountId/users', async () => {
+    const account1 = new AccountTestModel({ name: 'accountExample1', urlFriendlyName: 'urlFriendlyNameExample1' })
+    await account1.save()
+    const account2 = new AccountTestModel({ name: 'accountExample2', urlFriendlyName: 'urlFriendlyNameExample2' })
+    await account2.save()
+
+    const token = jwt.sign({ type: 'user', role: 'admin', account: { _id: account2._id } }, secrets[0])
+
+    const res = await request(app)
+      .post('/v1/accounts/' + account1._id + '/users')
+      .set('authorization', 'Bearer ' + token)
+      .send({ name: 'attacker', email: 'attacker@gmail.com', password: 'attackerPassword', role: 'admin' })
+
+    expect(res.body.status).toBe(403)
+    const users = await UserTestModel.find({ accountId: account1._id })
+    expect(users.length).toBe(0)
+  })
+
+  test('add user by user with role user is forbidden  /v1/accounts/:accountId/users', async () => {
+    const account1 = new AccountTestModel({ name: 'accountExample1', urlFriendlyName: 'urlFriendlyNameExample1' })
+    await account1.save()
+
+    const token = jwt.sign({ type: 'user', role: 'user', account: { _id: account1._id } }, secrets[0])
+
+    const res = await request(app)
+      .post('/v1/accounts/' + account1._id + '/users')
+      .set('authorization', 'Bearer ' + token)
+      .send({ name: 'user3', email: 'user3@gmail.com', password: 'user3Password', role: 'admin' })
+
+    expect(res.body.status).toBe(403)
+  })
+
+  test('get users of another account is forbidden  /v1/accounts/:accountId/users', async () => {
+    const account1 = new AccountTestModel({ name: 'accountExample1', urlFriendlyName: 'urlFriendlyNameExample1' })
+    await account1.save()
+    const account2 = new AccountTestModel({ name: 'accountExample2', urlFriendlyName: 'urlFriendlyNameExample2' })
+    await account2.save()
+
+    const token = jwt.sign({ type: 'user', role: 'admin', account: { _id: account2._id } }, secrets[0])
+
+    const res = await request(app)
+      .get('/v1/accounts/' + account1._id + '/users')
+      .set('authorization', 'Bearer ' + token)
+      .send()
+
+    expect(res.body.status).toBe(403)
+  })
+
+  test('get projects of another account is forbidden  /v1/accounts/:accountId/projects-for-access', async () => {
+    const account1 = new AccountTestModel({ name: 'accountExample1', urlFriendlyName: 'urlFriendlyNameExample1' })
+    await account1.save()
+    const account2 = new AccountTestModel({ name: 'accountExample2', urlFriendlyName: 'urlFriendlyNameExample2' })
+    await account2.save()
+
+    const token = jwt.sign({ type: 'user', role: 'user', account: { _id: account2._id } }, secrets[0])
+
+    const res = await request(app)
+      .get('/v1/accounts/' + account1._id + '/projects-for-access')
+      .set('authorization', 'Bearer ' + token)
+      .send()
+
+    expect(res.body.status).toBe(403)
+  })
+
+  test('update user role in another account is forbidden  /v1/accounts/:accountId/users/:id/role', async () => {
+    const account1 = new AccountTestModel({ name: 'accountExample1', urlFriendlyName: 'urlFriendlyNameExample1' })
+    await account1.save()
+    const account2 = new AccountTestModel({ name: 'accountExample2', urlFriendlyName: 'urlFriendlyNameExample2' })
+    await account2.save()
+
+    const hash1 = await bcrypt.hash('user1Password', 10)
+    const user1 = new UserTestModel({ email: 'user1@gmail.com', name: 'user1', password: hash1, accountId: account1._id, role: 'user' })
+    await user1.save()
+
+    const token = jwt.sign({ type: 'user', role: 'admin', account: { _id: account2._id } }, secrets[0])
+
+    const res = await request(app)
+      .patch('/v1/accounts/' + account1._id + '/users/' + user1._id + '/role')
+      .set('authorization', 'Bearer ' + token)
+      .send({ role: 'admin' })
+
+    expect(res.body.status).toBe(403)
+  })
+
+  test('update user name in another account is forbidden  /v1/accounts/:accountId/users/:id/name', async () => {
+    const account1 = new AccountTestModel({ name: 'accountExample1', urlFriendlyName: 'urlFriendlyNameExample1' })
+    await account1.save()
+    const account2 = new AccountTestModel({ name: 'accountExample2', urlFriendlyName: 'urlFriendlyNameExample2' })
+    await account2.save()
+
+    const hash1 = await bcrypt.hash('user1Password', 10)
+    const user1 = new UserTestModel({ email: 'user1@gmail.com', name: 'user1', password: hash1, accountId: account1._id })
+    await user1.save()
+
+    const token = jwt.sign({ type: 'user', role: 'admin', account: { _id: account2._id } }, secrets[0])
+
+    const res = await request(app)
+      .patch('/v1/accounts/' + account1._id + '/users/' + user1._id + '/name')
+      .set('authorization', 'Bearer ' + token)
+      .send({ name: 'hacked' })
+
+    expect(res.body.status).toBe(403)
+  })
+
+  test('delete user in another account is forbidden  /v1/accounts/:accountId/users/:id', async () => {
+    const account1 = new AccountTestModel({ name: 'accountExample1', urlFriendlyName: 'urlFriendlyNameExample1' })
+    await account1.save()
+    const account2 = new AccountTestModel({ name: 'accountExample2', urlFriendlyName: 'urlFriendlyNameExample2' })
+    await account2.save()
+
+    const hash1 = await bcrypt.hash('user1Password', 10)
+    const user1 = new UserTestModel({ email: 'user1@gmail.com', name: 'user1', password: hash1, accountId: account1._id })
+    await user1.save()
+
+    const token = jwt.sign({ type: 'delete', user: { _id: user1._id }, account: { _id: account2._id }, role: 'admin' }, secrets[0])
+
+    const res = await request(app)
+      .delete('/v1/accounts/' + account1._id + '/users/' + user1._id)
+      .set('authorization', 'Bearer ' + token)
+      .send()
+
+    expect(res.body.status).toBe(403)
+  })
+
+  test('success delete own user with role user  /v1/accounts/:accountId/users/:id', async () => {
+    const account1 = new AccountTestModel({ name: 'accountExample1', urlFriendlyName: 'urlFriendlyNameExample1' })
+    await account1.save()
+
+    const hash1 = await bcrypt.hash('user1Password', 10)
+    const user1 = new UserTestModel({ email: 'user1@gmail.com', name: 'user1', password: hash1, accountId: account1._id, role: 'user' })
+    await user1.save()
+
+    const token = jwt.sign({ type: 'delete', user: { _id: user1._id }, account: { _id: account1._id }, role: 'user' }, secrets[0])
+
+    const res = await request(app)
+      .delete('/v1/accounts/' + account1._id + '/users/' + user1._id)
+      .set('authorization', 'Bearer ' + token)
+      .send()
+
+    expect(res.body.status).toBe(200)
+  })
+
+  test('delete other user with role user is forbidden  /v1/accounts/:accountId/users/:id', async () => {
+    const account1 = new AccountTestModel({ name: 'accountExample1', urlFriendlyName: 'urlFriendlyNameExample1' })
+    await account1.save()
+
+    const hash1 = await bcrypt.hash('user1Password', 10)
+    const user1 = new UserTestModel({ email: 'user1@gmail.com', name: 'user1', password: hash1, accountId: account1._id, role: 'user' })
+    await user1.save()
+    const user2 = new UserTestModel({ email: 'user2@gmail.com', name: 'user2', password: hash1, accountId: account1._id, role: 'user' })
+    await user2.save()
+
+    const token = jwt.sign({ type: 'delete', user: { _id: user2._id }, account: { _id: account1._id }, role: 'user' }, secrets[0])
+
+    const res = await request(app)
+      .delete('/v1/accounts/' + account1._id + '/users/' + user1._id)
+      .set('authorization', 'Bearer ' + token)
+      .send()
+
+    expect(res.body.status).toBe(403)
+  })
+
+  test('get permission for unsupported type is rejected  /v1/accounts/permission/:permissionFor', async () => {
+    const account1 = new AccountTestModel({ name: 'accountExample1', urlFriendlyName: 'urlFriendlyNameExample1' })
+    await account1.save()
+
+    const hash1 = await bcrypt.hash('user1Password', 10)
+    const user1 = new UserTestModel({ email: 'user1@gmail.com', name: 'user1', password: hash1, accountId: account1._id })
+    await user1.save()
+
+    const token = jwt.sign({ type: 'user', user: { email: 'user1@gmail.com' }, account: { _id: account1._id } }, secrets[0])
+
+    for (const permissionFor of ['admin', 'registration', 'login', 'invitation', 'create-password']) {
+      const res = await request(app)
+        .post('/v1/accounts/permission/' + permissionFor).set('authorization', 'Bearer ' + token)
+        .send({ password: 'user1Password' })
+
+      expect(res.body.status).toBe(400)
+      expect(res.body.error.message).toBe('Unsupported permission')
+    }
+  })
+
+  test('get permission token is scoped to the caller account  /v1/accounts/permission/:permissionFor', async () => {
+    const account1 = new AccountTestModel({ name: 'accountExample1', urlFriendlyName: 'urlFriendlyNameExample1' })
+    await account1.save()
+    const account2 = new AccountTestModel({ name: 'accountExample2', urlFriendlyName: 'urlFriendlyNameExample2' })
+    await account2.save()
+
+    const hash1 = await bcrypt.hash('user1Password', 10)
+    const user1 = new UserTestModel({ email: 'user1@gmail.com', name: 'user1', password: hash1, accountId: account1._id })
+    await user1.save()
+    const hash2 = await bcrypt.hash('otherPassword', 10)
+    const user2 = new UserTestModel({ email: 'user1@gmail.com', name: 'user1', password: hash2, accountId: account2._id })
+    await user2.save()
+
+    const token = jwt.sign({ type: 'user', user: { email: 'user1@gmail.com' }, account: { _id: account2._id }, role: 'admin' }, secrets[0])
+
+    const res = await request(app)
+      .post('/v1/accounts/permission/disconnect').set('authorization', 'Bearer ' + token)
+      .send({ password: 'otherPassword' })
+
+    expect(res.body.status).toBe(200)
+    const decoded = jwt.verify(res.body.result.permissionToken, secrets[0])
+    expect(decoded.type).toBe('disconnect')
+    expect(decoded.account._id).toBe(account2._id.toString())
+  })
+
+  test('disconnect provider of another user is forbidden  /v1/accounts/:accountId/users/:id/provider/:provider', async () => {
+    const account1 = new AccountTestModel({ name: 'accountExample1', urlFriendlyName: 'urlFriendlyNameExample1' })
+    await account1.save()
+
+    const hash1 = await bcrypt.hash('user1Password', 10)
+    const user1 = new UserTestModel({ email: 'user1@gmail.com', name: 'user1', password: hash1, accountId: account1._id, googleProfileId: '123123' })
+    await user1.save()
+    const user2 = new UserTestModel({ email: 'user2@gmail.com', name: 'user2', password: hash1, accountId: account1._id })
+    await user2.save()
+
+    const token = jwt.sign({ type: 'disconnect', user: { _id: user2._id }, account: { _id: account1._id } }, secrets[0])
+
+    const res = await request(app)
+      .patch('/v1/accounts/' + account1._id + '/users/' + user1._id + '/provider/google')
+      .set('authorization', 'Bearer ' + token)
+      .send()
+
+    expect(res.body.status).toBe(403)
+  })
+
+  test('resend finalize registration for verified user is rejected  /v1/accounts/:accoutId/users/:userId/resend-finalize-registration', async () => {
+    const account1 = new AccountTestModel({ name: 'accountExample1', urlFriendlyName: 'urlFriendlyNameExample1' })
+    await account1.save()
+
+    const hash1 = await bcrypt.hash('user1Password', 10)
+    const user1 = new UserTestModel({ email: 'user1@gmail.com', name: 'user1', password: hash1, accountId: account1._id, verified: true })
+    await user1.save()
+
+    const res = await request(app)
+      .post('/v1/accounts/' + account1._id + '/users/' + user1._id + '/resend-finalize-registration')
+      .send()
+
+    expect(res.body.status).toBe(405)
+    expect(res.body.error.message).toBe('User already verified')
+  })
+
+  test('resend finalize registration for user of another account is not found  /v1/accounts/:accoutId/users/:userId/resend-finalize-registration', async () => {
+    const account1 = new AccountTestModel({ name: 'accountExample1', urlFriendlyName: 'urlFriendlyNameExample1' })
+    await account1.save()
+    const account2 = new AccountTestModel({ name: 'accountExample2', urlFriendlyName: 'urlFriendlyNameExample2' })
+    await account2.save()
+
+    const hash1 = await bcrypt.hash('user1Password', 10)
+    const user1 = new UserTestModel({ email: 'user1@gmail.com', name: 'user1', password: hash1, accountId: account1._id })
+    await user1.save()
+
+    const res = await request(app)
+      .post('/v1/accounts/' + account2._id + '/users/' + user1._id + '/resend-finalize-registration')
+      .send()
+
+    expect(res.body.status).toBe(404)
+  })
+
+  test('resend finalize registration does not return account or user data', async () => {
+    const fetchSpy = vi.spyOn(global, 'fetch')
+    fetchSpy.mockResolvedValue({
+      ok: true,
+      headers: { get: () => 'application/json' },
+      json: () => Promise.resolve({ result: { success: true }, status: 200 })
+    })
+
+    const account1 = new AccountTestModel({ name: 'accountExample1', urlFriendlyName: 'urlFriendlyNameExample1' })
+    await account1.save()
+
+    const hash1 = await bcrypt.hash('user1Password', 10)
+    const user1 = new UserTestModel({ email: 'user1@gmail.com', name: 'user1', password: hash1, accountId: account1._id })
+    await user1.save()
+
+    const res = await request(app)
+      .post('/v1/accounts/' + account1._id + '/users/' + user1._id + '/resend-finalize-registration')
+      .send()
+
+    expect(res.body.status).toBe(200)
+    expect(res.body.result.success).toBe(true)
+    expect(res.body.result.newAccount).toBeUndefined()
+    expect(res.body.result.newUser).toBeUndefined()
+    await fetchSpy.mockRestore()
   })
 })
