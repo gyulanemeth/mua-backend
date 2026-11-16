@@ -169,6 +169,7 @@ describe('users test', () => {
       .send()
 
     expect(res.body.status).toBe(200)
+
     await fetchSpy.mockRestore()
   })
 
@@ -973,7 +974,7 @@ describe('users test', () => {
     await account1.save()
 
     const hash1 = await bcrypt.hash('user1Password', 10)
-    const user1 = new UserTestModel({ email: 'user1@gmail.com', name: 'user1', password: hash1, accountId: account1._id })
+    const user1 = new UserTestModel({ email: 'user1@gmail.com', name: 'user1', password: hash1, accountId: account1._id, twoFactor: { enabled: true, secret: encrypt('secret'), recoverySecret: encrypt('recoveryCode') } })
     await user1.save()
 
     const token = jwt.sign({ type: 'admin' }, secrets[0])
@@ -984,6 +985,29 @@ describe('users test', () => {
       .send()
 
     expect(res.body.status).toBe(200)
+    expect(res.body.result.items[0].twoFactor).toBeUndefined()
+  })
+
+  test('update user role ignores fields other than role and projectsAccess /v1/accounts/:accountId/users/:id/role', async () => {
+    const account1 = new AccountTestModel({ name: 'accountExample1', urlFriendlyName: 'urlFriendlyNameExample1' })
+    await account1.save()
+
+    const hash1 = await bcrypt.hash('user1Password', 10)
+    const user1 = new UserTestModel({ email: 'user1@gmail.com', name: 'user1', password: hash1, accountId: account1._id, role: 'user' })
+    await user1.save()
+
+    const token = jwt.sign({ type: 'user', role: 'admin', account: { _id: account1._id } }, secrets[0])
+
+    const res = await request(app)
+      .patch('/v1/accounts/' + account1._id + '/users/' + user1._id + '/role')
+      .set('authorization', 'Bearer ' + token)
+      .send({ role: 'admin', email: 'attacker@gmail.com', googleProfileId: 'attacker-google-id', twoFactor: { enabled: false } })
+
+    expect(res.body.status).toBe(200)
+    const stored = await UserTestModel.findById(user1._id).lean()
+    expect(stored.role).toBe('admin')
+    expect(stored.email).toBe('user1@gmail.com')
+    expect(stored.googleProfileId).toBeUndefined()
   })
 
   test('success get all account users by user  /v1/accounts/:accountId/users', async () => {

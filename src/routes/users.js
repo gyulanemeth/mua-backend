@@ -138,7 +138,7 @@ export default async ({
     if (req.body.role === 'client' && (!req.body.projectsAccess || !req.body.projectsAccess.length)) {
       throw new ValidationError('Missing client projectsAccess')
     }
-    const updatedUser = await patchOne(UserModel, { id: req.params.id, accountId: req.params.accountId }, req.body, { password: 0, googleProfileId: 0, microsoftProfileId: 0, githubProfileId: 0 })
+    const updatedUser = await patchOne(UserModel, { id: req.params.id, accountId: req.params.accountId }, { role: req.body.role, projectsAccess: req.body.projectsAccess }, { password: 0, googleProfileId: 0, microsoftProfileId: 0, githubProfileId: 0 })
     return updatedUser
   })
 
@@ -392,7 +392,7 @@ export default async ({
   apiServer.get('/v1/accounts/:accountId/users', async req => {
     allowAccessTo(req, secrets, [{ type: 'admin' }, { type: 'user', role: 'user', account: { _id: req.params.accountId } }, { type: 'user', role: 'admin', account: { _id: req.params.accountId } }])
     await readOne(AccountModel, { id: req.params.accountId }, req.query)
-    const userList = await list(UserModel, { accountId: req.params.accountId }, { ...req.query, select: { password: 0, googleProfileId: 0, microsoftProfileId: 0, githubProfileId: 0 } })
+    const userList = await list(UserModel, { accountId: req.params.accountId }, { ...req.query, select: { password: 0, googleProfileId: 0, microsoftProfileId: 0, githubProfileId: 0, twoFactor: 0 } })
     return userList
   })
 

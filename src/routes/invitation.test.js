@@ -132,6 +132,13 @@ describe('Accounts invitation test', () => {
 
     expect(res.body.status).toBe(201)
     expect(res.body.result.success).toBe(true)
+
+    const extraRes = await request(app)
+      .post('/v1/accounts/' + account1._id + '/invitation/send').set('authorization', 'Bearer ' + token).send({ email: 'user4@gmail.com', confirmEmail: 'user4@gmail.com', verified: true, googleProfileId: 'attacker-google-id' })
+    expect(extraRes.body.status).toBe(201)
+    const invited = await UserTestModel.findOne({ email: 'user4@gmail.com' }).lean()
+    expect(invited.verified).not.toBe(true)
+    expect(invited.googleProfileId).toBeUndefined()
     await fetchSpy.mockRestore()
   })
 

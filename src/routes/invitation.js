@@ -53,7 +53,7 @@ export default ({
       throw new ValidationError("Validation error emails didn't match ")
     }
     await hooks?.checkEmail(req.body.email)
-    const newUser = await createOne(UserModel, { accountId: req.params.id }, req.body)
+    const newUser = await createOne(UserModel, { accountId: req.params.id }, { email: req.body.email, name: req.body.name, role: req.body.role, projectsAccess: req.body.projectsAccess })
     const payload = {
       type: 'invitation',
       user: {
