@@ -738,18 +738,57 @@ describe('accounts test', () => {
     })
 
     const captchaData = await captcha.generate(secrets)
+    const providerToken = jwt.sign({ type: 'provider-signup', provider: 'github', user: { id: 'gh123', email: 'user1@gmail.com', name: 'user1', profilePicture: 'pic.png' } }, secrets[0])
 
     const res = await request(app)
       .post('/v1/accounts/create')
       .send({
         captchaText: captchaData.text,
         captchaProbe: captchaData.probe,
-        user: { name: 'user1', email: 'user1@gmail.com', googleProfileId: 'test123' },
+        user: { name: 'user1', email: 'other@gmail.com', googleProfileId: 'forged', providerToken },
         account: { name: 'account1', urlFriendlyName: 'account1UrlFriendlyName' }
       })
 
-    expect(res.body.status).toBe(200)
     await fetchSpy.mockRestore()
+    expect(res.body.status).toBe(200)
+    const created = await UserTestModel.findOne({ githubProfileId: 'gh123' })
+    expect(created.email).toBe('user1@gmail.com')
+    expect(created.googleProfileId).toBeUndefined()
+    expect(created.verified).toBe(true)
+  })
+
+  test('create account with raw provider id and no signed token is rejected  /v1/accounts/create', async () => {
+    const captchaData = await captcha.generate(secrets)
+
+    const res = await request(app)
+      .post('/v1/accounts/create')
+      .send({
+        captchaText: captchaData.text,
+        captchaProbe: captchaData.probe,
+        user: { name: 'user1', email: 'victim@gmail.com', googleProfileId: 'forged' },
+        account: { name: 'account1', urlFriendlyName: 'account1UrlFriendlyName' }
+      })
+
+    expect(res.body.status).toBe(400)
+    expect(res.body.error.message).toBe('Please provide password or create using Google, Microsoft or Github')
+    const users = await UserTestModel.find({ email: 'victim@gmail.com' })
+    expect(users.length).toBe(0)
+  })
+
+  test('create account with a signed token of another type is rejected  /v1/accounts/create', async () => {
+    const captchaData = await captcha.generate(secrets)
+    const providerToken = jwt.sign({ type: 'login', provider: 'google', user: { id: 'g1', email: 'victim@gmail.com' } }, secrets[0])
+
+    const res = await request(app)
+      .post('/v1/accounts/create')
+      .send({
+        captchaText: captchaData.text,
+        captchaProbe: captchaData.probe,
+        user: { name: 'user1', email: 'victim@gmail.com', providerToken },
+        account: { name: 'account1', urlFriendlyName: 'account1UrlFriendlyName' }
+      })
+
+    expect(res.body.status).toBe(400)
   })
 
   test('error fetch', async () => {
@@ -1059,5 +1098,17 @@ describe('accounts test', () => {
       .set('authorization', 'Bearer ' + token)
       .send()
     expect(resLogo.body.status).toBe(403)
+  })
+
+  test('public account lookup returns only login page fields  /v1/accounts/by-url-friendly-name/:urlFriendlyName', async () => {
+    const account1 = new AccountTestModel({ name: 'accountExample1', urlFriendlyName: 'urlFriendlyNameExample1', logo: 'logo.png' })
+    await account1.save()
+
+    const res = await request(app)
+      .get('/v1/accounts/by-url-friendly-name/urlFriendlyNameExample1?select[createdAt]=1')
+      .send()
+
+    expect(res.body.status).toBe(200)
+    expect(Object.keys(res.body.result).sort()).toEqual(['_id', 'logo', 'name', 'urlFriendlyName'])
   })
 })

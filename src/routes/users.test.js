@@ -1729,7 +1729,7 @@ describe('users test', () => {
 
     expect(res.body.status).toBe(200)
     expect(res.body.result.enabled).toBe(true)
-    expect(res.body.result.recoverySecret).toBeDefined()
+    expect(res.body.result.recoverySecret).toBeUndefined()
   })
 
   test('success confirm mfa for user /v1/accounts/:accountId/users/:id/mfa', async () => {
@@ -1788,6 +1788,7 @@ describe('users test', () => {
   })
 
   test('success disable mfa for user /v1/accounts/:accountId/users/:id/mfa', async () => {
+    const mfaSpy = vi.spyOn(mfa, 'validate').mockImplementation(() => true)
     const account1 = new AccountTestModel({ name: 'accountExample1', urlFriendlyName: 'urlFriendlyNameExample1' })
     await account1.save()
 
@@ -1798,12 +1799,13 @@ describe('users test', () => {
     const token = jwt.sign({ type: 'admin' }, secrets[0])
 
     const res = await request(app)
-      .delete('/v1/accounts/' + account1._id + '/users/' + user1._id + '/mfa')
+      .delete('/v1/accounts/' + account1._id + '/users/' + user1._id + '/mfa?code=123456')
       .set('authorization', 'Bearer ' + token)
       .send()
 
     expect(res.body.status).toBe(200)
     expect(res.body.result.enabled).toBe(false)
+    await mfaSpy.mockRestore()
   })
 
   test('add user to another account by account admin is forbidden  /v1/accounts/:accountId/users', async () => {
@@ -2090,5 +2092,42 @@ describe('users test', () => {
     expect(res.body.result.newAccount).toBeUndefined()
     expect(res.body.result.newUser).toBeUndefined()
     await fetchSpy.mockRestore()
+  })
+
+  test('disable mfa by the user without a valid code is rejected  /v1/accounts/:accountId/users/:id/mfa', async () => {
+    const account1 = new AccountTestModel({ name: 'accountExample1', urlFriendlyName: 'urlFriendlyNameExample1' })
+    await account1.save()
+
+    const user1 = new UserTestModel({ email: 'user1@gmail.com', name: 'user1', accountId: account1._id, twoFactor: { enabled: true, secret: encrypt('secret'), recoverySecret: encrypt('recoveryCode') } })
+    await user1.save()
+
+    const token = jwt.sign({ type: 'user', user: { _id: user1._id }, account: { _id: account1._id } }, secrets[0])
+    const res = await request(app)
+      .delete('/v1/accounts/' + account1._id + '/users/' + user1._id + '/mfa')
+      .set('authorization', 'Bearer ' + token)
+      .send()
+
+    expect(res.body.status).toBe(400)
+    expect(res.body.error.message).toBe('Invalid 2FA Code')
+    const stored = await UserTestModel.findById(user1._id)
+    expect(stored.twoFactor.enabled).toBe(true)
+  })
+
+  test('disable mfa by the user with a valid code  /v1/accounts/:accountId/users/:id/mfa', async () => {
+    const account1 = new AccountTestModel({ name: 'accountExample1', urlFriendlyName: 'urlFriendlyNameExample1' })
+    await account1.save()
+
+    const user1 = new UserTestModel({ email: 'user1@gmail.com', name: 'user1', accountId: account1._id, twoFactor: { enabled: true, secret: encrypt('secret'), recoverySecret: encrypt('recoveryCode') } })
+    await user1.save()
+
+    const token = jwt.sign({ type: 'user', user: { _id: user1._id }, account: { _id: account1._id } }, secrets[0])
+    const mfaSpy = vi.spyOn(mfa, 'validate').mockImplementation(() => true)
+    const withCode = await request(app)
+      .delete('/v1/accounts/' + account1._id + '/users/' + user1._id + '/mfa?code=123456')
+      .set('authorization', 'Bearer ' + token)
+      .send()
+    await mfaSpy.mockRestore()
+    expect(withCode.body.status).toBe(200)
+    expect(withCode.body.result.enabled).toBe(false)
   })
 })

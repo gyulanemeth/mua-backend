@@ -61,7 +61,7 @@ export default async ({
   })
 
   apiServer.get('/v1/accounts/by-url-friendly-name/:urlFriendlyName', async req => {
-    const response = await list(AccountModel, req.params, req.query)
+    const response = await list(AccountModel, req.params, { select: { name: 1, urlFriendlyName: 1, logo: 1 } })
     if (!response.result.count) {
       throw new NotFoundError('Account Not Found')
     }
@@ -154,7 +154,11 @@ export default async ({
     if (response.result.count > 0) {
       throw new ConflictError('urlFriendlyName exist')
     }
-    if (!req.body.user.password && !req.body.user.googleProfileId && !req.body.user.microsoftProfileId && !req.body.user.githubProfileId) {
+    let provider
+    try {
+      provider = req.body.user.password ? null : jwt.verify(req.body.user.providerToken, secrets[0])
+    } catch (e) {}
+    if (!req.body.user.password && provider?.type !== 'provider-signup') {
       throw new ValidationError('Please provide password or create using Google, Microsoft or Github')
     }
     if (req.body.user.password && (req.body.user.password !== req.body.user.newPasswordAgain)) {
@@ -170,16 +174,15 @@ export default async ({
       const hash = await bcrypt.hash(req.body.user.password, 10)
       userData.password = hash
     } else {
-      userData.googleProfileId = req.body.user.googleProfileId
-      userData.microsoftProfileId = req.body.user.microsoftProfileId
-      userData.githubProfileId = req.body.user.githubProfileId
-      userData.profilePicture = req.body.user.profilePicture
+      userData.email = provider.user.email
+      userData[`${provider.provider}ProfileId`] = provider.user.id
+      userData.profilePicture = provider.user.profilePicture
       userData.role = 'admin'
       userData.verified = true
     }
     let newUser
     try {
-      await hooks?.checkEmail(req.body.user.email)
+      await hooks?.checkEmail(userData.email)
       newUser = await createOne(UserModel, req.params, userData)
     } catch (error) {
       const deletedAccount = await deleteOne(AccountModel, { id: newAccount.result._id })

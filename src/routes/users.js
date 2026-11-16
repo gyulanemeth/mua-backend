@@ -149,8 +149,7 @@ export default async ({
       return {
         status: 200,
         result: {
-          enabled: true,
-          recoverySecret: decrypt(response.result.twoFactor.recoverySecret)
+          enabled: true
         }
       }
     }
@@ -193,6 +192,9 @@ export default async ({
   apiServer.delete('/v1/accounts/:accountId/users/:id/mfa', async req => {
     allowAccessTo(req, secrets, [{ type: 'admin' }, { type: 'user', user: { _id: req.params.id }, account: { _id: req.params.accountId } }])
     const user = await readOne(UserModel, { id: req.params.id, accountId: req.params.accountId })
+    if (!mfa.validate({ code: req.query.code, secret: decrypt(user.result.twoFactor?.secret), window: 1 })) {
+      throw new ValidationError('Invalid 2FA Code')
+    }
     /* c8 ignore next */
     await patchOne(UserModel, { id: req.params.id, accountId: req.params.accountId }, { twoFactor: { ...user.result.twoFactor || {}, enabled: false } })
     return {

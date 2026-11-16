@@ -112,14 +112,13 @@ export default async ({
   })
 
   apiServer.get('/v1/system-admins/:id/mfa', async req => {
-    allowAccessTo(req, secrets, [{ type: 'admin' }])
+    allowAccessTo(req, secrets, [{ type: 'admin', user: { _id: req.params.id } }])
     const response = await readOne(SystemAdminModel, { id: req.params.id })
     if (response.result.twoFactor?.enabled) {
       return {
         status: 200,
         result: {
-          enabled: true,
-          recoverySecret: decrypt(response.result.twoFactor.recoverySecret)
+          enabled: true
         }
       }
     }
@@ -139,7 +138,7 @@ export default async ({
   })
 
   apiServer.post('/v1/system-admins/:id/mfa', async req => {
-    allowAccessTo(req, secrets, [{ type: 'admin' }])
+    allowAccessTo(req, secrets, [{ type: 'admin', user: { _id: req.params.id } }])
     const user = await readOne(SystemAdminModel, { id: req.params.id })
     const ok = mfa.validate({ code: req.body.code, secret: decrypt(user.result.twoFactor?.secret), window: 1 })
     if (!ok) {
@@ -159,8 +158,11 @@ export default async ({
   })
 
   apiServer.delete('/v1/system-admins/:id/mfa', async req => {
-    allowAccessTo(req, secrets, [{ type: 'admin' }])
+    allowAccessTo(req, secrets, [{ type: 'admin', user: { _id: req.params.id } }])
     const user = await readOne(SystemAdminModel, { id: req.params.id })
+    if (!mfa.validate({ code: req.query.code, secret: decrypt(user.result.twoFactor?.secret), window: 1 })) {
+      throw new ValidationError('Invalid 2FA Code')
+    }
     /* c8 ignore next */
     await patchOne(SystemAdminModel, { id: req.params.id }, { twoFactor: { ...user.result.twoFactor || {}, enabled: false } })
     return {

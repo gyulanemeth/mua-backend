@@ -628,7 +628,7 @@ describe('Accounts login test ', () => {
     await fetchSpy.mockRestore()
   })
 
-  test('login get accounts with unvalid email ', async () => {
+  test('login get accounts with unknown email returns the same success ', async () => {
     const fetchSpy = vi.spyOn(global, 'fetch')
     fetchSpy.mockResolvedValue({
       json: () => Promise.resolve({ success: true })
@@ -650,7 +650,8 @@ describe('Accounts login test ', () => {
       .post('/v1/accounts/login')
       .send({ email: 'wrongTest@gmail.com', turnstileToken: 'valid-turnstile-token' })
 
-    expect(res.body.status).toBe(401)
+    expect(res.body.status).toBe(201)
+    expect(res.body.result).toEqual({ success: true })
     await fetchSpy.mockRestore()
   })
 
@@ -923,7 +924,23 @@ describe('Accounts login test ', () => {
     fetchSpy.mockRestore()
   })
 
-  test('send magic link with urlFriendlyName invalid email returns 401', async () => {
+  test('send magic link with unknown urlFriendlyName returns the same success', async () => {
+    const fetchSpy = vi.spyOn(global, 'fetch')
+    fetchSpy.mockResolvedValue({
+      json: () => Promise.resolve({ success: true })
+    })
+    process.env.TURNSTILE_SECRET_KEY = 'test-secret-key'
+
+    const res = await request(app)
+      .post('/v1/accounts/doesNotExist/login/url-friendly-name/magic-link')
+      .send({ email: 'notfound@gmail.com', turnstileToken: 'valid-turnstile-token' })
+
+    await fetchSpy.mockRestore()
+    expect(res.body.status).toBe(201)
+    expect(res.body.result).toEqual({ success: true })
+  })
+
+  test('send magic link with urlFriendlyName unknown email returns the same success', async () => {
     const fetchSpy = vi.spyOn(global, 'fetch')
     fetchSpy.mockResolvedValue({
       json: () => Promise.resolve({ success: true })
@@ -937,7 +954,8 @@ describe('Accounts login test ', () => {
       .post('/v1/accounts/' + account1.urlFriendlyName + '/login/url-friendly-name/magic-link')
       .send({ email: 'notfound@gmail.com', turnstileToken: 'valid-turnstile-token' })
 
-    expect(res.body.status).toBe(401)
+    expect(res.body.status).toBe(201)
+    expect(res.body.result).toEqual({ success: true })
     await fetchSpy.mockRestore()
   })
 
@@ -2345,5 +2363,122 @@ describe('System admin login test ', () => {
     expect(response.status).toBe(302)
     expect(response.header.location).toContain(`${process.env.APP_URL}provider-auth?failed=AUTHENTICATION_ERROR`)
     mockAuthenticate.mockRestore()
+  })
+
+  test('provider login with 2FA enabled asks for the 2FA code', async () => {
+    const account1 = new AccountTestModel({ name: 'accountExample1', urlFriendlyName: 'urlFriendlyNameExample1' })
+    await account1.save()
+
+    const user1 = new UserTestModel({ email: 'user1@gmail.com', name: 'user1', googleProfileId: 'id123123', accountId: account1._id, twoFactor: { enabled: true, secret: encrypt('secret') } })
+    await user1.save()
+
+    const state = jwt.sign({ type: 'provider-state', data: { type: 'login', account: { _id: account1._id } } }, secrets[0])
+
+    const mockAuthenticate = vi.spyOn(passport, 'authenticate').mockImplementation((provider, options, callback) => {
+      return (req, res, next) => {
+        callback(null, { id: 'id123123', email: user1.email })
+      }
+    })
+
+    const response = await request(app)
+      .get('/v1/accounts/provider/google/callback?state=' + state, req)
+      .send()
+
+    mockAuthenticate.mockRestore()
+    expect(response.status).toBe(302)
+    expect(response.header.location).toContain(`${process.env.APP_URL}provider-auth?twoFactorLoginToken=`)
+    const token = new URL(response.header.location).searchParams.get('twoFactorLoginToken')
+    expect(jwt.verify(token, secrets[0]).type).toBe('2fa-login')
+  })
+
+  test('admin provider login with 2FA enabled asks for the 2FA code', async () => {
+    const user1 = new SystemAdminTestModel({ email: 'user1@gmail.com', name: 'user1', googleProfileId: 'id123123', twoFactor: { enabled: true, secret: encrypt('secret') } })
+    await user1.save()
+
+    const state = jwt.sign({ type: 'provider-state', data: { type: 'login' } }, secrets[0])
+
+    const mockAuthenticate = vi.spyOn(passport, 'authenticate').mockImplementation((provider, options, callback) => {
+      return (req, res, next) => {
+        callback(null, { id: 'id123123', email: user1.email })
+      }
+    })
+
+    const response = await request(app)
+      .get('/v1/system-admins/provider/google/callback?state=' + state, req)
+      .send()
+
+    mockAuthenticate.mockRestore()
+    expect(response.status).toBe(302)
+    expect(response.header.location).toContain(`${process.env.APP_URL}provider-auth?adminTwoFactorLoginToken=`)
+  })
+
+  test('provider signup from scratch returns a signed provider-signup token', async () => {
+    const state = jwt.sign({ type: 'provider-state', data: { type: 'create' } }, secrets[0])
+
+    const mockAuthenticate = vi.spyOn(passport, 'authenticate').mockImplementation((provider, options, callback) => {
+      return (req, res, next) => {
+        callback(null, { id: 'gh1', email: 'new@gmail.com', name: 'new user' })
+      }
+    })
+
+    const response = await request(app)
+      .get('/v1/accounts/provider/github/callback?state=' + state, req)
+      .send()
+
+    mockAuthenticate.mockRestore()
+    expect(response.status).toBe(302)
+    const token = new URL(response.header.location).searchParams.get('userData')
+    const data = jwt.verify(token, secrets[0])
+    expect(data.type).toBe('provider-signup')
+    expect(data.provider).toBe('github')
+    expect(data.user).toMatchObject({ id: 'gh1', email: 'new@gmail.com' })
+  })
+
+  test('account mfa-login locks after too many invalid codes', async () => {
+    const account1 = new AccountTestModel({ name: 'accountExample1', urlFriendlyName: 'urlFriendlyNameExample1' })
+    await account1.save()
+
+    const user1 = new UserTestModel({ email: 'user1@gmail.com', name: 'user1', accountId: account1._id, verified: true, twoFactor: { enabled: true, secret: encrypt('secret'), recoverySecret: encrypt('recoveryCode') } })
+    await user1.save()
+
+    const token = jwt.sign({ type: '2fa-login', user: { _id: user1._id, email: user1.email }, account: { _id: account1._id } }, secrets[0])
+    for (let i = 0; i < 5; i++) {
+      const res = await request(app).post('/v1/accounts/mfa-login').set('authorization', 'Bearer ' + token).send({ code: '000000' })
+      expect(res.body.status).toBe(401)
+    }
+
+    const mfaSpy = vi.spyOn(mfa, 'validate').mockImplementation(() => true)
+    const locked = await request(app).post('/v1/accounts/mfa-login').set('authorization', 'Bearer ' + token).send({ code: '123123' })
+    await mfaSpy.mockRestore()
+    expect(locked.body.status).toBe(429)
+  })
+
+  test('admin mfa-login locks after too many invalid codes', async () => {
+    const user1 = new SystemAdminTestModel({ email: 'user1@gmail.com', name: 'user1', twoFactor: { enabled: true, secret: encrypt('secret'), recoverySecret: encrypt('recoveryCode') } })
+    await user1.save()
+
+    const token = jwt.sign({ type: '2fa-login', user: { _id: user1._id, email: user1.email } }, secrets[0])
+    for (let i = 0; i < 5; i++) {
+      const res = await request(app).post('/v1/system-admins/mfa-login').set('authorization', 'Bearer ' + token).send({ code: '000000' })
+      expect(res.body.status).toBe(401)
+    }
+
+    const locked = await request(app).post('/v1/system-admins/mfa-login').set('authorization', 'Bearer ' + token).send({ recoveryCode: 'recoveryCode' })
+    expect(locked.body.status).toBe(429)
+  })
+
+  test('login with a non-string email is rejected', async () => {
+    const account1 = new AccountTestModel({ name: 'accountExample1', urlFriendlyName: 'urlFriendlyNameExample1' })
+    await account1.save()
+
+    const res = await request(app)
+      .post('/v1/accounts/' + account1.urlFriendlyName + '/login/url-friendly-name')
+      .send({ email: { $ne: null }, password: 'anything' })
+    expect(res.body.status).toBe(401)
+
+    const resAdmin = await request(app)
+      .post('/v1/system-admins/login')
+      .send({ email: { $ne: null }, password: 'anything' })
+    expect(resAdmin.body.status).toBe(401)
   })
 })

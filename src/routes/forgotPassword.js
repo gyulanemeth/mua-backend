@@ -45,9 +45,9 @@ export default ({ apiServer, UserModel, SystemAdminModel, AccountModel }) => {
         throw new ValidationError('Invalid CAPTCHA. Please try again.')
       }
     }
-    const response = await list(UserModel, { email: req.body.email, accountId: req.params.id }, { select: { password: 0, googleProfileId: 0, microsoftProfileId: 0, githubProfileId: 0 } })
+    const response = await list(UserModel, { email: String(req.body.email), accountId: req.params.id }, { select: { password: 0, googleProfileId: 0, microsoftProfileId: 0, githubProfileId: 0 } })
     if (response.result.count === 0) {
-      throw new AuthenticationError('Email Authentication Error ')
+      return { status: 200, result: { success: true } }
     }
     const getAccount = await readOne(AccountModel, { id: req.params.id }, req.query)
     const payload = {
@@ -85,9 +85,9 @@ export default ({ apiServer, UserModel, SystemAdminModel, AccountModel }) => {
         throw new ValidationError('Invalid CAPTCHA. Please try again.')
       }
     }
-    const response = await list(SystemAdminModel, { email: req.body.email }, { select: { password: 0 } })
+    const response = await list(SystemAdminModel, { email: String(req.body.email) }, { select: { password: 0 } })
     if (response.result.count === 0) {
-      throw new AuthenticationError('Check user name')
+      return { status: 200, result: { success: true } }
     }
     const payload = {
       type: 'forgot-password',
@@ -128,6 +128,10 @@ export default ({ apiServer, UserModel, SystemAdminModel, AccountModel }) => {
         _id: response.result.items[0].accountId
       }
     }
+    if (updatedUser.result.twoFactor?.enabled) {
+      payload.type = '2fa-login'
+      return { status: 200, result: { twoFactorLoginToken: jwt.sign(payload, secrets[0], { expiresIn: '24h' }) } }
+    }
     const token = jwt.sign(payload, secrets[0], { expiresIn: '24h' })
     return {
       status: 200,
@@ -150,6 +154,10 @@ export default ({ apiServer, UserModel, SystemAdminModel, AccountModel }) => {
         _id: updatedAdmin.result._id,
         email: updatedAdmin.result.email
       }
+    }
+    if (updatedAdmin.result.twoFactor?.enabled) {
+      payload.type = '2fa-login'
+      return { status: 200, result: { twoFactorLoginToken: jwt.sign(payload, secrets[0], { expiresIn: '24h' }) } }
     }
     const token = jwt.sign(payload, secrets[0], { expiresIn: '24h' })
     return {
