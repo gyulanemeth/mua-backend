@@ -36,7 +36,7 @@ export default ({
   }
 
   apiServer.post('/v1/accounts/:id/invitation/send', async req => {
-    const tokenData = await allowAccessTo(req, secrets, [{ type: 'admin' }, { type: 'user', role: 'admin' }])
+    const tokenData = await allowAccessTo(req, secrets, [{ type: 'admin' }, { type: 'user', role: 'admin', account: { _id: req.params.id } }])
     const checkAccount = await readOne(AccountModel, { id: req.params.id }, req.query)
     const isClient = req.body.role === 'client'
     if (!isClient) {
@@ -53,7 +53,7 @@ export default ({
       throw new ValidationError("Validation error emails didn't match ")
     }
     await hooks?.checkEmail(req.body.email)
-    const newUser = await createOne(UserModel, { accountId: req.params.id }, req.body)
+    const newUser = await createOne(UserModel, { accountId: req.params.id }, { email: req.body.email, name: req.body.name, role: req.body.role, projectsAccess: req.body.projectsAccess })
     const payload = {
       type: 'invitation',
       user: {
@@ -146,7 +146,7 @@ export default ({
   })
 
   apiServer.post('/v1/accounts/:id/invitation/resend', async req => {
-    const tokenData = await allowAccessTo(req, secrets, [{ type: 'admin' }, { type: 'user', role: 'admin' }])
+    const tokenData = await allowAccessTo(req, secrets, [{ type: 'admin' }, { type: 'user', role: 'admin', account: { _id: req.params.id } }])
     const getAccount = await readOne(AccountModel, { id: req.params.id }, req.query)
     const getUser = await list(UserModel, { email: req.body.email, accountId: req.params.id }, req.query)
     if (getUser.result.count === 0) {

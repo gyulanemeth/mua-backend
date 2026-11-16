@@ -1,7 +1,7 @@
 import { list, readOne, patchOne } from 'mongoose-crudl'
 import jwt from 'jsonwebtoken'
 import allowAccessTo from 'bearer-jwt-auth'
-import { AuthenticationError, MethodNotAllowedError, ValidationError } from 'standard-api-errors'
+import { AuthenticationError, MethodNotAllowedError, ValidationError, TooManyRequestsError } from 'standard-api-errors'
 import passport from 'passport'
 import verifyAndUpgradePassword from '../helpers/verifyAndUpgradePassword.js'
 import mfa from '../helpers/mfa.js'
@@ -13,6 +13,16 @@ export default ({
   apiServer, UserModel, AccountModel, SystemAdminModel, hooks
 }) => {
   const secrets = process.env.SECRETS.split(' ')
+  const failedTwoFactor = {}
+  const encodeState = (data) => jwt.sign({ type: 'provider-state', data }, secrets[0], { expiresIn: '15m' })
+  const decodeState = (state) => {
+    try {
+      const decoded = jwt.verify(state, secrets[0])
+      return decoded.type === 'provider-state' ? decoded.data : null
+    } catch (e) {
+      return null
+    }
+  }
 
   const validateCaptcha = async (req) => {
     if (req.body.turnstileToken) {
@@ -94,8 +104,9 @@ export default ({
       if (findUser.result.count !== 1) {
         throw new AuthenticationError('Authentication failed')
       }
+      const twoFactor = findUser.result.items[0].twoFactor?.enabled
       const token = jwt.sign({
-        type: 'login',
+        type: twoFactor ? '2fa-login' : 'login',
         user: {
           _id: findUser.result.items[0]._id,
           email: findUser.result.items[0].email
@@ -104,7 +115,7 @@ export default ({
           _id: data.account._id
         }
       }, secrets[0], { expiresIn: '24h' })
-      return `${process.env.APP_URL}provider-auth?loginToken=${token}`
+      return `${process.env.APP_URL}provider-auth?${twoFactor ? 'twoFactorLoginToken' : 'loginToken'}=${token}`
     } catch (error) {
       return `${process.env.APP_URL}provider-auth?failed=${error.name}`
     }
@@ -120,14 +131,15 @@ export default ({
       if (findAdmin.result.count !== 1) {
         throw new AuthenticationError('Authentication failed')
       }
+      const twoFactor = findAdmin.result.items[0].twoFactor?.enabled
       const token = jwt.sign({
-        type: 'login',
+        type: twoFactor ? '2fa-login' : 'login',
         user: {
           _id: findAdmin.result.items[0]._id,
           email: findAdmin.result.items[0].email
         }
       }, secrets[0], { expiresIn: '24h' })
-      return `${process.env.APP_URL}provider-auth?adminLoginToken=${token}`
+      return `${process.env.APP_URL}provider-auth?${twoFactor ? 'adminTwoFactorLoginToken' : 'adminLoginToken'}=${token}`
     } catch (error) {
       return `${process.env.APP_URL}provider-auth?failed=${error.name}`
     }
@@ -197,11 +209,13 @@ export default ({
         }
       } else {
         payload = {
+          type: 'provider-signup',
+          provider,
           user
         }
       }
       const token = jwt.sign(payload, secrets[0], { expiresIn: '24h' })
-      return `${process.env.APP_URL}provider-auth?${payload.type ? 'loginToken' : 'userData'}=${token}`
+      return `${process.env.APP_URL}provider-auth?${payload.type === 'login' ? 'loginToken' : 'userData'}=${token}`
     } catch (error) {
       return `${process.env.APP_URL}provider-auth?failed=${error.name}`
     }
@@ -213,8 +227,8 @@ export default ({
       await new Promise((resolve) => {
         passport.authenticate(provider, { session: false, callbackURL: process.env.PROVIDER_USER_CALL_BACK_URL }, async (err, user) => {
           const state = req.query.state
-          const data = JSON.parse(Buffer.from(state, 'base64').toString())
-          if (err || !user) {
+          const data = decodeState(state)
+          if (err || !user || !data) {
             redirect = `${process.env.APP_URL}provider-auth?failed=AUTHENTICATION_ERROR`
             return resolve()
           }
@@ -241,8 +255,8 @@ export default ({
       await new Promise((resolve) => {
         passport.authenticate(provider, { session: false, callbackURL: process.env.PROVIDER_ADMIN_CALL_BACK_URL }, async (err, user, info) => {
           const state = req.query.state
-          const data = JSON.parse(Buffer.from(state, 'base64').toString())
-          if (err || !user) {
+          const data = decodeState(state)
+          if (err || !user || !data) {
             redirect = `${process.env.APP_URL}provider-auth?failed=AUTHENTICATION_ERROR`
             return resolve()
           }
@@ -321,7 +335,7 @@ export default ({
     let findUser
     try {
       getAccount = await list(AccountModel, { urlFriendlyName: req.params.id }, req.query)
-      findUser = await list(UserModel, { email: req.body.email, accountId: getAccount.result.items[0]._id }, req.query)
+      findUser = await list(UserModel, { email: String(req.body.email), accountId: getAccount.result.items[0]._id }, req.query)
       const checkPass = await verifyAndUpgradePassword(findUser.result.items[0], req.body.password, UserModel)
       if (!getAccount.result.count || !checkPass) {
         throw new Error()
@@ -389,7 +403,7 @@ export default ({
 
   apiServer.post('/v1/accounts/:id/login/url-friendly-name/magic-link', async req => {
     await validateCaptcha(req)
-    const email = req.body.email?.toLowerCase()
+    const email = String(req.body.email).toLowerCase()
     let getAccount
     let findUser
     try {
@@ -399,7 +413,7 @@ export default ({
         throw new Error()
       }
     } catch (error) {
-      throw new AuthenticationError('Invalid urlFriendlyName or email')
+      return { status: 201, result: { success: true } }
     }
     const magicLinkPayload = {
       type: 'magic-link',
@@ -426,10 +440,10 @@ export default ({
 
   apiServer.post('/v1/accounts/login', async req => {
     await validateCaptcha(req)
-    req.body.email = req.body.email.toLowerCase()
+    req.body.email = String(req.body.email).toLowerCase()
     const findUserIds = await list(UserModel, { email: req.body.email }, { select: { accountId: 1 }, limit: 'unlimited' })
     if (findUserIds.result.count === 0) {
-      throw new AuthenticationError('Invalid email')
+      return { status: 201, result: { success: true } }
     }
 
     if (findUserIds.result.count === 1) {
@@ -592,6 +606,10 @@ export default ({
 
   apiServer.post('/v1/accounts/mfa-login', async req => {
     const data = allowAccessTo(req, secrets, [{ type: '2fa-login' }])
+    const attempts = failedTwoFactor[data.user._id] || { count: 0, at: 0 }
+    if (attempts.count >= 5 && Date.now() - attempts.at < 15 * 60 * 1000) {
+      throw new TooManyRequestsError('Too many invalid 2FA codes. Please try again later.')
+    }
     const user = await readOne(UserModel, { id: data.user._id })
     let ok = false
     if (req.body.recoveryCode && req.body.recoveryCode === decrypt(user.result.twoFactor?.recoverySecret)) {
@@ -601,8 +619,10 @@ export default ({
       ok = mfa.validate({ code: req.body.code, secret: decrypt(user.result.twoFactor?.secret), window: 1 })
     }
     if (!ok) {
+      failedTwoFactor[data.user._id] = { count: attempts.count + 1, at: Date.now() }
       throw new AuthenticationError('Invalid 2FA Code')
     }
+    delete failedTwoFactor[data.user._id]
     const payload = {
       type: 'login',
       user: data.user,
@@ -619,6 +639,10 @@ export default ({
 
   apiServer.post('/v1/system-admins/mfa-login', async req => {
     const data = allowAccessTo(req, secrets, [{ type: '2fa-login' }])
+    const attempts = failedTwoFactor[data.user._id] || { count: 0, at: 0 }
+    if (attempts.count >= 5 && Date.now() - attempts.at < 15 * 60 * 1000) {
+      throw new TooManyRequestsError('Too many invalid 2FA codes. Please try again later.')
+    }
     const user = await readOne(SystemAdminModel, { id: data.user._id })
     let ok = false
     if (req.body.recoveryCode && req.body.recoveryCode === decrypt(user.result.twoFactor?.recoverySecret)) {
@@ -628,8 +652,10 @@ export default ({
       ok = mfa.validate({ code: req.body.code, secret: decrypt(user.result.twoFactor?.secret), window: 1 })
     }
     if (!ok) {
+      failedTwoFactor[data.user._id] = { count: attempts.count + 1, at: Date.now() }
       throw new AuthenticationError('Invalid 2FA Code')
     }
+    delete failedTwoFactor[data.user._id]
     const payload = {
       type: 'login',
       user: data.user
@@ -644,7 +670,7 @@ export default ({
   })
 
   apiServer.post('/v1/system-admins/login', async req => {
-    req.body.email = req.body.email.toLowerCase()
+    req.body.email = String(req.body.email).toLowerCase()
     const findUser = await list(SystemAdminModel, { email: req.body.email })
     const checkPass = await verifyAndUpgradePassword(findUser.result.items[0], req.body.password, SystemAdminModel)
     if (!checkPass) {
@@ -684,7 +710,7 @@ export default ({
       throw new ValidationError('Unsupported provider')
     }
     const getAccount = await readOne(AccountModel, { id: req.params.id })
-    const state = Buffer.from(JSON.stringify({ type: 'login', account: getAccount.result })).toString('base64')
+    const state = encodeState({ type: 'login', account: { _id: getAccount.result._id } })
     let url
     const mockRes = {
       redirect: (value) => {
@@ -721,9 +747,10 @@ export default ({
     if (!providers.includes(req.params.provider)) {
       throw new ValidationError('Unsupported provider')
     }
+    allowAccessTo(req, secrets, [{ type: 'user', user: { _id: req.params.id }, account: { _id: req.params.accountId } }])
     const getAccount = await readOne(AccountModel, { id: req.params.accountId })
     const getUser = await readOne(UserModel, { id: req.params.id, accountId: req.params.accountId }, { select: { password: 0, googleProfileId: 0, microsoftProfileId: 0, githubProfileId: 0 } })
-    const state = Buffer.from(JSON.stringify({ type: 'link', account: getAccount.result, user: getUser.result })).toString('base64')
+    const state = encodeState({ type: 'link', account: { _id: getAccount.result._id }, user: { _id: getUser.result._id } })
     let url
     const mockRes = {
       redirect: (value) => {
@@ -767,9 +794,9 @@ export default ({
       const getAccount = await readOne(AccountModel, { id: req.body.accountId })
       const getUser = await readOne(UserModel, { id: req.body.userId, accountId: req.body.accountId }, { select: { password: 0, googleProfileId: 0, microsoftProfileId: 0, githubProfileId: 0 } })
       data.account = { _id: getAccount.result._id, name: getAccount.result.name, urlFriendlyName: getAccount.result.urlFriendlyName }
-      data.user = getUser.result
+      data.user = { _id: getUser.result._id, verified: getUser.result.verified }
     }
-    const state = Buffer.from(JSON.stringify(data)).toString('base64')
+    const state = encodeState(data)
     let url
     const mockRes = {
       redirect: (value) => {
@@ -797,7 +824,7 @@ export default ({
       throw new ValidationError('Unsupported provider')
     }
 
-    const state = Buffer.from(JSON.stringify({ type: 'login' })).toString('base64')
+    const state = encodeState({ type: 'login' })
     let url
     const mockRes = {
       redirect: (value) => {
@@ -824,8 +851,9 @@ export default ({
     if (!process.env.GOOGLE_CLIENT_ID || !process.env.GOOGLE_CLIENT_SECRET) {
       throw new ValidationError('Unsupported provider')
     }
+    allowAccessTo(req, secrets, [{ type: 'admin', user: { _id: req.params.id } }])
     const getAdmin = await readOne(SystemAdminModel, { id: req.params.id }, { select: { password: 0, googleProfileId: 0 } })
-    const state = Buffer.from(JSON.stringify({ type: 'link', user: getAdmin.result })).toString('base64')
+    const state = encodeState({ type: 'link', user: { _id: getAdmin.result._id } })
     let url
     const mockRes = {
       redirect: (value) => {

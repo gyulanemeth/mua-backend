@@ -61,7 +61,7 @@ export default async ({
   })
 
   apiServer.get('/v1/accounts/by-url-friendly-name/:urlFriendlyName', async req => {
-    const response = await list(AccountModel, req.params, req.query)
+    const response = await list(AccountModel, req.params, { select: { name: 1, urlFriendlyName: 1, logo: 1 } })
     if (!response.result.count) {
       throw new NotFoundError('Account Not Found')
     }
@@ -107,19 +107,19 @@ export default async ({
   })
 
   apiServer.patch('/v1/accounts/:id/name', async req => {
-    allowAccessTo(req, secrets, [{ type: 'admin' }, { type: 'user', role: 'admin' }])
+    allowAccessTo(req, secrets, [{ type: 'admin' }, { type: 'user', role: 'admin', account: { _id: req.params.id } }])
     const response = await patchOne(AccountModel, { id: req.params.id }, { name: req.body.name })
     return response
   })
 
   apiServer.patch('/v1/accounts/:id/urlFriendlyName', async req => {
-    allowAccessTo(req, secrets, [{ type: 'admin' }, { type: 'user', role: 'admin' }])
+    allowAccessTo(req, secrets, [{ type: 'admin' }, { type: 'user', role: 'admin', account: { _id: req.params.id } }])
     const response = await patchOne(AccountModel, { id: req.params.id }, { urlFriendlyName: req.body.urlFriendlyName })
     return response
   })
 
   apiServer.delete('/v1/accounts/:id', async req => {
-    allowAccessTo(req, secrets, [{ type: 'delete' }])
+    allowAccessTo(req, secrets, [{ type: 'delete', systemAdmin: true }, { type: 'delete', role: 'admin', account: { _id: req.params.id } }])
     if (hooks?.deleteAccount?.pre) {
       const account = await readOne(AccountModel, { id: req.params.id })
       await hooks.deleteAccount.pre(req.params, req.body, account.result)
@@ -154,7 +154,11 @@ export default async ({
     if (response.result.count > 0) {
       throw new ConflictError('urlFriendlyName exist')
     }
-    if (!req.body.user.password && !req.body.user.googleProfileId && !req.body.user.microsoftProfileId && !req.body.user.githubProfileId) {
+    let provider
+    try {
+      provider = req.body.user.password ? null : jwt.verify(req.body.user.providerToken, secrets[0])
+    } catch (e) {}
+    if (!req.body.user.password && provider?.type !== 'provider-signup') {
       throw new ValidationError('Please provide password or create using Google, Microsoft or Github')
     }
     if (req.body.user.password && (req.body.user.password !== req.body.user.newPasswordAgain)) {
@@ -170,16 +174,15 @@ export default async ({
       const hash = await bcrypt.hash(req.body.user.password, 10)
       userData.password = hash
     } else {
-      userData.googleProfileId = req.body.user.googleProfileId
-      userData.microsoftProfileId = req.body.user.microsoftProfileId
-      userData.githubProfileId = req.body.user.githubProfileId
-      userData.profilePicture = req.body.user.profilePicture
+      userData.email = provider.user.email
+      userData[`${provider.provider}ProfileId`] = provider.user.id
+      userData.profilePicture = provider.user.profilePicture
       userData.role = 'admin'
       userData.verified = true
     }
     let newUser
     try {
-      await hooks?.checkEmail(req.body.user.email)
+      await hooks?.checkEmail(userData.email)
       newUser = await createOne(UserModel, req.params, userData)
     } catch (error) {
       const deletedAccount = await deleteOne(AccountModel, { id: newAccount.result._id })
@@ -235,7 +238,7 @@ export default async ({
   })
 
   apiServer.postBinary('/v1/accounts/:id/logo', { mimeTypes: ['image/jpeg', 'image/png', 'image/gif'], fieldName: 'logo', maxFileSize: process.env.MAX_FILE_SIZE }, async req => {
-    allowAccessTo(req, secrets, [{ type: 'admin' }, { type: 'user', role: 'admin' }])
+    allowAccessTo(req, secrets, [{ type: 'admin' }, { type: 'user', role: 'admin', account: { _id: req.params.id } }])
     const type = await fileTypeFromBuffer(req.file.buffer)
     const uploadParams = {
       Bucket: process.env.AWS_BUCKET_NAME,
@@ -255,7 +258,7 @@ export default async ({
   })
 
   apiServer.delete('/v1/accounts/:id/logo', async req => {
-    allowAccessTo(req, secrets, [{ type: 'admin' }, { type: 'user', role: 'admin' }])
+    allowAccessTo(req, secrets, [{ type: 'admin' }, { type: 'user', role: 'admin', account: { _id: req.params.id } }])
     const accountData = await readOne(AccountModel, { id: req.params.id }, req.query)
     const key = accountData.result.logo.substring(accountData.result.logo.lastIndexOf('/') + 1)
 

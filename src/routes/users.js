@@ -46,7 +46,7 @@ export default async ({
   }
 
   apiServer.patch('/v1/accounts/:accountId/users/:id/name', async req => {
-    allowAccessTo(req, secrets, [{ type: 'admin' }, { type: 'user', role: 'admin' }, { type: 'user', user: { _id: req.params.id }, account: { _id: req.params.accountId } }])
+    allowAccessTo(req, secrets, [{ type: 'admin' }, { type: 'user', role: 'admin', account: { _id: req.params.accountId } }, { type: 'user', user: { _id: req.params.id }, account: { _id: req.params.accountId } }])
     const user = await patchOne(UserModel, { id: req.params.id, accountId: req.params.accountId }, { name: req.body.name }, { password: 0, googleProfileId: 0, microsoftProfileId: 0, githubProfileId: 0 })
     return user
   })
@@ -83,7 +83,7 @@ export default async ({
   })
 
   apiServer.patch('/v1/accounts/:accountId/users/:id/password', async req => {
-    allowAccessTo(req, secrets, [{ type: 'admin' }, { type: 'user', role: 'admin' }, { type: 'user', user: { _id: req.params.id }, account: { _id: req.params.accountId } }])
+    allowAccessTo(req, secrets, [{ type: 'admin' }, { type: 'user', role: 'admin', account: { _id: req.params.accountId } }, { type: 'user', user: { _id: req.params.id }, account: { _id: req.params.accountId } }])
     if (req.body.newPassword !== req.body.newPasswordAgain) {
       throw new ValidationError("Validation error passwords didn't match ")
     }
@@ -126,7 +126,7 @@ export default async ({
   })
 
   apiServer.patch('/v1/accounts/:accountId/users/:id/role', async req => {
-    allowAccessTo(req, secrets, [{ type: 'admin' }, { type: 'user', role: 'admin' }])
+    allowAccessTo(req, secrets, [{ type: 'admin' }, { type: 'user', role: 'admin', account: { _id: req.params.accountId } }])
 
     const user = await readOne(UserModel, { id: req.params.id, accountId: req.params.accountId }, { select: { password: 0, googleProfileId: 0, microsoftProfileId: 0, githubProfileId: 0 } })
     if (user.result.role === 'admin') {
@@ -138,7 +138,7 @@ export default async ({
     if (req.body.role === 'client' && (!req.body.projectsAccess || !req.body.projectsAccess.length)) {
       throw new ValidationError('Missing client projectsAccess')
     }
-    const updatedUser = await patchOne(UserModel, { id: req.params.id, accountId: req.params.accountId }, req.body, { password: 0, googleProfileId: 0, microsoftProfileId: 0, githubProfileId: 0 })
+    const updatedUser = await patchOne(UserModel, { id: req.params.id, accountId: req.params.accountId }, { role: req.body.role, projectsAccess: req.body.projectsAccess }, { password: 0, googleProfileId: 0, microsoftProfileId: 0, githubProfileId: 0 })
     return updatedUser
   })
 
@@ -149,8 +149,7 @@ export default async ({
       return {
         status: 200,
         result: {
-          enabled: true,
-          recoverySecret: decrypt(response.result.twoFactor.recoverySecret)
+          enabled: true
         }
       }
     }
@@ -193,6 +192,9 @@ export default async ({
   apiServer.delete('/v1/accounts/:accountId/users/:id/mfa', async req => {
     allowAccessTo(req, secrets, [{ type: 'admin' }, { type: 'user', user: { _id: req.params.id }, account: { _id: req.params.accountId } }])
     const user = await readOne(UserModel, { id: req.params.id, accountId: req.params.accountId })
+    if (!mfa.validate({ code: req.query.code, secret: decrypt(user.result.twoFactor?.secret), window: 1 })) {
+      throw new ValidationError('Invalid 2FA Code')
+    }
     /* c8 ignore next */
     await patchOne(UserModel, { id: req.params.id, accountId: req.params.accountId }, { twoFactor: { ...user.result.twoFactor || {}, enabled: false } })
     return {
@@ -277,7 +279,7 @@ export default async ({
   })
 
   apiServer.delete('/v1/accounts/:accountId/users/:id', async req => {
-    allowAccessTo(req, secrets, [{ type: 'delete' }])
+    allowAccessTo(req, secrets, [{ type: 'delete', systemAdmin: true }, { type: 'delete', role: 'admin', account: { _id: req.params.accountId } }, { type: 'delete', user: { _id: req.params.id }, account: { _id: req.params.accountId } }])
     let user = await readOne(UserModel, { id: req.params.id, accountId: req.params.accountId })
     if (user.result.role === 'admin') {
       const admin = await list(UserModel, { accountId: req.params.accountId, role: 'admin' }, { select: { password: 0, googleProfileId: 0, microsoftProfileId: 0, githubProfileId: 0 } })
@@ -291,7 +293,10 @@ export default async ({
 
   apiServer.post('/v1/accounts/permission/:permissionFor', async req => {
     const tokenData = allowAccessTo(req, secrets, [{ type: 'user' }])
-    const findUser = await list(UserModel, { email: tokenData.user.email })
+    if (!['delete', 'disconnect'].includes(req.params.permissionFor)) {
+      throw new ValidationError('Unsupported permission')
+    }
+    const findUser = await list(UserModel, { email: tokenData.user.email, accountId: tokenData.account._id })
     const checkPass = await verifyAndUpgradePassword(findUser.result.items[0], req.body.password, UserModel)
     if (!checkPass) {
       throw new AuthenticationError('Invalid password')
@@ -368,7 +373,7 @@ export default async ({
   })
 
   apiServer.get('/v1/accounts/:accountId/projects-for-access', async req => {
-    allowAccessTo(req, secrets, [{ type: 'admin' }, { type: 'user', role: 'user' }, { type: 'user', role: 'admin' }])
+    allowAccessTo(req, secrets, [{ type: 'admin' }, { type: 'user', role: 'user', account: { _id: req.params.accountId } }, { type: 'user', role: 'admin', account: { _id: req.params.accountId } }])
     if (!ProjectModel) {
       return {
         status: 200,
@@ -385,14 +390,14 @@ export default async ({
   })
 
   apiServer.get('/v1/accounts/:accountId/users', async req => {
-    allowAccessTo(req, secrets, [{ type: 'admin' }, { type: 'user', role: 'user' }, { type: 'user', role: 'admin' }])
+    allowAccessTo(req, secrets, [{ type: 'admin' }, { type: 'user', role: 'user', account: { _id: req.params.accountId } }, { type: 'user', role: 'admin', account: { _id: req.params.accountId } }])
     await readOne(AccountModel, { id: req.params.accountId }, req.query)
-    const userList = await list(UserModel, { accountId: req.params.accountId }, { ...req.query, select: { password: 0, googleProfileId: 0, microsoftProfileId: 0, githubProfileId: 0 } })
+    const userList = await list(UserModel, { accountId: req.params.accountId }, { ...req.query, select: { password: 0, googleProfileId: 0, microsoftProfileId: 0, githubProfileId: 0, twoFactor: 0 } })
     return userList
   })
 
   apiServer.post('/v1/accounts/:accountId/users', async req => {
-    allowAccessTo(req, secrets, [{ type: 'admin' }, { type: 'user', role: 'user' }, { type: 'user', role: 'admin' }])
+    allowAccessTo(req, secrets, [{ type: 'admin' }, { type: 'user', role: 'admin', account: { _id: req.params.accountId } }])
     await readOne(AccountModel, { id: req.params.accountId }, req.query)
     const isClient = req.body.role === 'client'
     const checkUser = await list(UserModel, { email: req.body.email, accountId: req.params.accountId }, { select: { password: 0, googleProfileId: 0, microsoftProfileId: 0, githubProfileId: 0 } })
@@ -456,8 +461,11 @@ export default async ({
   })
 
   apiServer.post('/v1/accounts/:accoutId/users/:userId/resend-finalize-registration', async req => {
-    const getAccount = await readOne(AccountModel, { _id: req.params.accoutId }, req.query)
-    const getUser = await readOne(UserModel, { _id: req.params.userId })
+    const getAccount = await readOne(AccountModel, { _id: req.params.accoutId })
+    const getUser = await readOne(UserModel, { _id: req.params.userId, accountId: req.params.accoutId })
+    if (getUser.result.verified) {
+      throw new MethodNotAllowedError('User already verified')
+    }
     const payload = {
       type: 'registration',
       user: {
@@ -479,15 +487,14 @@ export default async ({
     return {
       status: 200,
       result: {
-        newAccount: getAccount.result,
-        newUser: getUser.result,
+        success: true,
         info: mail.result.info
       }
     }
   })
 
   apiServer.patch('/v1/accounts/:accountId/users/:id/provider/:provider', async req => {
-    allowAccessTo(req, secrets, [{ type: 'disconnect' }])
+    allowAccessTo(req, secrets, [{ type: 'disconnect', user: { _id: req.params.id }, account: { _id: req.params.accountId } }])
     const user = await readOne(UserModel, { id: req.params.id, accountId: req.params.accountId })
     switch (req.params.provider) {
       case 'google':

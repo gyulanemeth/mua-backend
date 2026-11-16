@@ -574,7 +574,7 @@ describe('accounts test', () => {
     const user4 = new UserTestModel({ email: 'user4@gmail.com', name: 'user4', password: hash4, accountId: account1._id })
     await user4.save()
 
-    const token = jwt.sign({ type: 'delete' }, secrets[0])
+    const token = jwt.sign({ type: 'delete', systemAdmin: true }, secrets[0])
     const res = await request(app)
       .delete('/v1/accounts/' + account1._id)
       .set('authorization', 'Bearer ' + token)
@@ -595,7 +595,7 @@ describe('accounts test', () => {
 
     const pre = vi.fn()
     const post = vi.fn()
-    const token = jwt.sign({ type: 'delete' }, secrets[0])
+    const token = jwt.sign({ type: 'delete', systemAdmin: true }, secrets[0])
     const res = await request(await createHookedApp({ deleteAccount: { pre, post } }))
       .delete('/v1/accounts/' + account1._id)
       .set('authorization', 'Bearer ' + token)
@@ -623,7 +623,7 @@ describe('accounts test', () => {
       error.name = 'VALIDATION_ERROR'
       throw error
     }
-    const token = jwt.sign({ type: 'delete' }, secrets[0])
+    const token = jwt.sign({ type: 'delete', systemAdmin: true }, secrets[0])
     const res = await request(await createHookedApp({ deleteAccount: { pre, post } }))
       .delete('/v1/accounts/' + account1._id)
       .set('authorization', 'Bearer ' + token)
@@ -738,18 +738,57 @@ describe('accounts test', () => {
     })
 
     const captchaData = await captcha.generate(secrets)
+    const providerToken = jwt.sign({ type: 'provider-signup', provider: 'github', user: { id: 'gh123', email: 'user1@gmail.com', name: 'user1', profilePicture: 'pic.png' } }, secrets[0])
 
     const res = await request(app)
       .post('/v1/accounts/create')
       .send({
         captchaText: captchaData.text,
         captchaProbe: captchaData.probe,
-        user: { name: 'user1', email: 'user1@gmail.com', googleProfileId: 'test123' },
+        user: { name: 'user1', email: 'other@gmail.com', googleProfileId: 'forged', providerToken },
         account: { name: 'account1', urlFriendlyName: 'account1UrlFriendlyName' }
       })
 
-    expect(res.body.status).toBe(200)
     await fetchSpy.mockRestore()
+    expect(res.body.status).toBe(200)
+    const created = await UserTestModel.findOne({ githubProfileId: 'gh123' })
+    expect(created.email).toBe('user1@gmail.com')
+    expect(created.googleProfileId).toBeUndefined()
+    expect(created.verified).toBe(true)
+  })
+
+  test('create account with raw provider id and no signed token is rejected  /v1/accounts/create', async () => {
+    const captchaData = await captcha.generate(secrets)
+
+    const res = await request(app)
+      .post('/v1/accounts/create')
+      .send({
+        captchaText: captchaData.text,
+        captchaProbe: captchaData.probe,
+        user: { name: 'user1', email: 'victim@gmail.com', googleProfileId: 'forged' },
+        account: { name: 'account1', urlFriendlyName: 'account1UrlFriendlyName' }
+      })
+
+    expect(res.body.status).toBe(400)
+    expect(res.body.error.message).toBe('Please provide password or create using Google, Microsoft or Github')
+    const users = await UserTestModel.find({ email: 'victim@gmail.com' })
+    expect(users.length).toBe(0)
+  })
+
+  test('create account with a signed token of another type is rejected  /v1/accounts/create', async () => {
+    const captchaData = await captcha.generate(secrets)
+    const providerToken = jwt.sign({ type: 'login', provider: 'google', user: { id: 'g1', email: 'victim@gmail.com' } }, secrets[0])
+
+    const res = await request(app)
+      .post('/v1/accounts/create')
+      .send({
+        captchaText: captchaData.text,
+        captchaProbe: captchaData.probe,
+        user: { name: 'user1', email: 'victim@gmail.com', providerToken },
+        account: { name: 'account1', urlFriendlyName: 'account1UrlFriendlyName' }
+      })
+
+    expect(res.body.status).toBe(400)
   })
 
   test('error fetch', async () => {
@@ -990,5 +1029,86 @@ describe('accounts test', () => {
     const pic = await fetch(uploadRes.body.result.logo)
     expect(pic.status).toBe(404)
     expect(res.body.status).toBe(200)
+  })
+
+  test('success delete own account by account admin  /v1/accounts/:id', async () => {
+    const account1 = new AccountTestModel({ name: 'accountExample1', urlFriendlyName: 'urlFriendlyNameExample1' })
+    await account1.save()
+
+    const token = jwt.sign({ type: 'delete', role: 'admin', user: { _id: '123' }, account: { _id: account1._id } }, secrets[0])
+    const res = await request(app)
+      .delete('/v1/accounts/' + account1._id)
+      .set('authorization', 'Bearer ' + token)
+      .send()
+
+    expect(res.body.status).toBe(200)
+  })
+
+  test('delete another account by account admin is forbidden  /v1/accounts/:id', async () => {
+    const account1 = new AccountTestModel({ name: 'accountExample1', urlFriendlyName: 'urlFriendlyNameExample1' })
+    await account1.save()
+    const account2 = new AccountTestModel({ name: 'accountExample2', urlFriendlyName: 'urlFriendlyNameExample2' })
+    await account2.save()
+
+    const token = jwt.sign({ type: 'delete', role: 'admin', user: { _id: '123' }, account: { _id: account2._id } }, secrets[0])
+    const res = await request(app)
+      .delete('/v1/accounts/' + account1._id)
+      .set('authorization', 'Bearer ' + token)
+      .send()
+
+    expect(res.body.status).toBe(403)
+    const stillThere = await AccountTestModel.findById(account1._id)
+    expect(stillThere).not.toBeNull()
+  })
+
+  test('delete account by account user with role user is forbidden  /v1/accounts/:id', async () => {
+    const account1 = new AccountTestModel({ name: 'accountExample1', urlFriendlyName: 'urlFriendlyNameExample1' })
+    await account1.save()
+
+    const token = jwt.sign({ type: 'delete', role: 'user', user: { _id: '123' }, account: { _id: account1._id } }, secrets[0])
+    const res = await request(app)
+      .delete('/v1/accounts/' + account1._id)
+      .set('authorization', 'Bearer ' + token)
+      .send()
+
+    expect(res.body.status).toBe(403)
+  })
+
+  test('update another account name, urlFriendlyName and logo by account admin is forbidden', async () => {
+    const account1 = new AccountTestModel({ name: 'accountExample1', urlFriendlyName: 'urlFriendlyNameExample1' })
+    await account1.save()
+    const account2 = new AccountTestModel({ name: 'accountExample2', urlFriendlyName: 'urlFriendlyNameExample2' })
+    await account2.save()
+
+    const token = jwt.sign({ type: 'user', role: 'admin', account: { _id: account2._id } }, secrets[0])
+    const resName = await request(app)
+      .patch('/v1/accounts/' + account1._id + '/name')
+      .set('authorization', 'Bearer ' + token)
+      .send({ name: 'hacked' })
+    expect(resName.body.status).toBe(403)
+
+    const resUrl = await request(app)
+      .patch('/v1/accounts/' + account1._id + '/urlFriendlyName')
+      .set('authorization', 'Bearer ' + token)
+      .send({ urlFriendlyName: 'hacked' })
+    expect(resUrl.body.status).toBe(403)
+
+    const resLogo = await request(app)
+      .delete('/v1/accounts/' + account1._id + '/logo')
+      .set('authorization', 'Bearer ' + token)
+      .send()
+    expect(resLogo.body.status).toBe(403)
+  })
+
+  test('public account lookup returns only login page fields  /v1/accounts/by-url-friendly-name/:urlFriendlyName', async () => {
+    const account1 = new AccountTestModel({ name: 'accountExample1', urlFriendlyName: 'urlFriendlyNameExample1', logo: 'logo.png' })
+    await account1.save()
+
+    const res = await request(app)
+      .get('/v1/accounts/by-url-friendly-name/urlFriendlyNameExample1?select[createdAt]=1')
+      .send()
+
+    expect(res.body.status).toBe(200)
+    expect(Object.keys(res.body.result).sort()).toEqual(['_id', 'logo', 'name', 'urlFriendlyName'])
   })
 })

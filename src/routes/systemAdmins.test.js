@@ -142,7 +142,7 @@ describe('/v1/system-admins/ ', () => {
     const user3 = new SystemAdminTestModel({ email: 'user3@gmail.com', name: 'user3' })
     await user3.save()
 
-    const token = jwt.sign({ type: 'disconnect' }, secrets[0])
+    const token = jwt.sign({ type: 'disconnect', systemAdmin: true, user: { _id: user1._id } }, secrets[0])
 
     const res = await request(app)
       .patch(`/v1/system-admins/${user1._id}/provider/google`).set('authorization', 'Bearer ' + token).send()
@@ -214,7 +214,7 @@ describe('/v1/system-admins/ ', () => {
     const user2 = new SystemAdminTestModel({ email: 'user2@gmail.com', name: 'user2', password: hash2 })
     await user2.save()
 
-    const token = jwt.sign({ type: 'delete' }, secrets[0])
+    const token = jwt.sign({ type: 'delete', systemAdmin: true }, secrets[0])
 
     const res = await request(app)
       .delete('/v1/system-admins/' + user1._id).set('authorization', 'Bearer ' + token).send()
@@ -280,7 +280,7 @@ describe('/v1/system-admins/ ', () => {
     const user1 = new SystemAdminTestModel({ email: 'user1@gmail.com', name: 'user1', password: hash1 })
     await user1.save()
 
-    const token = jwt.sign({ type: 'delete' }, secrets[0])
+    const token = jwt.sign({ type: 'delete', systemAdmin: true }, secrets[0])
 
     const res = await request(app)
       .delete('/v1/system-admins/' + user1._id).set('authorization', 'Bearer ' + token).send()
@@ -667,7 +667,7 @@ describe('/v1/system-admins/ ', () => {
     const user1 = new SystemAdminTestModel({ email: 'user1@gmail.com', name: 'user1', password: hash1 })
     await user1.save()
 
-    const token = jwt.sign({ type: 'admin' }, secrets[0])
+    const token = jwt.sign({ type: 'admin', user: { _id: user1._id } }, secrets[0])
 
     const res = await request(app)
       .get(`/v1/system-admins/${user1._id}/mfa`)
@@ -684,7 +684,7 @@ describe('/v1/system-admins/ ', () => {
     const user1 = new SystemAdminTestModel({ email: 'user1@gmail.com', name: 'user1', password: hash1, twoFactor: { enabled: true, secret: encrypt('secret'), recoverySecret: encrypt('recoveryCode') } })
     await user1.save()
 
-    const token = jwt.sign({ type: 'admin' }, secrets[0])
+    const token = jwt.sign({ type: 'admin', user: { _id: user1._id } }, secrets[0])
 
     const res = await request(app)
       .get(`/v1/system-admins/${user1._id}/mfa`)
@@ -693,7 +693,7 @@ describe('/v1/system-admins/ ', () => {
 
     expect(res.body.status).toBe(200)
     expect(res.body.result.enabled).toBe(true)
-    expect(res.body.result.recoverySecret).toBeDefined()
+    expect(res.body.result.recoverySecret).toBeUndefined()
   })
 
   test('success confirm mfa for user /v1/system-admins/:id/mfa', async () => {
@@ -705,7 +705,7 @@ describe('/v1/system-admins/ ', () => {
     const user1 = new SystemAdminTestModel({ email: 'user1@gmail.com', name: 'user1', password: hash1, twoFactor: { enabled: false, secret: encrypt('secret'), recoverySecret: encrypt('recoveryCode') } })
     await user1.save()
 
-    const token = jwt.sign({ type: 'admin' }, secrets[0])
+    const token = jwt.sign({ type: 'admin', user: { _id: user1._id } }, secrets[0])
 
     const res = await request(app)
       .post(`/v1/system-admins/${user1._id}/mfa`)
@@ -723,7 +723,7 @@ describe('/v1/system-admins/ ', () => {
     const user1 = new SystemAdminTestModel({ email: 'user1@gmail.com', name: 'user1', password: hash1, twoFactor: { enabled: false, secret: encrypt('secret'), recoverySecret: encrypt('recoveryCode') } })
     await user1.save()
 
-    const token = jwt.sign({ type: 'admin' }, secrets[0])
+    const token = jwt.sign({ type: 'admin', user: { _id: user1._id } }, secrets[0])
 
     const res = await request(app)
       .post(`/v1/system-admins/${user1._id}/mfa`)
@@ -735,18 +735,92 @@ describe('/v1/system-admins/ ', () => {
   })
 
   test('success disable mfa for user /v1/system-admins/:id/mfa', async () => {
+    const mfaSpy = vi.spyOn(mfa, 'validate').mockImplementation(() => true)
     const hash1 = await bcrypt.hash('user1Password', 10)
     const user1 = new SystemAdminTestModel({ email: 'user1@gmail.com', name: 'user1', password: hash1, twoFactor: { enabled: true, secret: encrypt('secret'), recoverySecret: encrypt('recoveryCode') } })
     await user1.save()
 
-    const token = jwt.sign({ type: 'admin' }, secrets[0])
+    const token = jwt.sign({ type: 'admin', user: { _id: user1._id } }, secrets[0])
 
     const res = await request(app)
-      .delete(`/v1/system-admins/${user1._id}/mfa`)
+      .delete(`/v1/system-admins/${user1._id}/mfa?code=123456`)
       .set('authorization', 'Bearer ' + token)
       .send()
 
     expect(res.body.status).toBe(200)
     expect(res.body.result.enabled).toBe(false)
+    await mfaSpy.mockRestore()
+  })
+
+  test('get permission for unsupported type is rejected ', async () => {
+    const hash1 = await bcrypt.hash('user1Password', 10)
+    const user1 = new SystemAdminTestModel({ email: 'user1@gmail.com', name: 'user1', password: hash1 })
+    await user1.save()
+
+    const token = jwt.sign({ type: 'admin', user: { email: 'user1@gmail.com' } }, secrets[0])
+
+    const res = await request(app)
+      .post('/v1/system-admins/permission/admin').set('authorization', 'Bearer ' + token)
+      .send({ password: 'user1Password' })
+
+    expect(res.body.status).toBe(400)
+    expect(res.body.error.message).toBe('Unsupported permission')
+  })
+
+  test('system admin permission token is marked as system admin ', async () => {
+    const hash1 = await bcrypt.hash('user1Password', 10)
+    const user1 = new SystemAdminTestModel({ email: 'user1@gmail.com', name: 'user1', password: hash1 })
+    await user1.save()
+
+    const token = jwt.sign({ type: 'admin', user: { email: 'user1@gmail.com' } }, secrets[0])
+
+    const res = await request(app)
+      .post('/v1/system-admins/permission/delete').set('authorization', 'Bearer ' + token)
+      .send({ password: 'user1Password' })
+
+    expect(res.body.status).toBe(200)
+    const decoded = jwt.verify(res.body.result.permissionToken, secrets[0])
+    expect(decoded.type).toBe('delete')
+    expect(decoded.systemAdmin).toBe(true)
+  })
+
+  test('delete system admin with account user delete token is forbidden ', async () => {
+    const hash1 = await bcrypt.hash('user1Password', 10)
+    const user1 = new SystemAdminTestModel({ email: 'user1@gmail.com', name: 'user1', password: hash1 })
+    await user1.save()
+    const user2 = new SystemAdminTestModel({ email: 'user2@gmail.com', name: 'user2', password: hash1 })
+    await user2.save()
+
+    const token = jwt.sign({ type: 'delete', role: 'admin', user: { _id: '123' }, account: { _id: '456' } }, secrets[0])
+
+    const res = await request(app)
+      .delete('/v1/system-admins/' + user1._id).set('authorization', 'Bearer ' + token)
+      .send()
+
+    expect(res.body.status).toBe(403)
+  })
+
+  test('disable mfa without a valid code is rejected  /v1/system-admins/:id/mfa', async () => {
+    const user1 = new SystemAdminTestModel({ email: 'user1@gmail.com', name: 'user1', twoFactor: { enabled: true, secret: encrypt('secret'), recoverySecret: encrypt('recoveryCode') } })
+    await user1.save()
+
+    const token = jwt.sign({ type: 'admin', user: { _id: user1._id } }, secrets[0])
+    const res = await request(app)
+      .delete(`/v1/system-admins/${user1._id}/mfa?code=000000`)
+      .set('authorization', 'Bearer ' + token)
+      .send()
+
+    expect(res.body.status).toBe(400)
+  })
+
+  test('mfa of another system admin is forbidden  /v1/system-admins/:id/mfa', async () => {
+    const user1 = new SystemAdminTestModel({ email: 'user1@gmail.com', name: 'user1', twoFactor: { enabled: true, secret: encrypt('secret'), recoverySecret: encrypt('recoveryCode') } })
+    await user1.save()
+
+    const token = jwt.sign({ type: 'admin', user: { _id: '123' } }, secrets[0])
+    const resGet = await request(app).get(`/v1/system-admins/${user1._id}/mfa`).set('authorization', 'Bearer ' + token).send()
+    expect(resGet.body.status).toBe(403)
+    const resDelete = await request(app).delete(`/v1/system-admins/${user1._id}/mfa?code=123456`).set('authorization', 'Bearer ' + token).send()
+    expect(resDelete.body.status).toBe(403)
   })
 })

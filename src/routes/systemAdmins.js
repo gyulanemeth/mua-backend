@@ -59,7 +59,7 @@ export default async ({
   })
 
   apiServer.delete('/v1/system-admins/:id', async req => {
-    allowAccessTo(req, secrets, [{ type: 'delete' }])
+    allowAccessTo(req, secrets, [{ type: 'delete', systemAdmin: true }])
     const adminCount = await SystemAdminModel.count({})
     if (adminCount === 1) {
       throw new MethodNotAllowedError('Removing the last admin is not allowed')
@@ -70,6 +70,9 @@ export default async ({
 
   apiServer.post('/v1/system-admins/permission/:permissionFor', async req => {
     const tokenData = allowAccessTo(req, secrets, [{ type: 'admin' }])
+    if (!['delete', 'disconnect'].includes(req.params.permissionFor)) {
+      throw new ValidationError('Unsupported permission')
+    }
     const findUser = await list(SystemAdminModel, { email: tokenData.user.email })
     const checkPass = await verifyAndUpgradePassword(findUser.result.items[0], req.body.password, SystemAdminModel)
     if (!checkPass) {
@@ -77,7 +80,8 @@ export default async ({
     }
     const payload = {
       type: req.params.permissionFor,
-      user: tokenData.user
+      user: tokenData.user,
+      systemAdmin: true
     }
     const token = jwt.sign(payload, secrets[0], { expiresIn: '5m' })
     return {
@@ -108,14 +112,13 @@ export default async ({
   })
 
   apiServer.get('/v1/system-admins/:id/mfa', async req => {
-    allowAccessTo(req, secrets, [{ type: 'admin' }])
+    allowAccessTo(req, secrets, [{ type: 'admin', user: { _id: req.params.id } }])
     const response = await readOne(SystemAdminModel, { id: req.params.id })
     if (response.result.twoFactor?.enabled) {
       return {
         status: 200,
         result: {
-          enabled: true,
-          recoverySecret: decrypt(response.result.twoFactor.recoverySecret)
+          enabled: true
         }
       }
     }
@@ -135,7 +138,7 @@ export default async ({
   })
 
   apiServer.post('/v1/system-admins/:id/mfa', async req => {
-    allowAccessTo(req, secrets, [{ type: 'admin' }])
+    allowAccessTo(req, secrets, [{ type: 'admin', user: { _id: req.params.id } }])
     const user = await readOne(SystemAdminModel, { id: req.params.id })
     const ok = mfa.validate({ code: req.body.code, secret: decrypt(user.result.twoFactor?.secret), window: 1 })
     if (!ok) {
@@ -155,8 +158,11 @@ export default async ({
   })
 
   apiServer.delete('/v1/system-admins/:id/mfa', async req => {
-    allowAccessTo(req, secrets, [{ type: 'admin' }])
+    allowAccessTo(req, secrets, [{ type: 'admin', user: { _id: req.params.id } }])
     const user = await readOne(SystemAdminModel, { id: req.params.id })
+    if (!mfa.validate({ code: req.query.code, secret: decrypt(user.result.twoFactor?.secret), window: 1 })) {
+      throw new ValidationError('Invalid 2FA Code')
+    }
     /* c8 ignore next */
     await patchOne(SystemAdminModel, { id: req.params.id }, { twoFactor: { ...user.result.twoFactor || {}, enabled: false } })
     return {
@@ -275,7 +281,7 @@ export default async ({
   })
 
   apiServer.patch('/v1/system-admins/:id/provider/google', async req => {
-    allowAccessTo(req, secrets, [{ type: 'disconnect' }])
+    allowAccessTo(req, secrets, [{ type: 'disconnect', systemAdmin: true, user: { _id: req.params.id } }])
     const updatedUser = await patchOne(SystemAdminModel, { id: req.params.id }, { googleProfileId: null })
     updatedUser.result.password = !!updatedUser.result.password
     updatedUser.result.googleProfileId = !!updatedUser.result.googleProfileId

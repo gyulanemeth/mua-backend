@@ -23,14 +23,16 @@ const UserTestModel = mongoose.model('UserTest', new mongoose.Schema({
   password: { type: String },
   role: { type: String, default: 'user', enum: ['user', 'admin'] },
   accountId: { type: mongoose.Schema.Types.ObjectId, ref: 'Account', required: true },
-  profilePicture: { type: String }
+  profilePicture: { type: String },
+  twoFactor: { enabled: { type: Boolean, default: false } }
 }, { timestamps: true }))
 
 const SystemAdminTestModel = mongoose.model('Test', new mongoose.Schema({
   name: { type: String },
   email: { type: String, lowercase: true, required: true, match: /.+[\\@].+\..+/, unique: true },
   password: { type: String },
-  profilePicture: { type: String }
+  profilePicture: { type: String },
+  twoFactor: { enabled: { type: Boolean, default: false } }
 }, { timestamps: true }))
 
 describe('Accounts forgot-password test', () => {
@@ -237,7 +239,7 @@ describe('Accounts forgot-password test', () => {
     expect(res.body.status).toBe(400)
     await fetchSpy.mockRestore()
   })
-  test('send forget password error user not found  /v1/accounts/:accountId/forgot-password/send', async () => {
+  test('send forget password unknown email returns the same success  /v1/accounts/:accountId/forgot-password/send', async () => {
     const account1 = new AccountTestModel({ name: 'accountExample1', urlFriendlyName: 'urlFriendlyNameExample1' })
     await account1.save()
 
@@ -256,7 +258,8 @@ describe('Accounts forgot-password test', () => {
       .post('/v1/accounts/' + account1._id + '/forgot-password/send')
       .set('authorization', 'Bearer ' + token)
       .send({ email: 'user3@gmail.com', captchaText: captchaData.text, captchaProbe: captchaData.probe })
-    expect(res.body.status).toBe(401)
+    expect(res.body.status).toBe(200)
+    expect(res.body.result).toEqual({ success: true })
   })
 
   test('send forget password for wrong account  /v1/accounts/:accountId/forgot-password/send', async () => {
@@ -276,7 +279,8 @@ describe('Accounts forgot-password test', () => {
     const res = await request(app)
       .post('/v1/accounts/' + id + '/forgot-password/send')
       .send({ email: user1.email, captchaText: captchaData.text, captchaProbe: captchaData.probe })
-    expect(res.body.status).toBe(401)
+    expect(res.body.status).toBe(200)
+    expect(res.body.result).toEqual({ success: true })
   })
 
   test('success reset forget password  /v1/accounts/:accountId/forgot-password/reset', async () => {
@@ -360,6 +364,37 @@ describe('Accounts forgot-password test', () => {
       .set('authorization', 'Bearer ' + token)
       .send({ password: 'userNewPassword', passwordAgain: 'userNewPassword' })
     expect(res.body.status).toBe(401)
+  })
+
+  test('reset forget password with 2FA enabled asks for the 2FA code  /v1/accounts/:accountId/forgot-password/reset', async () => {
+    const account1 = new AccountTestModel({ name: 'accountExample1', urlFriendlyName: 'urlFriendlyNameExample1' })
+    await account1.save()
+
+    const user1 = new UserTestModel({ email: 'user1@gmail.com', name: 'user1', accountId: account1._id, twoFactor: { enabled: true } })
+    await user1.save()
+
+    const token = jwt.sign({ type: 'forgot-password', user: { _id: user1._id, email: user1.email } }, secrets[0])
+    const res = await request(app)
+      .post('/v1/accounts/' + account1._id + '/forgot-password/reset')
+      .set('authorization', 'Bearer ' + token)
+      .send({ newPassword: 'userNewPassword', newPasswordAgain: 'userNewPassword' })
+
+    expect(res.body.status).toBe(200)
+    expect(res.body.result.loginToken).toBeUndefined()
+    expect(jwt.verify(res.body.result.twoFactorLoginToken, secrets[0]).type).toBe('2fa-login')
+  })
+
+  test('send forget password with a non-string email returns the same success  /v1/accounts/:accountId/forgot-password/send', async () => {
+    const account1 = new AccountTestModel({ name: 'accountExample1', urlFriendlyName: 'urlFriendlyNameExample1' })
+    await account1.save()
+    const captchaData = await captcha.generate(secrets)
+
+    const res = await request(app)
+      .post('/v1/accounts/' + account1._id + '/forgot-password/send')
+      .send({ email: { $ne: null }, captchaText: captchaData.text, captchaProbe: captchaData.probe })
+
+    expect(res.body.status).toBe(200)
+    expect(res.body.result).toEqual({ success: true })
   })
 })
 
@@ -517,7 +552,7 @@ describe('System admins forgot-password test', () => {
     expect(res.body.status).toBe(400)
   })
 
-  test('send forget password error user not found  /v1/system-admins/forgot-password/send', async () => {
+  test('send forget password unknown email returns the same success  /v1/system-admins/forgot-password/send', async () => {
     const hash1 = await bcrypt.hash('user1Password', 10)
     const user1 = new SystemAdminTestModel({ email: 'user1@gmail.com', name: 'user1', password: hash1 })
     await user1.save()
@@ -526,7 +561,8 @@ describe('System admins forgot-password test', () => {
     const res = await request(app)
       .post('/v1/system-admins/forgot-password/send')
       .send({ email: 'user2@gmail.com', captchaText: captchaData.text, captchaProbe: captchaData.probe })
-    expect(res.body.status).toBe(401)
+    expect(res.body.status).toBe(200)
+    expect(res.body.result).toEqual({ success: true })
   })
 
   test('success reset forget password  /v1/system-admins/forgot-password/reset', async () => {
@@ -597,5 +633,20 @@ describe('System admins forgot-password test', () => {
       .set('authorization', 'Bearer ' + token)
       .send({ newPassword: 'userNewPassword', newPasswordAgain: 'userNewPassword', captchaText: captchaData.text, captchaProbe: captchaData.probe })
     expect(res.body.status).toBe(404)
+  })
+
+  test('reset forget password with 2FA enabled asks for the 2FA code  /v1/system-admins/forgot-password/reset', async () => {
+    const user1 = new SystemAdminTestModel({ email: 'user1@gmail.com', name: 'user1', twoFactor: { enabled: true } })
+    await user1.save()
+
+    const token = jwt.sign({ type: 'forgot-password', user: { _id: user1._id, email: user1.email } }, secrets[0])
+    const res = await request(app)
+      .post('/v1/system-admins/forgot-password/reset')
+      .set('authorization', 'Bearer ' + token)
+      .send({ newPassword: 'userNewPassword', newPasswordAgain: 'userNewPassword' })
+
+    expect(res.body.status).toBe(200)
+    expect(res.body.result.loginToken).toBeUndefined()
+    expect(jwt.verify(res.body.result.twoFactorLoginToken, secrets[0]).type).toBe('2fa-login')
   })
 })
